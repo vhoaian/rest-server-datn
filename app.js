@@ -4,11 +4,15 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require("cors");
-const indexRouter = require('./routes/index');
+const passport = require("passport");
 
 require('dotenv').config();
 
 const app = express();
+
+//require midwares
+require('./middlewares');
+app.use(passport.initialize());
 
 app.use(logger('dev'));
 app.use(cors());
@@ -18,7 +22,11 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 //require routes 
+const indexRouter = require('./routes/index.R');
+const authRouter = require("./routes/auth.R");
+
 app.use('/', indexRouter);
+app.use('/auth', authRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

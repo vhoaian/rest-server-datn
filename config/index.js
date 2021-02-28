@@ -7,5 +7,8 @@ module.exports ={
         gclientID: process.env.GOOGLE_CLIENT_ID,
         gsecret: process.env.GOOGLE_SECRET,
         gCallBackURL: "/auth/google/redirect",
+    },
+    JWT:{
+        secretKey: "final-project",
     }
 };
