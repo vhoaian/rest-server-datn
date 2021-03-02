@@ -5,7 +5,10 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require("cors");
 const passport = require("passport");
+const swaggerUi = require('swagger-ui-express');
 
+//using swagger document
+const swaggerDocument = require('./doc/apiDoc/swagger.json'); 
 require('dotenv').config();
 
 const app = express();
@@ -26,8 +29,10 @@ const indexRouter = require('./routes/index.R');
 const authRouter = require("./routes/auth.R");
 
 app.use('/', indexRouter);
+//route to controll authentication
 app.use('/auth', authRouter);
-
+//route for api documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
