@@ -1,9 +1,13 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const indexRouter = express.Router();
+const indexController = require("../controllers/index.C");
+
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+indexRouter.get('/', function(req, res, next) {
   res.send("<h1>RESTful API for the final-year project </h1>");
 });
 
-module.exports = router;
+indexRouter.get('/top-rating', indexController.getTopRatingFood);
+
+module.exports = indexRouter;
