@@ -25,17 +25,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 // connect to DB
-connect('PRODUCTION');
-
+//connect('MYSELF', "mongodb://localhost:27017/nowDB");
+connect("PRODUCTION");
 //require routes
 const indexRouter = require('./routes/index.R');
-const authRouter = require('./routes/auth.R');
+const customerRouter = require('./routes/customer.R');
 const restaurantRouter = require('./routes/restaurant.R');
 
 app.use('/', indexRouter);
+
+//restaurants router
 app.use('/restaurants', restaurantRouter);
-//route to controll authentication
-app.use('/auth', authRouter);
+
+//customer router
+app.use('/customer', customerRouter);
+
 //route for api documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // catch 404 and forward to error handler

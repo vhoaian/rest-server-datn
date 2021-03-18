@@ -1,11 +1,9 @@
-class Normalize
+const Normalize =
 {
-
     /**
     * Normalize a port into a number, string, or false.
     */
-    static nomalizePort(value)
-    {
+    nomalizePort: (value) =>{
         const port = parseInt(value, 10);
 
         if (isNaN(port)) {
@@ -19,7 +17,13 @@ class Normalize
         }
       
         return false;
-    }
+    },
+
+    nomalizeResponse: (success, message, data)=> ({
+        success: success,
+        message: message,
+        data: data
+    })
 }
 
 module.exports = Normalize;

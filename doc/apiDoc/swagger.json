@@ -1,103 +1,209 @@
 {
-    "swagger": "2.0",
-    "info": {
-      "description": "This is a final-year project RESTful API services. You con watch this in \"localhost:8000/api-docs\" \n",
-      "version": "1.0.0",
-      "title": "Food Delivery RESTful API"
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Food Delivery RESTful API",
+    "description": "This is a final-year project RESTful API services. You con watch this in \"localhost:8000/api-docs\" \n",
+    "version": "1.0.0-oas3"
+  },
+  "servers": [
+    {
+      "url": "https://virtserver.swaggerhub.com/HongAn/food-delivery/1.0.0"
     },
-    "host": "virtserver.swaggerhub.com",
-    "basePath": "/HongAn/food-delivery/1.0.0",
-    "schemes": [
-      "http"
-    ],
-    "paths": {
-        "/auth/google":{
-            "get":{
-                "tags":[
-                    "auth"
-                ],
-                "summary":"Đăng nhập app sử dụng tài khoản Google",
-                "description": "truy cập đường link, tự động điều hướng về phía trang chọn tài khoản của Google ",
-                "produces": [
-                    "application/json"
-                ],
-                "operationId": "authenticationWithGoogle",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                      "description": "successful operation"
-                    },
-                    "304": {
-                      "description": "Điều hướng sang google Api"
-                    }
-                  }
-            }
+    {
+      "url": "http://virtserver.swaggerhub.com/HongAn/food-delivery/1.0.0"
+    }
+  ],
+  "paths": {
+    "/customer/auth/google": {
+      "post": {
+        "tags": [
+          "CustomerAuth"
+        ],
+        "summary": "Đăng nhập app sử dụng tài khoản Google (phân hệ khách hàng)",
+        "description": "gửi ID & token của Google API, kết quả trả về là jsonwebtoken và tình trạng sdt của người dùng (xác thực : true/false)",
+        "operationId": "authenticationWithGoogle",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GoogleLogin"
         },
-        
-      "/pet/findByStatus": {
-        "get": {
-          "tags": [
-            "pet"
-          ],
-          "summary": "Finds Pets by status",
-          "description": "Multiple status values can be provided with comma separated strings",
-          "operationId": "findPetsByStatus",
-          "produces": [
-            "application/json",
-            "application/xml"
-          ],
-          "parameters": [
-            {
-              "name": "status",
-              "in": "query",
-              "description": "Status values that need to be considered for filter",
-              "required": true,
-              "type": "array",
-              "items": {
-                "type": "string",
-                "default": "available",
-                "enum": [
-                  "available",
-                  "pending",
-                  "sold"
-                ]
-              },
-              "collectionFormat": "multi"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "successful operation",
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/Order"
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
                 }
               }
-            },
-            "400": {
-              "description": "Invalid status value"
             }
           },
-          "security": [
-            {
-              "petstore_auth": [
-                "write:pets",
-                "read:pets"
-              ]
+          "400": {
+            "description": "Lỗi không chứa các biến cần thiết",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
-          ]
+          }
         }
       }
     },
-    "securityDefinitions": {
+    "/customer/auth/vertify-phone": {
+      "post": {
+        "tags": [
+          "CustomerAuth"
+        ],
+        "summary": "xác nhận số điện thoại người dùng vừa đăng ký tài khoản GG",
+        "description": "gửi số diện thoại và userID tạm thời để đăng ký tài khoản GG",
+        "operationId": "ggVertifyPhone",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/VertifyPhone"
+        },
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi không chứa các biến cần thiết",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/restaunrant/auth/google": {
+      "post": {
+        "tags": [
+          "RestaurantAuth"
+        ],
+        "summary": "Đăng nhập app sử dụng tài khoản Google (phân hệ nhà hàng)",
+        "description": "gửi ID token của google API, kết quả trả về là jsonwebtoken và tình trạng sdt của người dùng (xác thực : true/false)",
+        "operationId": "ggrestaurant",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GoogleLogin"
+        },
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleLogin": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "googleID của người dùng"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Access Token của người dùng lấy từ Google API"
+          }
+        }
+      },
+      "AuthResponse": {
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "description": "đăng nhập thành công hay thất bại"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthResponse_data"
+          }
+        }
+      },
+      "AuthResponse_data": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "token của người dùng dạng jwt"
+          },
+          "userID": {
+            "type": "string",
+            "description": "userID tạm thời của người dùng mới đăng ky tài khoản cần xác nhận sdt"
+          },
+          "validate": {
+            "type": "boolean",
+            "description": "đã xác thực sdt hay chưa"
+          }
+        }
+      }
+    },
+    "requestBodies": {
+      "VertifyPhone": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "userID": {
+                  "type": "string",
+                  "description": "userID tạm thời từ response của API /customer/auth/google"
+                },
+                "phone": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GoogleLogin": {
+        "description": "ID & token của người dùng lấy từ google API",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GoogleLogin"
+            }
+          }
+        },
+        "required": true
+      }
+    },
+    "securitySchemes": {
       "petstore_auth": {
         "type": "oauth2",
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "flow": "implicit",
-        "scopes": {
-          "write:pets": "modify pets in your account",
-          "read:pets": "read your pets"
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+            "scopes": {
+              "write:pets": "modify pets in your account",
+              "read:pets": "read your pets"
+            }
+          }
         }
       },
       "api_key": {
@@ -105,44 +211,6 @@
         "name": "api_key",
         "in": "header"
       }
-    },
-    "definitions": {
-      "Order": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "petId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "quantity": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "shipDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
-            "type": "string",
-            "description": "Order Status",
-            "enum": [
-              "placed",
-              "approved",
-              "delivered"
-            ]
-          },
-          "complete": {
-            "type": "boolean",
-            "default": false
-          }
-        },
-        "type": "object",
-        "xml": {
-          "name": "Order"
-        }
-      }
     }
   }
+}
