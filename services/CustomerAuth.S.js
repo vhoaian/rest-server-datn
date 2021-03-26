@@ -3,6 +3,7 @@ const { User } = require('@vohoaian/datn-models');
 const jwt = require('jsonwebtoken');
 const UserManager = require('../manager/UserManager');
 const Constants = require('../config');
+const bcryptJs = require('bcryptjs');
 
 const AuthService = {
   loginWithGoogle: async (id, accessToken) => {
@@ -13,7 +14,6 @@ const AuthService = {
 
       const response = await axiosClient.post(url);
       const { email, name } = response;
-      console.log("User's info from GG:", response);
       // check user in DB
       let user = await User.findOne({ email }).select('email Status').exec();
 
@@ -23,7 +23,10 @@ const AuthService = {
           GoogleID: id,
           FullName: name,
           Email: email,
-          Password: Constants.GOOGLE.defaultPass,
+          Password: bcryptJs.hashSync(
+            Constants.GOOGLE.defaultPass,
+            Constants.BCRYPT_SALT
+          ),
         });
 
         //save new user Info waiting for user to vertify phone
@@ -42,9 +45,10 @@ const AuthService = {
         const payload = {
           id: user._id,
         };
-
         // create token JWT
-        const token = jwt.sign(payload, config.SECRET_KEY_JWT);
+        const token = jwt.sign(payload, config.SECRET_KEY_JWT, {
+          expiresIn: '4h',
+        });
         return {
           success: true,
           message: 'Login with GG success',
@@ -63,13 +67,19 @@ const AuthService = {
       };
     }
   },
+
   registerNewUser: async (user, userID, phone) => {
-    try {
-      //register new account
-      if (user) {
+    //register new account
+    if (user) {
+      try {
+      } catch (error) {
+        console.log(`[ERROR] CREATE NEW ACCOUNT ${error}`);
+        return { success: false, messge: 'create new account failed' };
       }
-      //vertify phone Number
-      else {
+    }
+    //vertify phone Number
+    else {
+      try {
         const newUser = UserManager.getUserByHandleID(userID);
         // vertify phone munber with otp
 
@@ -83,7 +93,9 @@ const AuthService = {
         };
 
         // create token JWT
-        const token = jwt.sign(payload, config.SECRET_KEY_JWT);
+        const token = jwt.sign(payload, config.SECRET_KEY_JWT, {
+          expiresIn: '4h',
+        });
         return {
           success: true,
           message: "vertify user's phone number success",
@@ -98,8 +110,38 @@ const AuthService = {
         //     message: "vertify user's phone number failed",
         //     data: null
         // }
+      } catch (error) {
+        console.log(`[ERROR]: VERTIFY_PHONE ${error}`);
+        return {
+          success: false,
+          message: "vertify user's phone number failed",
+        };
       }
-    } catch (error) {}
+    }
+  },
+
+  getUserInfo: async (id) => {
+    try {
+      const userInfo = await User.findById({ _id: id })
+        .select('FullName Phone Email Status Gender DOB Address Point')
+        .exec();
+      if (!userInfo) {
+        return { success: false, message: 'User not exists' };
+      }
+
+      if (userInfo.Status === -1) {
+        return { success: false, message: `User's accounthas been block` };
+      }
+
+      return {
+        success: true,
+        message: `Get user's info success`,
+        data: userInfo,
+      };
+    } catch (error) {
+      console.log(`[ERROR]: GET_INFO ${error}`);
+      return { success: false, messge: "Get user's info failed" };
+    }
   },
 };
 

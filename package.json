@@ -11,6 +11,7 @@
     "@vohoaian/datn-models": "^1.0.2",
     "@vohoaian/datn-otp": "^1.0.0",
     "axios": "^0.21.1",
+    "bcryptjs": "^2.4.3",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~2.6.9",
