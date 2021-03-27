@@ -37,7 +37,28 @@ const vertifyPhoneNumber = async (req, res, next) => {
 
 const getUserInfo = async (req, res) => {
   const { id } = req.user;
+  console.log(id);
   const { success, message, data } = await AuthService.getUserInfo(id);
+  console.log({ success, message, data });
+  res.send(nomalizeResponse(success, message, data));
+};
+
+const updateUserInfo = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const { fullname, dob, gender, address, district, city } = req.body;
+  const { id } = req.user;
+  const { success, message, data } = await AuthService.updateUserInfoByID(
+    id,
+    fullname,
+    dob,
+    gender,
+    address,
+    district,
+    city
+  );
 
   res.send(nomalizeResponse(success, message, data));
 };
@@ -46,4 +67,5 @@ module.exports = {
   loginWithGoogleAccount,
   vertifyPhoneNumber,
   getUserInfo,
+  updateUserInfo,
 };

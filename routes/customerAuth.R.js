@@ -25,4 +25,21 @@ authRouter.post(
 
 authRouter.get('/user-info', jwtAuthentication(), authController.getUserInfo);
 
+authRouter.put(
+  '/user-info',
+  jwtAuthentication(),
+  body('fullname').optional().isString(),
+  body('gender').optional().isInt(),
+  body('dob')
+    .optional()
+    .matches(
+      /^([0][1-9]|[1][0-2])[/]([0][1-9]|[1|2][0-9]|[3][0|1])[/][0-9]{4}$/m
+    )
+    .customSanitizer((value) => moment(value, '"DD/MM/YYYY"').toDate()),
+  body('address').optional().isString(),
+  body('district').optional().isString(),
+  body('city').optional().isString(),
+  authController.updateUserInfo
+);
+
 module.exports = authRouter;

@@ -8,15 +8,15 @@ const bcryptJs = require('bcryptjs');
 const AuthService = {
   loginWithGoogle: async (id, accessToken) => {
     try {
-      console.log({ id, accessToken });
       const url = `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${id}`;
       const query = {};
 
       const response = await axiosClient.post(url);
       const { email, name } = response;
       // check user in DB
-      let user = await User.findOne({ email }).select('email Status').exec();
-
+      let user = await User.findOne({ Email: email })
+        .select('Email Status')
+        .exec();
       //save info of user to controller
       if (!user) {
         user = new User({
@@ -46,7 +46,7 @@ const AuthService = {
           id: user._id,
         };
         // create token JWT
-        const token = jwt.sign(payload, config.SECRET_KEY_JWT, {
+        const token = jwt.sign(payload, Constants.JWT.secretKey, {
           expiresIn: '4h',
         });
         return {
@@ -93,7 +93,7 @@ const AuthService = {
         };
 
         // create token JWT
-        const token = jwt.sign(payload, config.SECRET_KEY_JWT, {
+        const token = jwt.sign(payload, Constants.JWT.secretKey, {
           expiresIn: '4h',
         });
         return {
@@ -141,6 +141,47 @@ const AuthService = {
     } catch (error) {
       console.log(`[ERROR]: GET_INFO ${error}`);
       return { success: false, messge: "Get user's info failed" };
+    }
+  },
+
+  updateUserInfoByID: async (
+    id,
+    fullname,
+    dob,
+    gender,
+    address,
+    district,
+    city
+  ) => {
+    try {
+      //find User
+      const userInfo = await User.findByIdAndUpdate({ _id: id })
+        .select('FullName Gender DOB Address District City')
+        .exec();
+
+      if (!userInfo) {
+        return { success: false, message: 'User not exists' };
+      }
+      //add new value of update
+      userInfo.FullName = fullname ? fullname : userInfo.FullName;
+      userInfo.Gender = gender ? gender : userInfo.Gender;
+      userInfo.Address = address ? address : userInfo.Address;
+      userInfo.District = district ? district : userInfo.District;
+      userInfo.City = city ? city : userInfo.City;
+      userInfo.DOB = dob ? dob : userInfo.DOB;
+
+      //save new update
+      const result = await useInfo.save();
+      console.log(result);
+
+      return {
+        success: true,
+        message: `Update user's info success`,
+        data: result,
+      };
+    } catch (error) {
+      console.log(`[ERROR]: UPDATE_INFO ${error}`);
+      return { success: false, messge: "Update user's info failed" };
     }
   },
 };

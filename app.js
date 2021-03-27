@@ -14,10 +14,6 @@ require('dotenv').config();
 
 const app = express();
 
-//require midwares
-require('./middlewares');
-app.use(passport.initialize());
-
 app.use(logger('dev'));
 app.use(cors());
 app.use(express.json());
@@ -25,8 +21,12 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 // connect to DB
-//connect('MYSELF', "mongodb://localhost:27017/nowDB");
-connect("PRODUCTION");
+connect('MYSELF', 'mongodb://localhost:27017/nowDB');
+
+//require midwares
+app.use(passport.initialize());
+require('./middlewares');
+//connect("PRODUCTION");
 //require routes
 const indexRouter = require('./routes/index.R');
 const customerRouter = require('./routes/customer.R');
