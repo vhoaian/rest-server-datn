@@ -74,7 +74,7 @@ const AuthService = {
       try {
       } catch (error) {
         console.log(`[ERROR] CREATE NEW ACCOUNT ${error}`);
-        return { success: false, messge: 'create new account failed' };
+        return { success: false, messsge: 'create new account failed' };
       }
     }
     //vertify phone Number
@@ -140,7 +140,7 @@ const AuthService = {
       };
     } catch (error) {
       console.log(`[ERROR]: GET_INFO ${error}`);
-      return { success: false, messge: "Get user's info failed" };
+      return { success: false, message: "Get user's info failed" };
     }
   },
 
@@ -171,8 +171,8 @@ const AuthService = {
       userInfo.DOB = dob ? dob : userInfo.DOB;
 
       //save new update
-      const result = await useInfo.save();
-      console.log(result);
+      const result = await userInfo.save();
+      //console.log(result);
 
       return {
         success: true,
@@ -181,7 +181,7 @@ const AuthService = {
       };
     } catch (error) {
       console.log(`[ERROR]: UPDATE_INFO ${error}`);
-      return { success: false, messge: "Update user's info failed" };
+      return { success: false, message: "Update user's info failed" };
     }
   },
 };

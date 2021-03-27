@@ -15,7 +15,6 @@ passport.use(
     function (jwt_payload, done) {
       try {
         const user = { id: jwt_payload.id };
-        console.log(jwt_payload);
         return done(null, user);
       } catch (error) {
         console.log('[ERROR]: ' + error);

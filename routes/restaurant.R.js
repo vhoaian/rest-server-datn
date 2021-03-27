@@ -5,6 +5,7 @@ const moment = require('moment');
 const {
   createRestaurant,
   getRestaurants,
+  getRestaurantInfo,
 } = require('../controllers/restaurant.C');
 var router = express.Router();
 
@@ -42,6 +43,19 @@ router.use(
       });
   }),
   foodCategoryRouter
+);
+
+router.get(
+  '/:restaurant',
+  param('restaurant').custom((value, { req }) => {
+    return Restaurant.findById(value)
+      .exec()
+      .then((restaurant) => {
+        if (!restaurant) return Promise.reject('Khong tim thay restaurant');
+        req.data = { restaurant };
+      });
+  }),
+  getRestaurantInfo
 );
 
 module.exports = router;

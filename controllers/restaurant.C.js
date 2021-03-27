@@ -1,6 +1,6 @@
 const { Restaurant } = require('@vohoaian/datn-models');
 const { validationResult } = require('express-validator');
-
+const { nomalizeResponse } = require('../utils');
 function createRestaurant(req, res) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -40,4 +40,15 @@ function getRestaurants(req, res) {
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
 
-module.exports = { createRestaurant, getRestaurants };
+function getRestaurantInfo(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { restaurant } = req.data;
+  console.log(restaurant);
+  res.send(nomalizeResponse(true, "Get restaurant's info success", restaurant));
+}
+
+module.exports = { createRestaurant, getRestaurants, getRestaurantInfo };

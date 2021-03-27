@@ -21,12 +21,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 // connect to DB
-connect('MYSELF', 'mongodb://localhost:27017/nowDB');
-
+//connect('MYSELF', 'mongodb://localhost:27017/nowDB');
+connect('PRODUCTION');
 //require midwares
 app.use(passport.initialize());
 require('./middlewares');
-//connect("PRODUCTION");
 //require routes
 const indexRouter = require('./routes/index.R');
 const customerRouter = require('./routes/customer.R');
