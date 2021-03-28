@@ -41,4 +41,5 @@ authRouter.put(
   authController.updateUserInfo
 );
 
+//authRouter.post("/foget-password", )
 module.exports = authRouter;

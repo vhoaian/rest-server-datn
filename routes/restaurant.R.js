@@ -7,6 +7,7 @@ const {
   getRestaurants,
   getRestaurantInfo,
 } = require('../controllers/restaurant.C');
+const { getFoodsOfRestaurant } = require('../controllers/food.C');
 var router = express.Router();
 
 // TODO: location, status
@@ -43,6 +44,12 @@ router.use(
       });
   }),
   foodCategoryRouter
+);
+
+router.get(
+  '/:restaurant/foods',
+  param('restaurant').isMongoId(),
+  getFoodsOfRestaurant
 );
 
 router.get(

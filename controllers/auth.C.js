@@ -31,15 +31,15 @@ const vertifyPhoneNumber = async (req, res, next) => {
     userID,
     phone
   );
-  console.log({ success, message, data });
+
   res.send(nomalizeResponse(success, message, data));
 };
 
 const getUserInfo = async (req, res) => {
   const { id } = req.user;
-  console.log(id);
+
   const { success, message, data } = await AuthService.getUserInfo(id);
-  console.log({ success, message, data });
+
   res.send(nomalizeResponse(success, message, data));
 };
 

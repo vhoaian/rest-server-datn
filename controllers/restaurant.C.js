@@ -47,7 +47,6 @@ function getRestaurantInfo(req, res) {
   }
 
   const { restaurant } = req.data;
-  console.log(restaurant);
   res.send(nomalizeResponse(true, "Get restaurant's info success", restaurant));
 }
 
