@@ -28,7 +28,7 @@ const PRO_ENV_VAR = {
   URL_SERVER: process.env.API_URL_SERVER,
   MONGO_DB:
     process.env.ENVIRONMENT === 'DOCKER'
-      ? 'mongodb://mongo:27017/nowDB'
+      ? 'mongodb://mongo:27018/nowDB'
       : 'mongodb://localhost:27017/nowDB',
 };
 console.log(process.env.ENVIRONMENT);
