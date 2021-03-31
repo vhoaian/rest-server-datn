@@ -20,7 +20,7 @@ function createFood(req, res) {
   food
     .save()
     .then((doc) => {
-      res.json(doc);
+      res.send(nomalizeResponse(true, null, doc));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
@@ -34,7 +34,7 @@ function getFoods(req, res) {
   Food.find({ FoodCategory: req.data.foodcategory })
     .exec()
     .then((docs) => {
-      res.json(docs);
+      res.send(nomalizeResponse(true, null, docs));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
@@ -52,7 +52,7 @@ function deleteFood(req, res) {
   )
     .exec()
     .then((docs) => {
-      res.json(docs);
+      res.send(nomalizeResponse(true, null, docs));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
@@ -81,7 +81,7 @@ function updateFood(req, res) {
   )
     .exec()
     .then((docs) => {
-      res.json(docs);
+      res.send(nomalizeResponse(true, null, docs));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }

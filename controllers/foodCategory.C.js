@@ -1,5 +1,6 @@
 const { FoodCategory } = require('@vohoaian/datn-models');
 const { validationResult } = require('express-validator');
+const { nomalizeResponse } = require('../utils');
 
 function createFoodCategory(req, res) {
   const errors = validationResult(req);
@@ -15,7 +16,7 @@ function createFoodCategory(req, res) {
   foodCategory
     .save()
     .then((doc) => {
-      res.json(doc);
+      res.send(nomalizeResponse(true, null, docs));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
@@ -29,7 +30,7 @@ function getFoodCategories(req, res) {
   FoodCategory.find({ Restaurant: req.data.restaurant })
     .exec()
     .then((docs) => {
-      res.json(docs);
+      res.send(nomalizeResponse(true, null, docs));
     })
     .catch(() => res.status(500).json({ errors: ['Error'] }));
 }
