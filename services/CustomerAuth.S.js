@@ -81,6 +81,9 @@ const AuthService = {
     else {
       try {
         const newUser = UserManager.getUserByHandleID(userID);
+        if (!newUser) {
+          return { status: false, message: 'can not find user by userID' };
+        }
         // vertify phone munber with otp
 
         //vertify success
