@@ -41,7 +41,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - master
 
       - deploy:
           requires:
