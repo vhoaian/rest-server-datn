@@ -30,11 +30,16 @@ const DEV_ENV_VAR = {
 const PRO_ENV_VAR = {
   ENV: 'PRODUCTION',
   URL_SERVER: process.env.API_URL_SERVER,
+  MONGO_DB:
+    process.env.ENVIRONMENT === 'DOCKER'
+      ? 'mongodb://mongo:27018/nowDB'
+      : 'mongodb://localhost:27017/nowDB',
 };
+console.log(process.env.ENVIRONMENT);
 
 const ENV =
-  process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION'
-    ? { ...PRO_ENV_VAR, ...OPERATION_VAR }
-    : { ...DEV_ENV_VAR, ...OPERATION_VAR };
+  process.env.ENVIRONMENT === 'DEVELOPMENT'
+    ? { ...DEV_ENV_VAR, ...OPERATION_VAR }
+    : { ...PRO_ENV_VAR, ...OPERATION_VAR };
 
 module.exports = ENV;

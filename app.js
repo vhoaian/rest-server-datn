@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
@@ -7,6 +9,7 @@ const cors = require('cors');
 const passport = require('passport');
 const swaggerUi = require('swagger-ui-express');
 const { connect } = require('@vohoaian/datn-models');
+const { MONGO_DB } = require('./config');
 
 //using swagger document
 //const swaggerDocument = require('./doc/apiDoc/swagger.json');
@@ -20,9 +23,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
 // connect to DB
-//connect('MYSELF', 'mongodb://localhost:27017/nowDB');
-connect('PRODUCTION');
+//
+process.env.ENVIRONMENT === 'DEVELOPMENT'
+  ? connect('PRODUCTION')
+  : connect('MYSELF', MONGO_DB);
+
 //require midwares
 app.use(passport.initialize());
 require('./middlewares');

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "dev:window": "set PORT=8000 && set ENVIROMENT=DEVELOPMENT && nodemon ./bin/www",
-    "dev:mac": "PORT=8000 ENVIROMENT=DEVELOPMENT nodemon ./bin/www"
+    "dev:window": "set PORT=8000 && set ENVIRONMENT=DEVELOPMENT && nodemon ./bin/www",
+    "dev:mac": "PORT=8000 ENVIRONMENT=DEVELOPMENT nodemon ./bin/www"
   },
   "dependencies": {
     "@vohoaian/datn-models": "^1.1.0",
@@ -27,5 +27,8 @@
     "passport-jwt": "^4.0.0",
     "query-string": "^6.14.1",
     "swagger-ui-express": "^4.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
   }
 }
