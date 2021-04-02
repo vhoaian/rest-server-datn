@@ -3,7 +3,7 @@ const { FoodCategory, Food } = require('@vohoaian/datn-models');
 const getFoodsOfRestaurant = async (restaurantID) => {
   try {
     const foodCategories = await FoodCategory.find({ Restaurant: restaurantID })
-      .select('_id')
+      .select('_id Name')
       .exec();
     //console.log(foodCategories);
     if (foodCategories && foodCategories.length > 0) {
@@ -21,8 +21,11 @@ const getFoodsOfRestaurant = async (restaurantID) => {
       });
 
       const foodsArr = await Promise.all(foodPromies);
-      const foodList = foodsArr.flat();
-      console.log(foodList);
+      let foodList = {};
+      foodCategories.forEach((category, i) => {
+        foodList[category.Name] = foodsArr[i];
+      });
+
       return {
         success: true,
         data: foodList,

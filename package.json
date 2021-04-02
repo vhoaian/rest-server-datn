@@ -8,7 +8,7 @@
     "dev:mac": "PORT=8000 ENVIROMENT=DEVELOPMENT nodemon ./bin/www"
   },
   "dependencies": {
-    "@vohoaian/datn-models": "^1.0.2",
+    "@vohoaian/datn-models": "^1.1.0",
     "@vohoaian/datn-otp": "^1.0.0",
     "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",

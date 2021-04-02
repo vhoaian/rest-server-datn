@@ -9,7 +9,7 @@ const swaggerUi = require('swagger-ui-express');
 const { connect } = require('@vohoaian/datn-models');
 
 //using swagger document
-const swaggerDocument = require('./doc/apiDoc/swagger.json');
+//const swaggerDocument = require('./doc/apiDoc/swagger.json');
 require('dotenv').config();
 
 const app = express();
@@ -40,7 +40,7 @@ app.use('/restaurants', restaurantRouter);
 app.use('/customer', customerRouter);
 
 //route for api documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+//app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

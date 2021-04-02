@@ -15,6 +15,10 @@ const OPERATION_VAR = {
     secretKey: 'final-project',
   },
   BCRYPT_SALT: bcryptJs.genSaltSync(10),
+  PAGE: {
+    ITEM_IN_PAGE: 15,
+    PAGING_LIST: 3,
+  },
 };
 
 const DEV_ENV_VAR = {
