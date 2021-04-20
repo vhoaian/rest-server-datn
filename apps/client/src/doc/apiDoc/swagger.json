@@ -1,0 +1,216 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Food Delivery RESTful API",
+    "description": "This is a final-year project RESTful API services. You con watch this in \"localhost:8000/api-docs\" \n",
+    "version": "1.0.0-oas3"
+  },
+  "servers": [
+    {
+      "url": "https://virtserver.swaggerhub.com/HongAn/food-delivery/1.0.0"
+    },
+    {
+      "url": "http://virtserver.swaggerhub.com/HongAn/food-delivery/1.0.0"
+    }
+  ],
+  "paths": {
+    "/customer/auth/google": {
+      "post": {
+        "tags": [
+          "CustomerAuth"
+        ],
+        "summary": "Đăng nhập app sử dụng tài khoản Google (phân hệ khách hàng)",
+        "description": "gửi ID & token của Google API, kết quả trả về là jsonwebtoken và tình trạng sdt của người dùng (xác thực : true/false)",
+        "operationId": "authenticationWithGoogle",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GoogleLogin"
+        },
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi không chứa các biến cần thiết",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/auth/vertify-phone": {
+      "post": {
+        "tags": [
+          "CustomerAuth"
+        ],
+        "summary": "xác nhận số điện thoại người dùng vừa đăng ký tài khoản GG",
+        "description": "gửi số diện thoại và userID tạm thời để đăng ký tài khoản GG",
+        "operationId": "ggVertifyPhone",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/VertifyPhone"
+        },
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi không chứa các biến cần thiết",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/restaunrant/auth/google": {
+      "post": {
+        "tags": [
+          "RestaurantAuth"
+        ],
+        "summary": "Đăng nhập app sử dụng tài khoản Google (phân hệ nhà hàng)",
+        "description": "gửi ID token của google API, kết quả trả về là jsonwebtoken và tình trạng sdt của người dùng (xác thực : true/false)",
+        "operationId": "ggrestaurant",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GoogleLogin"
+        },
+        "responses": {
+          "200": {
+            "description": "thành công kết nối với Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleLogin": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "googleID của người dùng"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Access Token của người dùng lấy từ Google API"
+          }
+        }
+      },
+      "AuthResponse": {
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "description": "đăng nhập thành công hay thất bại"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthResponse_data"
+          }
+        }
+      },
+      "AuthResponse_data": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "token của người dùng dạng jwt"
+          },
+          "userID": {
+            "type": "string",
+            "description": "userID tạm thời của người dùng mới đăng ky tài khoản cần xác nhận sdt"
+          },
+          "validate": {
+            "type": "boolean",
+            "description": "đã xác thực sdt hay chưa"
+          }
+        }
+      }
+    },
+    "requestBodies": {
+      "VertifyPhone": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "userID": {
+                  "type": "string",
+                  "description": "userID tạm thời từ response của API /customer/auth/google"
+                },
+                "phone": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GoogleLogin": {
+        "description": "ID & token của người dùng lấy từ google API",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GoogleLogin"
+            }
+          }
+        },
+        "required": true
+      }
+    },
+    "securitySchemes": {
+      "petstore_auth": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+            "scopes": {
+              "write:pets": "modify pets in your account",
+              "read:pets": "read your pets"
+            }
+          }
+        }
+      },
+      "api_key": {
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "header"
+      }
+    }
+  }
+}
