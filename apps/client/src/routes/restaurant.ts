@@ -36,7 +36,7 @@ router.get(
   query('latitude').optional().isFloat().toFloat(),
   query('longitude').optional().isFloat().toFloat(),
   query('keyword').default('').isString(),
-  query('perpage').default(1).isInt().toInt(),
+  query('perpage').default(10).isInt().toInt(),
   query('sort').default('distance').isString(),
   validateInput,
   getRestaurants

@@ -4,6 +4,7 @@ import {
   loginWithGoogleAccount,
   requestOTPForThirdPartyRegistration,
   requestOTPForExistUser,
+  verifyOTPForThirdPartyRegistration,
 } from '../controllers/auth';
 import { jwtAuthentication, validateInput } from '../middlewares/services';
 const authRouter = express.Router();
@@ -35,7 +36,7 @@ authRouter.post(
     .isLength({ min: 6, max: 6 })
     .matches(/^[0-9]*$/g),
   validateInput,
-  loginWithGoogleAccount
+  verifyOTPForThirdPartyRegistration
 );
 
 authRouter.post(

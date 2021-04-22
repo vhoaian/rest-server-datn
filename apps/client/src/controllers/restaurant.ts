@@ -101,8 +101,10 @@ export async function getRestaurants(req, res) {
     if (sort == 'distance') {
       if (longitude && latitude) {
         restaurants =
-          restaurantsByKeyword.length == 0
+          restaurantsByKeyword.length == 0 && keyword.length == 0
             ? restaurantsByDistance
+            : restaurantsByKeyword.length == 0
+            ? restaurantsByKeyword
             : commonRestaurant(restaurantsByDistance, restaurantsByKeyword);
       } else {
         restaurants = restaurantsByKeyword;
@@ -144,7 +146,7 @@ export async function getRestaurants(req, res) {
 
   res.send(
     nomalizeResponse(result, 0, {
-      totalPage: 2,
+      totalPage: Math.ceil(resolvedRestaurants.length / perpage),
       currentPage: page,
       perPage: perpage,
     })
