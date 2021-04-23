@@ -12,6 +12,7 @@ export const environment = {
     secretKey: 'final-project',
   },
   BCRYPT_SALT: bcryptJs.genSaltSync(10),
+  URL_SERVER: ""
 };
 
 export enum ERROR_CODE {

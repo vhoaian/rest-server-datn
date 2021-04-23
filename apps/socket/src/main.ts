@@ -1,13 +1,21 @@
+import {config as configDotenv} from "dotenv";
+configDotenv();
+
 import express from 'express';
 import cors from 'cors';
 import { environment } from './environments/environment';
 import { connect } from '@vohoaian/datn-models';
+import homeComponent from "./components/home";
+import { config as configSocket} from "./socket";
 
 const app = express();
 
 app.use(cors());
 // Connect to the database
 connect('PRODUCTION');
+
+// 
+app.use("/", homeComponent);
 
 app.use(function (req, res) {
   res.status(404).end();
@@ -23,5 +31,7 @@ const server = app.listen(environment.PORT, () => {
     `The socket application is listening at http://localhost:${environment.PORT}`
   );
 });
+
+configSocket(server)
 
 server.on('error', console.error);

@@ -16,7 +16,8 @@
     "baseUrl": ".",
     "paths": {},
     "esModuleInterop": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "checkJs": false
   },
   "exclude": ["node_modules", "tmp"]
 }
