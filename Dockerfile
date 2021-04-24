@@ -1,6 +1,8 @@
-FROM node:14-stretch-slim AS build
+FROM node:14-stretch-slim
+
 WORKDIR /app
-ENV ENVIRONMENT=DOCKER
+ENV ENVIRONMENT=PRODUCTION
+ENV MONGO_DB=mongodb://mongo:27018/nowDB
 COPY package.json /app
 COPY package-lock.json /app
 RUN npm install

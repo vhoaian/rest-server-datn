@@ -21,9 +21,10 @@ const newOrder = (orderID, customerID, merchantID, shipperID) => ({
   status: ORDER_STATUS.WAITING,
 });
 
-const listOrderOnline = [];
+let listOrderOnline = [];
 
 export const getOrder = (id) => {
+  // @ts-expect-error
   const indexOf = listOrderOnline.map((order) => order.id).indexOf(id);
   if (indexOf < 0) return null;
 
@@ -31,13 +32,15 @@ export const getOrder = (id) => {
 };
 
 export const addOrder = (orderID, customerID, merchantID, shipperID) => {
+  // @ts-expect-error
   listOrderOnline.push(newOrder(orderID, customerID, merchantID, shipperID));
 };
 
 export const removeorder = (id) => {
-  const newListOrderOnline = listOrderOnline.filter((order) =>
-    order.id !== id ? order : null
-  );
+  const newListOrderOnline = listOrderOnline.filter((order) => {
+    // @ts-expect-error
+    return order.id !== id ? order : null;
+  });
 
   listOrderOnline = newListOrderOnline;
 };

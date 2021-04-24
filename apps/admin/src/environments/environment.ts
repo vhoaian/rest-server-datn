@@ -1,7 +1,7 @@
-import { environment as base } from './base';
+import { environment as base } from "./base";
 
 export const environment = {
   production: false,
   ...base,
-  MONGO_DB: 'mongodb://localhost:27017/nowDB',
+  MONGO_DB: process.env.MONGO_DB || "mongodb://localhost:27017/nowDB",
 };

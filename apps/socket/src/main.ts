@@ -1,20 +1,19 @@
-import {config as configDotenv} from "dotenv";
-configDotenv();
-
-import express from 'express';
-import cors from 'cors';
-import { environment } from './environments/environment';
-import { connect } from '@vohoaian/datn-models';
+import express from "express";
+import cors from "cors";
+import { environment } from "./environments/environment";
+import { connect } from "@vohoaian/datn-models";
 import homeComponent from "./components/home";
-import { config as configSocket} from "./socket";
+import { config as configSocket } from "./socket";
+
+console.log(environment);
 
 const app = express();
 
 app.use(cors());
 // Connect to the database
-connect('PRODUCTION');
+connect("PRODUCTION");
 
-// 
+//
 app.use("/", homeComponent);
 
 app.use(function (req, res) {
@@ -32,6 +31,6 @@ const server = app.listen(environment.PORT, () => {
   );
 });
 
-configSocket(server)
+configSocket(server);
 
-server.on('error', console.error);
+server.on("error", console.error);

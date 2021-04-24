@@ -1,8 +1,8 @@
-import express from 'express';
-import cors from 'cors';
-import passport from 'passport';
-import { environment } from './environments/environment';
-import { connect } from '@vohoaian/datn-models';
+import express from "express";
+import cors from "cors";
+import passport from "passport";
+import { environment } from "./environments/environment";
+import { connect } from "@vohoaian/datn-models";
 
 const app = express();
 
@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
 // Connect to the database
-connect('PRODUCTION');
+connect("PRODUCTION");
 
 app.use(function (req, res) {
   res.status(404).end();
@@ -28,4 +28,4 @@ const server = app.listen(environment.PORT, () => {
   );
 });
 
-server.on('error', console.error);
+server.on("error", console.error);
