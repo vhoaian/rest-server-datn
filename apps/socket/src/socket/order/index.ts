@@ -1,3 +1,6 @@
+import { Order } from "@vohoaian/datn-models";
+import { TAG_LOG_ERROR } from "../TAG_EVENT";
+
 const ORDER_STATUS = {
   WAITING: 0,
   COMING_TO_GET: 1,
@@ -36,11 +39,21 @@ export const addOrder = (orderID, customerID, merchantID, shipperID) => {
   listOrderOnline.push(newOrder(orderID, customerID, merchantID, shipperID));
 };
 
-export const removeorder = (id) => {
+export const removeOrder = (id) => {
   const newListOrderOnline = listOrderOnline.filter((order) => {
     // @ts-expect-error
     return order.id !== id ? order : null;
   });
 
   listOrderOnline = newListOrderOnline;
+};
+
+export const changeStatusOrder = async (_id, status) => {
+  try {
+    const newOrder = await Order.findOneAndUpdate({ _id }, { Status: status });
+    return true;
+  } catch (e) {
+    console.log(`[${TAG_LOG_ERROR}]: ${e.message}`);
+    return false;
+  }
 };

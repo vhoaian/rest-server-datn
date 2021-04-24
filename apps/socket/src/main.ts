@@ -1,11 +1,9 @@
 import express from "express";
 import cors from "cors";
-import { environment } from "./environments/environment";
+import environment from "./config";
 import { connect } from "@vohoaian/datn-models";
 import homeComponent from "./components/home";
 import { config as configSocket } from "./socket";
-
-console.log(environment);
 
 const app = express();
 
