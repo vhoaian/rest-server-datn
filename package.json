@@ -44,7 +44,8 @@
     "passport-jwt": "^4.0.0",
     "socket.io": "^4.0.1",
     "socketio-jwt": "^4.6.2",
-    "tslib": "^2.0.0"
+    "tslib": "^2.0.0",
+    "underscore": "^1.13.1"
   },
   "devDependencies": {
     "@nrwl/cli": "11.6.2",
