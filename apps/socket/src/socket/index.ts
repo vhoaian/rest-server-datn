@@ -19,17 +19,11 @@ export const config = (server) => {
   });
 
   // @ts-expect-error
-  _io.use(
-    socketioJwt.authorize({
-      secret: configApp.JWT.secretKey,
-      handshake: true,
-    })
-  );
-
-  // @ts-expect-error
   _io.on("connection", (socket) => {
     console.log(`[${TAG_LOG}]: new connection ${socket.id}`);
     console.log(`[${TAG_LOG}]: token ${JSON.stringify(socket.decoded_token)}`);
+
+    socket.emit("authenticated");
 
     // Set listener
     configEventListener(_io, socket);
@@ -39,6 +33,16 @@ export const config = (server) => {
       console.log(`[${TAG_LOG}]: disconnect ${socket.id}`);
     });
   });
+
+  // @ts-expect-error
+  _io.use(
+    socketioJwt.authorize({
+      secret: configApp.JWT.secretKey,
+      handshake: true,
+      auth_header_required: true,
+      timeout: 5000,
+    })
+  );
 
   console.log(`[${TAG_LOG}]: Config socket.io success`);
 };
