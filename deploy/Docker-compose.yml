@@ -4,7 +4,7 @@ services:
     container_name: rest-server-datn
     image: paopaophan/rest-server-datn:latest
     restart: always
-    build: ../
+    build: .
     ports:
       - "8000:8000"
       - "8001:8001"
