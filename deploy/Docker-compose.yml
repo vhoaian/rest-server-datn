@@ -15,6 +15,7 @@ services:
   mongo:
     container_name: "mongo"
     image: "mongo"
+    restart: always
     command: mongod --port 27018
     volumes:
       - ./data:/data/db

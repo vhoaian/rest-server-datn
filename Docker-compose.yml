@@ -2,7 +2,7 @@ version: "3"
 services:
   rest-server-datn:
     container_name: rest-server-datn
-    image: test
+    image: paopaophan/rest-server-datn:latest
     restart: always
     build: .
     ports:
