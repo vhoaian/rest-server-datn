@@ -8,6 +8,9 @@ export default {
   CLIENT_SECRET: "8yE3QcRVSkdLcEANEFRAMT2O",
   REDIRECT_URLS: ["https://developers.google.com/oauthplayground"],
   REFRESH_TOKEN:
-    "1//0ej698ZA2872ZCgYIARAAGA4SNwF-L9IrI81tyCIOmKCs7S1XS2OefpkN790Y66mjLAzEz91XkipOc3HHJjRDenTamicz-zlj-TY",
-  SCOPES: ["https://www.googleapis.com/auth/drive"],
+    "1//0eLEYD-8BnpOGCgYIARAAGA4SNwF-L9Ir3JvkcVAaS9otbQ7J6rTd86fym3DH0ma_2oTQctg4HIM7b9U9MZH4001BwzKtp0X_5KM"
+  SCOPES: [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+  ],
 };

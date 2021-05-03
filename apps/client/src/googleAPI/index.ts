@@ -13,32 +13,32 @@ const oAuth2Client = new google.auth.OAuth2(
 oAuth2Client.setCredentials({ refresh_token: credentials.REFRESH_TOKEN });
 const drive = google.drive({ version: "v3", auth: oAuth2Client });
 
-// function getAccessToken(oAuth2Client) {
-//   const authUrl = oAuth2Client.generateAuthUrl({
-//     access_type: "offline",
-//     scope: credentials.SCOPES,
-//   });
+function getAccessToken() {
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: credentials.SCOPES,
+  });
 
-//   console.log("Authorize this app by visiting this url:", authUrl);
+  console.log("Authorize this app by visiting this url:", authUrl);
 
-//   const rl = readline.createInterface({
-//     input: process.stdin,
-//     output: process.stdout,
-//   });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-//   rl.question("Enter the code from that page here: ", (code) => {
-//     rl.close();
-//     oAuth2Client.getToken(code, (err, token) => {
-//       if (err) return console.error("Error retrieving access token", err);
-//       oAuth2Client.setCredentials(token);
-//       // Store the token to disk for later program executions
-//       fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-//         if (err) return console.error(err);
-//         console.log("Token stored to", TOKEN_PATH);
-//       });
-//     });
-//   });
-// }
+  rl.question("Enter the code from that page here: ", (code) => {
+    rl.close();
+    oAuth2Client.getToken(code, (err, token) => {
+      if (err) return console.error("Error retrieving access token", err);
+      oAuth2Client.setCredentials(token);
+      // Store the token to disk for later program executions
+      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+        if (err) return console.error(err);
+        console.log("Token stored to", TOKEN_PATH);
+      });
+    });
+  });
+}
 
 // const listFiles = async () => {
 //   drive.files.list(
