@@ -13,6 +13,10 @@ app.use(passport.initialize());
 // Connect to the database
 connect("PRODUCTION");
 
+app.get("/", (req, res) => {
+  res.send("HELLO");
+});
+
 app.use(function (req, res) {
   res.status(404).end();
 });

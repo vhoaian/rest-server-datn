@@ -1,9 +1,20 @@
+import config from "../../config";
+
+const isLog = config.LOG_SOCKET.indexOf("merchant") > -1 ? true : false;
+
 const MERCHANT_DEFAULT = {
   id: null,
-  socket: null,
+  socketID: null,
 };
 
 let listMetchantOnline = [];
+
+// Log list customer online
+if (isLog)
+  setInterval(() => {
+    console.log("LIST MERCHANT ONLINE");
+    console.table(listMetchantOnline);
+  }, 5000);
 
 export const getMerchant = (id) => {
   // @ts-expect-error
@@ -13,9 +24,9 @@ export const getMerchant = (id) => {
   return listMetchantOnline[indexOf];
 };
 
-export const addMerchant = (id, socket) => {
+export const addMerchant = (id, socketID) => {
   // @ts-expect-error
-  listMetchantOnline.push({ id, socket });
+  listMetchantOnline.push({ id, socketID });
 };
 
 export const removeMerchant = (id) => {

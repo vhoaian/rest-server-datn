@@ -1,11 +1,21 @@
 import { Order } from "@vohoaian/datn-models";
 import { TAG_LOG_ERROR } from "../TAG_EVENT";
+import config from "../../config";
 
-const ORDER_STATUS = {
-  WAITING: 0,
-  COMING_TO_GET: 1,
-  SHIPPING: 2,
-  DELIVERED: 3,
+const isLog = config.LOG_SOCKET.indexOf("order") > -1 ? true : false;
+
+const ENUM = (function* () {
+  var index = 0;
+  while (true) yield index++;
+})();
+
+export const ORDER_STATUS = {
+  WAITING: ENUM.next().value,
+  MERCHANT_CONFIRM: ENUM.next().value,
+  SHIPPER_ARRIVED: ENUM.next().value,
+  DURING_GET: ENUM.next().value,
+  DURING_SHIP: ENUM.next().value,
+  DELIVERED: ENUM.next().value,
 };
 
 const ORDER_DEFAULT = {
@@ -26,9 +36,26 @@ const newOrder = (orderID, customerID, merchantID, shipperID) => ({
 
 let listOrderOnline = [];
 
-export const getOrder = (id) => {
+// Log list customer online
+if (isLog)
+  setInterval(() => {
+    console.log("LIST ORDER ONLINE");
+    console.table(listOrderOnline);
+  }, 5000);
+
+export const getOrderByID = (id) => {
   // @ts-expect-error
   const indexOf = listOrderOnline.map((order) => order.id).indexOf(id);
+  if (indexOf < 0) return null;
+
+  return listOrderOnline[indexOf];
+};
+
+export const getOrderByShipperID = (shipperID) => {
+  const indexOf = listOrderOnline
+    // @ts-expect-error
+    .map((order) => order.shipperID)
+    .indexOf(shipperID);
   if (indexOf < 0) return null;
 
   return listOrderOnline[indexOf];
@@ -51,9 +78,9 @@ export const removeOrder = (id) => {
 export const changeStatusOrder = async (_id, status) => {
   try {
     const newOrder = await Order.findOneAndUpdate({ _id }, { Status: status });
-    return true;
+    return null;
   } catch (e) {
     console.log(`[${TAG_LOG_ERROR}]: ${e.message}`);
-    return false;
+    throw e;
   }
 };

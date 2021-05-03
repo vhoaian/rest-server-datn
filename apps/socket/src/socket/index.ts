@@ -1,13 +1,18 @@
+import jwt from "jsonwebtoken";
 import socketIO from "socket.io";
 import _ from "underscore";
 import configApp from "../config";
 import configEventListener from "./eventListener";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
-import jwt from "jsonwebtoken";
 
 const checkAuthToken = (token, callback) => {
   try {
     const decode = jwt.verify(token, configApp.JWT.secretKey);
+
+    // @ts-expect-error
+    if (decode.exp < Math.floor(new Date().getTime() / 1000))
+      return callback(new Error("Token expired"), null);
+
     callback(null, decode);
   } catch (e) {
     callback(e, null);
@@ -37,7 +42,8 @@ export const config = (server) => {
           console.log(`[${TAG_LOG}]: Authenticated socket ${socket.id}`);
           socket.auth = true;
           socket.decode = success;
-          console.log(socket.decode);
+
+          configEventListener(_io, socket);
 
           // @ts-expect-error
           _.each(_io.nsps, (nsp) => {
@@ -47,25 +53,32 @@ export const config = (server) => {
             }
           });
 
+          // Notify client authentiacte success
           socket.emit("authenticated", "Authenticated");
         } else {
+          // Notify client authentiacte fail
           socket.emit("unauthenticate", err.message);
+          console.log(`[${TAG_LOG_ERROR}]: ${err.message}`);
         }
+      });
+
+      socket.on("disconnect", () => {
+        console.log(`[${TAG_LOG}_DISCONNECT]: ${socket.id} disconnect.`);
       });
     });
 
     setTimeout(() => {
-      //sau 1s mà client vẫn chưa dc auth, lúc đấy chúng ta mới disconnect.
+      // sau 5s mà client vẫn chưa dc auth, lúc đấy chúng ta mới disconnect.
       if (!socket.auth) {
-        console.log(`[${TAG_LOG}]: Disconnecting socket ${socket.id}`);
-        socket.disconnect("unauthorized");
+        // socket.disconnect("unauthenticate");
       }
-    }, 1000);
+    }, 5000);
   });
 
   // @ts-expect-error
   _.each(_io.nsps, (nsp) => {
     nsp.on("connect", (socket) => {
+      console.log(socket.id);
       if (!socket.auth) {
         console.log(`[${TAG_LOG}]: Removing socket from ${nsp.name}`);
         delete nsp.connected[socket.id];

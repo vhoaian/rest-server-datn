@@ -1,9 +1,9 @@
-import { User } from '@vohoaian/datn-models';
-import { removeOTP, requestOTP, verifyOTP } from '@vohoaian/datn-otp';
-import { sign } from 'jsonwebtoken';
-import { environment } from '../environments/base';
-import { loginWithGoogle } from '../services/Authentication';
-import { nomalizeResponse } from '../utils/normalize';
+import { User } from "@vohoaian/datn-models";
+import { removeOTP, requestOTP, verifyOTP } from "@vohoaian/datn-otp";
+import { sign } from "jsonwebtoken";
+import { environment } from "../environments/base";
+import { loginWithGoogle } from "../services/authentication";
+import { nomalizeResponse } from "../utils/normalize";
 
 type ResponseWithTokenOrUser = {
   errorCode: number;
@@ -78,7 +78,7 @@ function getToken(id) {
   };
   // create token JWT
   const token = sign(payload, environment.JWT.secretKey, {
-    expiresIn: '4h',
+    expiresIn: "4h",
   });
   return token;
 }
