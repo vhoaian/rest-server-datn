@@ -21,9 +21,8 @@ Object.prototype.clone = function () {
 // Check authenticate
 const checkAuthToken = (token, callback) => {
   try {
-    const decode = jwt.verify(token, configApp.JWT.secretKey);
+    const decode: any = jwt.verify(token, configApp.JWT.secretKey);
 
-    // @ts-expect-error
     if (decode.exp < Math.floor(new Date().getTime() / 1000))
       return callback(new Error("Token expired"), null);
 
@@ -34,8 +33,8 @@ const checkAuthToken = (token, callback) => {
 };
 
 // Storage io
-let _io = null;
-export const getIO = () => _io;
+let _io: any = null;
+export const getIO = (): any => _io;
 
 // Config socket server
 export const config = (server) => {
@@ -50,7 +49,6 @@ export const config = (server) => {
   setIoOrder(_io);
   setIoShipper(_io);
 
-  // @ts-expect-error
   _io.on("connection", (socket) => {
     socket.auth = false;
     socket.on("authenticate", (data) => {
@@ -63,7 +61,6 @@ export const config = (server) => {
           // If this socket is authenticated, we will call function configEventListener for config socket event listener.
           configEventListener(_io, socket);
 
-          // @ts-expect-error
           _.each(_io.nsps, (nsp) => {
             if (_.findWhere(nsp.sockets, { id: socket.id })) {
               console.log(`[${TAG_LOG}]: Restoring socket to ${nsp.name}`);
@@ -93,7 +90,6 @@ export const config = (server) => {
     }, 5000);
   });
 
-  // @ts-expect-error
   _.each(_io.nsps, (nsp) => {
     nsp.on("connect", (socket) => {
       console.log(socket.id);

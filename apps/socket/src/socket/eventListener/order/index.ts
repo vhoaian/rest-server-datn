@@ -33,7 +33,7 @@ const ORDER_DEFAULT = {
   status: ORDER_STATUS.WAITING,
 };
 
-const createOrder = (orderID, customerID, merchantID, shipperID) => {
+const createOrder = (orderID, customerID, merchantID, shipperID): any => {
   return {
     // @ts-expect-error
     ...ORDER_DEFAULT.clone(),
@@ -44,8 +44,8 @@ const createOrder = (orderID, customerID, merchantID, shipperID) => {
   };
 };
 
-let _listOrder = [];
-let _io = null;
+let _listOrder: any = [];
+let _io: any = null;
 export const setIO = (io) => {
   _io = io;
 };
@@ -58,7 +58,6 @@ if (config.LOG_SOCKET.indexOf("order") > -1)
   }, 5000);
 
 export const getOrderByID = (id) => {
-  // @ts-expect-error
   const indexOf = _listOrder.map((order) => order.orderID).indexOf(id);
   if (indexOf < 0) return null;
 
@@ -72,11 +71,9 @@ export const getOrderByShipperID = (shipperID) => {
 };
 
 export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
-  // @ts-expect-error
   _listOrder.push(createOrder(orderID, customerID, merchantID, shipperID));
 
-  // @ts-expect-error
-  const socketMerchantID = getMerchant(merchantID).socketID;
+  const socketMerchantID: any = getMerchant(merchantID).socketID;
 
   // const order = await Order.findOne({ _id: orderID });
   const order = {
@@ -85,7 +82,6 @@ export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
     status: ORDER_STATUS.WAITING,
   };
 
-  // @ts-expect-error
   _io
     .to(socketMerchantID)
     .emit(
@@ -95,7 +91,6 @@ export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
 };
 
 const removeOrder = (id) => {
-  // @ts-expect-error
   const indexOrder = _listOrder.indexOf(id);
   _listOrder.splice(indexOrder);
 };
@@ -103,7 +98,6 @@ const removeOrder = (id) => {
 export const changeStatusOrder = async (orderID, userID, status) => {
   // check order
   const indexOfOrder = _listOrder
-    // @ts-expect-error
     .map((order) => order.orderID)
     .indexOf(orderID);
 
@@ -145,8 +139,6 @@ export const changeStatusOrder = async (orderID, userID, status) => {
     // order?.save();
 
     // invoke event update
-    // @ts-expect-error
-
     let shouldEmitEvent = false;
     const prevStatus = _listOrder[indexOfOrder].status;
     _listOrder[indexOfOrder].status = status;
@@ -213,14 +205,11 @@ export const updateShipper = async (orderID, shipperID) => {
   // update on DB
   // await Order.findOneAndUpdate({ _id: orderID }, { Shipper: shipperID });
 
-  // @ts-expect-error
   const indexOrder = _listOrder.map((order) => order.orderID).indexOf(orderID);
 
   if (indexOrder < 0) return false;
 
-  // @ts-expect-error
   if (!_listOrder[indexOrder].shipperID) {
-    // @ts-expect-error
     _listOrder[indexOrder].shipperID = shipperID;
     return true;
   }

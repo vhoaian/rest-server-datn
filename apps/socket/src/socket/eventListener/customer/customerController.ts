@@ -7,7 +7,7 @@ const CUSTOMER_DEFAULT = {
   socketID: null,
 };
 
-let listCustomerOnline = [];
+let listCustomerOnline: any = [];
 
 // Log list customer online
 if (isLog)
@@ -17,7 +17,6 @@ if (isLog)
   }, 5000);
 
 export const getCustomer = (id) => {
-  // @ts-expect-error
   const indexOf = listCustomerOnline.map((customer) => customer.id).indexOf(id);
   if (indexOf < 0) return null;
 
@@ -25,13 +24,11 @@ export const getCustomer = (id) => {
 };
 
 export const addCustomer = (id, socketID) => {
-  // @ts-expect-error
   listCustomerOnline.push({ id, socketID });
 };
 
 export const removeCustomer = (id) => {
   const newListCustomerOnline = listCustomerOnline.filter((customer) => {
-    // @ts-expect-error
     return customer.id !== id ? customer : null;
   });
 

@@ -15,8 +15,8 @@ const SHIPPER_DEFAULT = {
   seftDestruct: null,
 };
 
-let _listShipperOnline = [];
-let _io = null;
+let _listShipperOnline: any = [];
+let _io: any = null;
 export const setIO = (io) => {
   _io = io;
 };
@@ -38,7 +38,6 @@ const createShipper = (id, socketID, coor) => {
 // ============================ EXPORT ============================ //
 // Get Shipper
 export const getShipper = (id) => {
-  // @ts-expect-error
   const indexOf = _listShipperOnline.map((shipper) => shipper.id).indexOf(id);
   if (indexOf < 0) return null;
 
@@ -46,9 +45,8 @@ export const getShipper = (id) => {
 };
 
 export const getShipperBySocketID = (socketID) => {
-  // @ts-expect-error
   const indexOf = _listShipperOnline
-    .map((shipper) => shipper.socketID)
+    .map((shipper: any) => shipper.socketID)
     .indexOf(socketID);
   if (indexOf < 0) return null;
 
@@ -58,7 +56,7 @@ export const getShipperBySocketID = (socketID) => {
 // Add shipper
 export const addShipper = (id, socketID, coor) => {
   // auto reconnect
-  const shipper = getShipper(id);
+  const shipper: any = getShipper(id);
   if (shipper) {
     shipper.socketID = socketID;
     shipper.coor = coor;
@@ -79,7 +77,6 @@ export const addShipper = (id, socketID, coor) => {
     return;
   }
 
-  // @ts-expect-error
   _listShipperOnline.push(createShipper(id, socketID, coor));
 };
 
@@ -95,6 +92,7 @@ export const removeShipper = (id) => {
 
   // Set timeout to seft destruct
   const shipper = _listShipperOnline[index];
+
   shipper.seftDestruct = setTimeout(() => {
     _listShipperOnline.splice(index, 1);
   }, MAXIMUM_TIME_DESTRUCT);
@@ -102,17 +100,13 @@ export const removeShipper = (id) => {
 
 // Update Shipper Coor. Return new coor
 export const updateShipperCoor = (id, coor) => {
-  // @ts-expect-error
   const indexOf = _listShipperOnline.map((shipper) => shipper.id).indexOf(id);
   if (indexOf < 0) return null;
 
-  // @ts-expect-error
   _listShipperOnline[indexOf].coor = coor;
 
   // Invoke event update coor shipper
-  // @ts-expect-error
   _listShipperOnline[indexOf].listOrderID.forEach((orderID) => {
-    // @ts-expect-error
     _io
       .to(orderID)
       .emit(
@@ -139,7 +133,6 @@ export const sendOrderToShipper = async (order, maxShipper) => {
 
     // Filter & Select shipper
     const listShipperSelected = _listShipperOnline
-      // @ts-expect-error
       .clone()
       // Filter shipper being requested
       .filter((shipper) => (shipper.beingRequested ? null : shipper))
@@ -191,6 +184,7 @@ export const sendOrderToShipper = async (order, maxShipper) => {
     // Update listShipperAreRequested
     orderInController.listShippersAreRequestedLv2 =
       orderInController.listShippersAreRequestedLv1;
+
     orderInController.listShippersAreRequestedLv1 = listShipperSelected.map(
       (shipper) => shipper.id
     );
@@ -199,7 +193,6 @@ export const sendOrderToShipper = async (order, maxShipper) => {
     listShipperSelected.forEach((shipper) => {
       getShipperBySocketID(shipper.socketID).beingRequested = true;
 
-      // @ts-expect-error
       _io
         .to(shipper.socketID)
         .emit(
@@ -224,19 +217,16 @@ export const sendOrderToShipper = async (order, maxShipper) => {
 export const confirmOrder = async (orderID, socketID) => {
   // Update shipper
   const indexShipper = _listShipperOnline
-    // @ts-expect-error
     .map((shipper) => shipper.socketID)
     .indexOf(socketID);
 
   if (indexShipper < 0) return;
 
-  // @ts-expect-error
   const shipperID = _listShipperOnline[indexShipper].id;
   _listShipperOnline[indexShipper].beingRequested = false;
 
   // Check the order is there any shipper?
   if (!(await orderController.updateShipper(orderID, shipperID))) {
-    // @ts-expect-error
     _io
       .to(socketID)
       .emit(
@@ -250,7 +240,6 @@ export const confirmOrder = async (orderID, socketID) => {
     return;
   }
 
-  // @ts-expect-error
   _listShipperOnline[indexShipper].listOrderID.push(orderID);
 
   // Update status order
@@ -274,17 +263,14 @@ export const skipOrder = (orderID, socketID) => {
 export const cancelOrder = (orderID, socketID) => {
   // Update shipper
   const indexShipper = _listShipperOnline
-    // @ts-expect-error
     .map((shipper) => shipper.socketID)
     .indexOf(socketID);
 
   if (indexShipper < 0) return;
 
-  // @ts-expect-error
   const indexOrderID = _listShipperOnline[indexShipper].listOrderID.indexOf(
     orderID
   );
-  // @ts-expect-error
   _listShipperOnline[indexShipper].listOrderID.splice(indexOrderID, 1);
 
   // Update status order
@@ -309,15 +295,12 @@ export const tookFood = (orderID, shipperID) => {
 export const deliveredOrder = (orderID, socketID) => {
   // Update shipper
   const idxShipper = _listShipperOnline
-    // @ts-expect-error
     .map((shipper) => shipper.socketID)
     .indexOf(socketID);
 
   if (idxShipper < 0) return;
-  // @ts-expect-error
   let listOrderID = _listShipperOnline[idxShipper].listOrderID;
 
-  // @ts-expect-error
   _listShipperOnline[idxShipper].listOrderID = listOrderID.filter((_orderID) =>
     _orderID === orderID ? null : _orderID
   );

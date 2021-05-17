@@ -9,8 +9,8 @@ const MERCHANT_DEFAULT = {
   listOrderID: [],
 };
 
-let listMetchantOnline = [];
-let _io = null;
+let listMetchantOnline: any = [];
+let _io: any = null;
 export const setIO = (io) => {
   _io = io;
 };
@@ -22,8 +22,7 @@ if (config.LOG_SOCKET.indexOf("merchant") > -1)
     console.table(listMetchantOnline);
   }, 5000);
 
-export const getMerchant = (id) => {
-  // @ts-expect-error
+export const getMerchant = (id): any => {
   const indexOf = listMetchantOnline.map((merchant) => merchant.id).indexOf(id);
   if (indexOf < 0) return null;
 
@@ -37,7 +36,6 @@ export const addMerchant = (id, socketID) => {
 
 export const removeMerchant = (id) => {
   const newListMetchantOnline = listMetchantOnline.filter((merchant) => {
-    // @ts-expect-error
     return merchant.id !== id ? merchant : null;
   });
 
