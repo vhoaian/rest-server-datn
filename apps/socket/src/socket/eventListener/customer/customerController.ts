@@ -1,4 +1,4 @@
-import config from "../../config";
+import config from "../../../config";
 
 const isLog = config.LOG_SOCKET.indexOf("customer") > -1 ? true : false;
 
@@ -16,7 +16,7 @@ if (isLog)
     console.table(listCustomerOnline);
   }, 5000);
 
-export const getMerchant = (id) => {
+export const getCustomer = (id) => {
   // @ts-expect-error
   const indexOf = listCustomerOnline.map((customer) => customer.id).indexOf(id);
   if (indexOf < 0) return null;
@@ -37,5 +37,3 @@ export const removeCustomer = (id) => {
 
   listCustomerOnline = newListCustomerOnline;
 };
-
-export const pushOrder = (customerID, order) => {};
