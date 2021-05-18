@@ -3,7 +3,7 @@ import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import config from "../../../config";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import { getMerchant } from "../merchant/merchantController";
-import { sendOrderToShipper } from "../shipper/shipperController";
+import { getShipper, sendOrderToShipper } from "../shipper/shipperController";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -91,11 +91,13 @@ export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
 };
 
 const removeOrder = (id) => {
-  const indexOrder = _listOrder.indexOf(id);
-  _listOrder.splice(indexOrder);
+  console.log(id);
+  const indexOrder = _listOrder.findIndex((order) => order.orderID === id);
+  _listOrder.splice(indexOrder, 1);
 };
 
 export const changeStatusOrder = async (orderID, userID, status) => {
+  console.log(`Change status order: ${orderID}`);
   // check order
   const indexOfOrder = _listOrder
     .map((order) => order.orderID)
@@ -166,6 +168,12 @@ export const changeStatusOrder = async (orderID, userID, status) => {
         shouldEmitEvent = false;
         if (!order.shipperID) {
           shouldEmitEvent = true;
+          _listOrder[indexOfOrder].listShippersAreRequestedLv1.forEach(
+            (shipperID) => {
+              console.log(getShipper(shipperID));
+              getShipper(shipperID).beingRequested = false;
+            }
+          );
           removeOrder(orderID);
         } else {
           _listOrder[indexOfOrder].status = prevStatus;

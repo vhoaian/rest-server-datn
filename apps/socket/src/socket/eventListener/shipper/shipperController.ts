@@ -10,7 +10,7 @@ const SHIPPER_DEFAULT = {
   coor: { lat: 0, lng: 0 },
   listOrderID: [],
   beingRequested: false,
-  maximumOrder: 2,
+  maximumOrder: 3,
   maximumDistance: 10, // unit: km
   seftDestruct: null,
 };
@@ -207,7 +207,14 @@ export const sendOrderToShipper = async (order, maxShipper) => {
 
     const orderBreak = orderController.getOrderByID(order.id);
     if (!orderBreak) break;
+    if (orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER)
+      break;
     if (orderBreak.shipperID) break;
+
+    // Reset request for shipper
+    orderInController.listShippersAreRequestedLv1.forEach((shipperID) => {
+      getShipper(shipperID).beingRequested = false;
+    });
   } while (true);
 };
 
