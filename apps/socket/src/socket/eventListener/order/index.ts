@@ -3,7 +3,11 @@ import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import config from "../../../config";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import { getMerchant } from "../merchant/merchantController";
-import { getShipper, sendOrderToShipper } from "../shipper/shipperController";
+import {
+  getShipper,
+  missOrder,
+  sendOrderToShipper,
+} from "../shipper/shipperController";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -90,10 +94,8 @@ export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
     );
 };
 
-const removeOrder = (id) => {
-  console.log(id);
-  const indexOrder = _listOrder.findIndex((order) => order.orderID === id);
-  _listOrder.splice(indexOrder, 1);
+const removeOrder = (orderID) => {
+  _listOrder = _listOrder.filter((order) => order.orderID !== orderID);
 };
 
 export const changeStatusOrder = async (orderID, userID, status) => {
@@ -219,6 +221,9 @@ export const updateShipper = async (orderID, shipperID) => {
 
   if (!_listOrder[indexOrder].shipperID) {
     _listOrder[indexOrder].shipperID = shipperID;
+    _listOrder[indexOrder].listShippersAreRequestedLv1
+      .filter((shipper) => shipper !== shipperID)
+      .forEach((shipperID) => missOrder(orderID, shipperID));
     return true;
   }
 

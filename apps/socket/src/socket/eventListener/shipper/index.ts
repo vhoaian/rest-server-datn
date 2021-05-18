@@ -16,11 +16,16 @@ const shipperConfig = (io, socket) => {
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CONFIRM_ORDER, ({ orderID }) => {
     socket.join(orderID);
-    shipperController.confirmOrder(orderID, socket.id);
-    socket.emit(
-      TAG_EVENT.RESPONSE_JOIN_ROOM,
-      normalizeResponse(`Join room ${orderID} success`, null)
-    );
+    const isConfirmSuccess = shipperController.confirmOrder(orderID, socket.id);
+
+    if (isConfirmSuccess) {
+      socket.emit(
+        TAG_EVENT.RESPONSE_JOIN_ROOM,
+        normalizeResponse(`Join room ${orderID} success`, null)
+      );
+    } else {
+      socket.leave(orderID);
+    }
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_SKIP_ORDER, ({ orderID }) => {

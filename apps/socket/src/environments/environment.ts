@@ -5,5 +5,5 @@ export const environment = {
   ...base,
   MONGO_DB: process.env.MONGO_DB || "mongodb://localhost:27017/nowDB",
   // LOG_SOCKET: ["customer", "shipper", "merchant", "order"],
-  LOG_SOCKET: ["order"],
+  LOG_SOCKET: [""],
 };

@@ -203,22 +203,39 @@ export const sendOrderToShipper = async (order, maxShipper) => {
 
     console.log("LIST SHIPPER LENGHT:", listShipperSelected.length);
 
-    await new Promise((res) => setTimeout(res, maximumTimeDelay + 1000));
+    await new Promise((res) => setTimeout(res, maximumTimeDelay));
 
     const orderBreak = orderController.getOrderByID(order.id);
+
     if (!orderBreak) break;
     if (orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER)
       break;
     if (orderBreak.shipperID) break;
 
-    // Reset request for shipper
-    orderInController.listShippersAreRequestedLv1.forEach((shipperID) => {
-      getShipper(shipperID).beingRequested = false;
-    });
+    orderBreak.listShippersAreRequestedLv1.forEach((shipperID) =>
+      missOrder(orderBreak.orderID, shipperID)
+    );
   } while (true);
 };
 
 // Shipper => Checkin => socket
+export const missOrder = (orderID, shipperID) => {
+  const shipper = getShipper(shipperID);
+
+  if (!shipper) return;
+
+  shipper.beingRequested = false;
+
+  _io
+    .to(shipper.socketID)
+    .emit(
+      TAG_EVENT.RESPONSE_SHIPPER_SKIP_CONFIRM_ORDER,
+      normalizeResponse(
+        "This order already has shipper, please skip this order",
+        { orderID }
+      )
+    );
+};
 
 // Shipper confirm order
 export const confirmOrder = async (orderID, socketID) => {
@@ -227,7 +244,7 @@ export const confirmOrder = async (orderID, socketID) => {
     .map((shipper) => shipper.socketID)
     .indexOf(socketID);
 
-  if (indexShipper < 0) return;
+  if (indexShipper < 0) return false;
 
   const shipperID = _listShipperOnline[indexShipper].id;
   _listShipperOnline[indexShipper].beingRequested = false;
@@ -244,7 +261,7 @@ export const confirmOrder = async (orderID, socketID) => {
         )
       );
 
-    return;
+    return false;
   }
 
   _listShipperOnline[indexShipper].listOrderID.push(orderID);
@@ -255,6 +272,7 @@ export const confirmOrder = async (orderID, socketID) => {
     shipperID,
     orderController.ORDER_STATUS.DURING_GET
   );
+  return true;
 };
 
 // Shipper confirm order
