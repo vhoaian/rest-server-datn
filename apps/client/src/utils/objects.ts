@@ -17,7 +17,7 @@ function objectPropertyFilter(
 }
 
 export function withFilter(select: string | string[]) {
-  return function (object: Record<string, unknown>) {
+  return function (object: Record<string, unknown>): Record<string, unknown> {
     return objectPropertyFilter(object, select);
   };
 }
