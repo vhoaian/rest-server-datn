@@ -69,9 +69,7 @@ export const getOrderByID = (id) => {
 };
 
 export const getOrderByShipperID = (shipperID) => {
-  return _listOrder.filter((order) =>
-    order.shipperID === shipperID ? order : null
-  );
+  return _listOrder.filter((order) => order.shipperID === shipperID);
 };
 
 export const addOrder = async (orderID, customerID, merchantID, shipperID) => {

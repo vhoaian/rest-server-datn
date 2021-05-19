@@ -9,9 +9,6 @@ const shipperConfig = (io, socket) => {
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CHANGE_COOR, ({ coor }) => {
     shipperController.updateShipperCoor(socket.decode.id, coor);
-
-    const roomID = orderController.getOrderByShipperID(socket.decode.id);
-    socket.to(roomID).emit(TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR, { coor });
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CONFIRM_ORDER, ({ orderID }) => {

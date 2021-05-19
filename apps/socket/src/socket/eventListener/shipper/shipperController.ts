@@ -100,10 +100,13 @@ export const removeShipper = (id) => {
 
 // Update Shipper Coor. Return new coor
 export const updateShipperCoor = (id, coor) => {
-  const indexOf = _listShipperOnline.map((shipper) => shipper.id).indexOf(id);
+  const indexOf = _listShipperOnline.findIndex((shipper) => shipper.id === id);
   if (indexOf < 0) return null;
 
-  _listShipperOnline[indexOf].coor = coor;
+  _listShipperOnline[indexOf].coor = {
+    lat: parseFloat(coor.lat),
+    lng: parseFloat(coor.lng),
+  };
 
   // Invoke event update coor shipper
   _listShipperOnline[indexOf].listOrderID.forEach((orderID) => {
