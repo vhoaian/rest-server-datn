@@ -11,7 +11,7 @@ const customerConfig = (io, socket) => {
   });
 
   socket.on("new order", ({ restaurantID, orderID }) => {
-    orderController.addOrder(orderID, socket.decode.id, restaurantID, null);
+    orderController.addOrder(orderID);
   });
 
   socket.on(TAG_EVENT.REQUEST_CUSTOMER_CANCEL_ORDER, ({ orderID }) => {

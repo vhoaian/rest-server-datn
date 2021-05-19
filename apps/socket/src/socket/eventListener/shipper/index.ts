@@ -12,7 +12,6 @@ const shipperConfig = (io, socket) => {
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CONFIRM_ORDER, ({ orderID }) => {
-    socket.join(orderID);
     const isConfirmSuccess = shipperController.confirmOrder(orderID, socket.id);
 
     if (isConfirmSuccess) {
@@ -26,13 +25,13 @@ const shipperConfig = (io, socket) => {
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_SKIP_ORDER, ({ orderID }) => {
-    socket.join(orderID);
     shipperController.skipOrder(orderID, socket.id);
     socket.leave(orderID);
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CANCEL_ORDER, ({ orderID }) => {
     shipperController.cancelOrder(orderID, socket.id);
+    socket.leave(orderID);
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_TOOK_FOOD, ({ orderID }) => {
@@ -41,6 +40,7 @@ const shipperConfig = (io, socket) => {
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_DELIVERED, ({ orderID }) => {
     shipperController.deliveredOrder(orderID, socket.id);
+    socket.leave(orderID);
   });
 
   socket.on("disconnect", () => {

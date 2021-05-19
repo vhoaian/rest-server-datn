@@ -5,7 +5,7 @@ import merchantConfig from "./merchant";
 import shipperConfig from "./shipper";
 
 // Event joinRoom
-const joinRoom = (io, socket) => {
+const joinRoom = (io, socket): void => {
   socket.on(TAG_EVENT.REQUEST_JOIN_ROOM, ({ orderID }) => {
     socket.join(orderID);
     socket.emit(
@@ -24,7 +24,7 @@ const joinRoom = (io, socket) => {
 };
 
 // Main config
-const config = (io, socket) => {
+const config = (io, socket): void => {
   // setup event listener
   joinRoom(io, socket);
 

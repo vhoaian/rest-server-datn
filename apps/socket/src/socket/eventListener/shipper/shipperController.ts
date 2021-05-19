@@ -196,6 +196,8 @@ export const sendOrderToShipper = async (order, maxShipper) => {
     listShipperSelected.forEach((shipper) => {
       getShipperBySocketID(shipper.socketID).beingRequested = true;
 
+      _io.of("/").sockets.get(`${shipper.socketID}`).join(order.id);
+
       _io
         .to(shipper.socketID)
         .emit(
@@ -228,6 +230,8 @@ export const missOrder = (orderID, shipperID) => {
   if (!shipper) return;
 
   shipper.beingRequested = false;
+
+  _io.of("/").sockets.get(`${shipper.socketID}`).leave(orderID);
 
   _io
     .to(shipper.socketID)

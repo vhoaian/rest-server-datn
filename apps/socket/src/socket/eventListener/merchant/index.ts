@@ -7,9 +7,6 @@ const merchantConfig = (io, socket) => {
   merchantController.addMerchant(socket.decode.id, socket.id);
 
   socket.on(TAG_EVENT.REQUEST_MERCHANT_CONFIRM_ORDER, async ({ orderID }) => {
-    console.log("MERCHANT CONFIRM ORDER");
-    socket.join(orderID);
-
     if (!(await merchantController.confirmOrder(orderID, socket.decode.id))) {
       socket
         .to(orderID)
@@ -19,18 +16,10 @@ const merchantConfig = (io, socket) => {
         );
 
       socket.leave(orderID);
-    } else {
-      socket.emit(
-        TAG_EVENT.RESPONSE_JOIN_ROOM,
-        normalizeResponse(`Join room ${orderID} success`, null)
-      );
     }
   });
 
   socket.on(TAG_EVENT.REQUEST_MERCHANT_CANCEL_ORDER, async ({ orderID }) => {
-    console.log("MERCHANT CANCEL ORDER");
-    socket.join(orderID);
-
     if (!(await merchantController.cancelOrder(orderID, socket.decode.id))) {
       socket
         .to(orderID)

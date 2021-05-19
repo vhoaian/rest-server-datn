@@ -61,72 +61,88 @@ if (config.LOG_SOCKET.indexOf("order") > -1)
     console.table(_listOrder);
   }, 5000);
 
-export const getOrderByID = (id) => {
-  const indexOf = _listOrder.map((order) => order.orderID).indexOf(id);
-  if (indexOf < 0) return null;
-
-  return _listOrder[indexOf];
-};
-
-export const getOrderByShipperID = (shipperID) => {
-  return _listOrder.filter((order) => order.shipperID === shipperID);
-};
-
-export const addOrder = async (orderID, customerID, merchantID, shipperID) => {
-  _listOrder.push(createOrder(orderID, customerID, merchantID, shipperID));
-
-  const socketMerchantID: any = getMerchant(merchantID).socketID;
-
+export const addOrder = async (orderID): Promise<void> => {
   // const order = await Order.findOne({ _id: orderID });
-  const order = {
+  const order: any = {
     id: orderID,
+    Merchant: "605590f06480d31ec55b289d",
+    Shipper: null,
+    User: "6055849d6480d31ec55b2898",
     coor: { lat: 0, lng: 0 },
     status: ORDER_STATUS.WAITING,
   };
 
-  _io
-    .to(socketMerchantID)
-    .emit(
-      TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
-      normalizeResponse("Server request confirm order", order)
-    );
+  _listOrder.push(
+    createOrder(orderID, order.User, order.Merchant, order.Shipper)
+  );
+
+  const socketMerchantID: string = getMerchant(order.Merchant).socketID;
+
+  // const merchant = await Merchant.findOne({_id: order.Merchant}).select("IsPartner");
+  const merchant: any = { IsPartner: true };
+
+  if (merchant.IsPartner) {
+    _io
+      .to(socketMerchantID)
+      .emit(
+        TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
+        normalizeResponse("Server request confirm order", order)
+      );
+
+    _io.of("/").sockets.get(`${socketMerchantID}`).join(orderID);
+  } else {
+    changeStatusOrder(orderID, order.User, ORDER_STATUS.MERCHANT_CONFIRM);
+  }
 };
 
-const removeOrder = (orderID) => {
-  _listOrder = _listOrder.filter((order) => order.orderID !== orderID);
+const removeOrder = (orderID): void => {
+  const indexOrder = _listOrder.findIndex((order) => order.orderID === orderID);
+  const order = _listOrder[indexOrder];
+
+  // leave all connect to room
+  const merchantSocketID = getMerchant(order.merchantID).socketID;
+  const shipperSocketID = getShipper(order.shipperID).socketID;
+  _io.of("/").sockets.get(`${merchantSocketID}`).leave(orderID);
+  _io.of("/").sockets.get(`${shipperSocketID}`).leave(orderID);
+
+  _listOrder.splice(indexOrder, 1);
 };
 
-export const changeStatusOrder = async (orderID, userID, status) => {
-  console.log(`Change status order: ${orderID}`);
+export const getOrderByID = (orderID): any => {
+  return _listOrder.find((order) => order.orderID === orderID) || null;
+};
+
+export const getOrderByShipperID = (shipperID): any => {
+  return _listOrder.filter((order) => order.shipperID === shipperID);
+};
+
+export const changeStatusOrder = async (
+  orderID: string,
+  userID: string,
+  status: number
+): Promise<boolean> => {
   // check order
-  const indexOfOrder = _listOrder
-    .map((order) => order.orderID)
-    .indexOf(orderID);
-
-  if (indexOfOrder < 0) {
+  const order = _listOrder.find((order) => order.orderID === orderID) || null;
+  if (!order) {
     console.log(`[${TAG_LOG_ERROR}]: order does not exist.`);
     return false;
   }
 
   // check status
-  const indexOfStatus = Object.values(ORDER_STATUS).indexOf(status);
-  if (indexOfStatus < 0) {
+  const isInValidStatus =
+    Object.values(ORDER_STATUS).indexOf(status) < 0 ? true : false;
+  if (isInValidStatus) {
     console.log(`[${TAG_LOG_ERROR}]: status invalid.`);
     return false;
   }
 
   // check role of user change
-  const indexOfUser = _listOrder
-    .reduce((prevArr, currOrder) => {
-      prevArr.push(currOrder.customerID);
-      prevArr.push(currOrder.merchantID);
-      prevArr.push(currOrder.shipperID);
+  const userPermission: boolean =
+    [order.customerID, order.merchantID, order.shipperID].indexOf(userID) < 0
+      ? false
+      : true;
 
-      return prevArr;
-    }, [])
-    .indexOf(userID);
-
-  if (indexOfUser < 0) {
+  if (!userPermission) {
     console.log(
       `[${TAG_LOG_ERROR}]: user not have permission to change status of this order.`
     );
@@ -134,73 +150,72 @@ export const changeStatusOrder = async (orderID, userID, status) => {
   }
 
   try {
-    // Test
-    const order = { ..._listOrder[indexOfOrder], id: orderID, status };
     // const order = await Order.findOne({ _id: orderID });
     // order.Status = status;
     // order?.save();
 
-    // invoke event update
-    let shouldEmitEvent = false;
-    const prevStatus = _listOrder[indexOfOrder].status;
-    _listOrder[indexOfOrder].status = status;
+    const prevStatus = order.status;
 
-    // auto invoke event call shipper, customer
-    switch (status) {
-      case ORDER_STATUS.MERCHANT_CONFIRM:
-        // send order to shipper
-        shouldEmitEvent = true;
-        sendOrderToShipper(order, 10);
-        break;
-      case ORDER_STATUS.DURING_GET:
-        shouldEmitEvent = true;
-        break;
-      case ORDER_STATUS.DURING_SHIP:
-        shouldEmitEvent = true;
-        break;
-      case ORDER_STATUS.DELIVERED:
-        shouldEmitEvent = true;
-        removeOrder(orderID);
-        break;
+    // Test
+    order.id = orderID;
+    order.status = status;
 
-      case ORDER_STATUS.CANCEL_BY_CUSTOMER:
-        // check shipper, if the order doesn't have shipper, can cancel the order.
-        shouldEmitEvent = false;
-        if (!order.shipperID) {
-          shouldEmitEvent = true;
-          _listOrder[indexOfOrder].listShippersAreRequestedLv1.forEach(
-            (shipperID) => {
-              console.log(getShipper(shipperID));
-              getShipper(shipperID).beingRequested = false;
-            }
+    // Check case CUSTOMER cancel order
+    if (status === ORDER_STATUS.CANCEL_BY_CUSTOMER)
+      if (!order.shipperID) {
+        _io
+          .to(orderID)
+          .emit(
+            TAG_EVENT.RESPONSE_CHANGE_STATUS_ROOM,
+            normalizeResponse("Change status order", { orderID, status })
           );
-          removeOrder(orderID);
-        } else {
-          _listOrder[indexOfOrder].status = prevStatus;
-        }
-        break;
 
-      case ORDER_STATUS.CANCEL_BY_MERCHANT:
-        shouldEmitEvent = true;
+        order.listShippersAreRequestedLv1.forEach((shipperID) => {
+          const shipper = getShipper(shipperID);
+          shipper.beingRequested = false;
+          _io.of("/").sockets.get(`${shipper.socketID}`).leave(orderID);
+        });
         removeOrder(orderID);
-        break;
+        return;
+      } else {
+        order.status = prevStatus;
+        return;
+      }
 
-      case ORDER_STATUS.CANCEL_BY_SHIPPER:
-        shouldEmitEvent = true;
-        break;
-
-      default:
-        shouldEmitEvent = false;
-        break;
-    }
-
-    if (!shouldEmitEvent) return false;
     _io
       .to(orderID)
       .emit(
         TAG_EVENT.RESPONSE_CHANGE_STATUS_ROOM,
         normalizeResponse("Change status order", { orderID, status })
       );
+
+    // auto invoke event call shipper, customer
+    switch (status) {
+      case ORDER_STATUS.MERCHANT_CONFIRM:
+        sendOrderToShipper(order, 10);
+        break;
+      case ORDER_STATUS.DURING_GET:
+        break;
+      case ORDER_STATUS.DURING_SHIP:
+        break;
+      case ORDER_STATUS.DELIVERED:
+        removeOrder(orderID);
+        break;
+
+      case ORDER_STATUS.CANCEL_BY_CUSTOMER:
+        // check shipper, if the order doesn't have shipper, can cancel the order.
+        break;
+
+      case ORDER_STATUS.CANCEL_BY_MERCHANT:
+        removeOrder(orderID);
+        break;
+
+      case ORDER_STATUS.CANCEL_BY_SHIPPER:
+        break;
+
+      default:
+        break;
+    }
 
     return true;
   } catch (e) {
@@ -209,17 +224,17 @@ export const changeStatusOrder = async (orderID, userID, status) => {
   }
 };
 
-export const updateShipper = async (orderID, shipperID) => {
+export const updateShipper = async (orderID, shipperID): Promise<boolean> => {
   // update on DB
   // await Order.findOneAndUpdate({ _id: orderID }, { Shipper: shipperID });
 
-  const indexOrder = _listOrder.map((order) => order.orderID).indexOf(orderID);
+  const order = _listOrder.find((order) => order.orderID === orderID) || null;
 
-  if (indexOrder < 0) return false;
+  if (!order) return false;
 
-  if (!_listOrder[indexOrder].shipperID) {
-    _listOrder[indexOrder].shipperID = shipperID;
-    _listOrder[indexOrder].listShippersAreRequestedLv1
+  if (!order.shipperID) {
+    order.shipperID = shipperID;
+    order.listShippersAreRequestedLv1
       .filter((shipper) => shipper !== shipperID)
       .forEach((shipperID) => missOrder(orderID, shipperID));
     return true;

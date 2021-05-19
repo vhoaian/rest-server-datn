@@ -23,10 +23,7 @@ if (config.LOG_SOCKET.indexOf("merchant") > -1)
   }, 5000);
 
 export const getMerchant = (id): any => {
-  const indexOf = listMetchantOnline.map((merchant) => merchant.id).indexOf(id);
-  if (indexOf < 0) return null;
-
-  return listMetchantOnline[indexOf];
+  return listMetchantOnline.find((merchant) => merchant.id === id) || null;
 };
 
 export const addMerchant = (id, socketID) => {
@@ -35,11 +32,9 @@ export const addMerchant = (id, socketID) => {
 };
 
 export const removeMerchant = (id) => {
-  const newListMetchantOnline = listMetchantOnline.filter((merchant) => {
-    return merchant.id !== id ? merchant : null;
-  });
-
-  listMetchantOnline = newListMetchantOnline;
+  listMetchantOnline = listMetchantOnline.filter(
+    (merchant) => merchant.id !== id
+  );
 };
 
 // Merchant confirm order
@@ -53,7 +48,7 @@ export const confirmOrder = (orderID, merchantID) => {
 };
 
 // Merchant cancel order
-export const cancelOrder = (orderID, merchantID) => {
+export const cancelOrder = (orderID, merchantID): Promise<boolean> => {
   return orderController.changeStatusOrder(
     orderID,
     merchantID,
