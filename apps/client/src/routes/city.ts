@@ -37,7 +37,6 @@ customerCityRouter.get(
     req.data = { result };
   }),
   validateInput,
-
   getWards
 );
 

@@ -6,7 +6,6 @@ export async function getCities(req, res) {
     const cities = await City.findCities();
     res.send(nomalizeResponse(cities));
   } catch (error) {
-    console.log("[ERROR]: GET CITIES:", error);
     res.send(nomalizeResponse(null, 10));
   }
 }
