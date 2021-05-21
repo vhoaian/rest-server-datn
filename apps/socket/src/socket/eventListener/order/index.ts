@@ -176,10 +176,10 @@ export const changeStatusOrder = async (
           _io.of("/").sockets.get(`${shipper.socketID}`).leave(orderID);
         });
         removeOrder(orderID);
-        return;
+        return true;
       } else {
         order.status = prevStatus;
-        return;
+        return false;
       }
 
     _io

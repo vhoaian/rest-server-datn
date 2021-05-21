@@ -4,6 +4,7 @@ import environment from "./config";
 import { connect } from "@vohoaian/datn-models";
 import homeComponent from "./components/home";
 import { config as configSocket } from "./socket";
+import * as ZaloPay from "./payment";
 
 const app = express();
 
