@@ -30,7 +30,7 @@
   },
   "private": true,
   "dependencies": {
-    "@vohoaian/datn-models": "^1.1.5",
+    "@vohoaian/datn-models": "^1.1.6",
     "@vohoaian/datn-otp": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
