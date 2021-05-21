@@ -70,7 +70,7 @@ router.get(
         if (!restaurant) return Promise.reject('Khong tim thay restaurant');
         req.data = {
           restaurant: withFilter(
-            'id Name Avatar Description Anouncement FullAddress OpenHours'
+            'id Name Avatar Description Anouncement FullAddress OpenHours Phone'
           )(restaurant.toObject({ virtuals: true })),
         };
       });

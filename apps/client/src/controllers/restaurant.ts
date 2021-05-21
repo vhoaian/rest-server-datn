@@ -78,28 +78,30 @@ type RestaurantQuery = {
 // TODO: Đặt danh sách từ khoá sắp xếp
 export async function getRestaurants(req, res) {
   const { page, perpage, sort, latitude, longitude, keyword } = req.query; // phan trang/ vi tri/ sap xep
-  // const restaurants = await Promise.all(
-  // (
-  // await Restaurant.find({})
-  //   .skip((page - 1) * perpage)
-  //   .limit(perpage)
-  //   .exec()
   let restaurantsByDistance: RestaurantQuery[] = [] as any;
   let restaurantsByKeyword: RestaurantQuery[] = [] as any;
   let restaurants: RestaurantQuery[] = [] as any;
   let resolvedRestaurants = [] as any;
+
+  // Tìm theo khoảng cách (nếu có long và lat)
   if (longitude && latitude) {
     restaurantsByDistance = await findNearRestaurants(latitude, longitude);
   }
+
+  // Tìm theo liên quan (nếu có keyword)
   if (keyword.length > 0) {
     restaurantsByKeyword = await findRelatedRestaurants(keyword);
   }
 
   if (!(longitude && latitude) && keyword.length == 0) {
+    // Nếu không có long, lat và keyword => lấy tất cả
     resolvedRestaurants = await Restaurant.find({}).exec();
   } else {
+    // Nếu có 1 trong 2 hoặc cả 2
     if (sort == 'distance') {
+      // SX theo khoảng cách
       if (longitude && latitude) {
+        // Có toạ độ
         restaurants =
           restaurantsByKeyword.length == 0 && keyword.length == 0
             ? restaurantsByDistance
@@ -107,6 +109,7 @@ export async function getRestaurants(req, res) {
             ? restaurantsByKeyword
             : commonRestaurant(restaurantsByDistance, restaurantsByKeyword);
       } else {
+        // Không có toạ độ => SX theo keyword
         restaurants = restaurantsByKeyword;
       }
       resolvedRestaurants = await Restaurant.find({
@@ -115,7 +118,10 @@ export async function getRestaurants(req, res) {
         },
       }).exec();
     } else if (sort == 'relate') {
+      // SX theo liên quan
+
       if (keyword.length == 0) {
+        // TODO
         resolvedRestaurants = await Restaurant.find({}).exec();
       } else {
         restaurants =
@@ -145,7 +151,7 @@ export async function getRestaurants(req, res) {
   );
 
   res.send(
-    nomalizeResponse(result, 0, {
+    nomalizeResponse(result.slice((page - 1) * perpage, page * perpage), 0, {
       totalPage: Math.ceil(resolvedRestaurants.length / perpage),
       currentPage: page,
       perPage: perpage,
