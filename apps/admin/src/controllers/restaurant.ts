@@ -65,7 +65,13 @@ export async function getRestaurantManagementInfo(req, res) {
 
     res.send(
       nomalizeResponse(
-        { cities, districts, adminRestaurants, seftRestaurants },
+        {
+          cities,
+          districts,
+          adminRestaurants,
+          seftRestaurants,
+          totalRestaurants,
+        },
         0,
         {
           totalPage: Math.ceil(

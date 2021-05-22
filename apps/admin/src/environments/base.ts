@@ -23,6 +23,7 @@ export const Constants = {
   CALL_API_ERROR: 20,
   SERVER: {
     CREATE_RES_ERROR: 100,
+    GET_RES_ERROR: 101,
   },
 };
 

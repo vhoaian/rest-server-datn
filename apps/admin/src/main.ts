@@ -4,7 +4,12 @@ import passport from "passport";
 import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 const app = express();
+
 import restaurantRouter from "./routes/restaurant";
+import userRouter from "./routes/user";
+import generalRouter from "./routes/general";
+import driverRouter from "./routes/driver";
+import reportRouter from "./routes/report";
 
 app.use(cors());
 app.use(express.json());
@@ -13,11 +18,12 @@ app.use(passport.initialize());
 // Connect to the database
 //connect("MYSELF", environment.MONGO_DB);
 connect("PRODUCTION");
-app.get("/", (req, res) => {
-  res.send("HELLO");
-});
 
+app.use("/", generalRouter);
 app.use("/restaurants", restaurantRouter);
+app.use("/users", userRouter);
+app.use("/drivers", driverRouter);
+app.use("/report", reportRouter);
 
 app.use(function (req, res) {
   res.status(404).end();
