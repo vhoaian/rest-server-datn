@@ -1,4 +1,6 @@
+import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
+import { TAG_EVENT } from "../../TAG_EVENT";
 
 const isLog = config.LOG_SOCKET.indexOf("customer") > -1 ? true : false;
 
@@ -8,6 +10,8 @@ const CUSTOMER_DEFAULT = {
 };
 
 let listCustomerOnline: any = [];
+let _io: any = null;
+export const setIO = (io) => (_io = io);
 
 // Log list customer online
 if (isLog)
@@ -17,10 +21,7 @@ if (isLog)
   }, 5000);
 
 export const getCustomer = (id) => {
-  const indexOf = listCustomerOnline.map((customer) => customer.id).indexOf(id);
-  if (indexOf < 0) return null;
-
-  return listCustomerOnline[indexOf];
+  return listCustomerOnline.find((cus) => cus.id === id) || null;
 };
 
 export const addCustomer = (id, socketID) => {
@@ -28,9 +29,20 @@ export const addCustomer = (id, socketID) => {
 };
 
 export const removeCustomer = (id) => {
-  const newListCustomerOnline = listCustomerOnline.filter((customer) => {
-    return customer.id !== id ? customer : null;
-  });
+  const indexCus = listCustomerOnline.findIndex((cus) => cus.id === id);
+  if (indexCus < 0) return;
 
-  listCustomerOnline = newListCustomerOnline;
+  listCustomerOnline.splice(indexCus, 0);
+};
+
+export const sendStatusPaymentToCustomer = (customerID, order) => {
+  const customerSocketID = getCustomer(customerID).socketID;
+
+  _io.to(customerSocketID).emit(
+    TAG_EVENT.RESPONSE_CUSTOMER_PAYMENT_ORDER,
+    normalizeResponse("Payment status", {
+      success: true,
+      message: "Payment success",
+    })
+  );
 };

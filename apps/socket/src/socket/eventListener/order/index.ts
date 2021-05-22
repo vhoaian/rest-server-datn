@@ -2,12 +2,19 @@ import { Order } from "@vohoaian/datn-models";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import config from "../../../config";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
-import { getMerchant } from "../merchant/merchantController";
+import {
+  getMerchant,
+  sendOrderToMerchant,
+} from "../merchant/merchantController";
 import {
   getShipper,
   missOrder,
   sendOrderToShipper,
 } from "../shipper/shipperController";
+import {
+  getCustomer,
+  sendStatusPaymentToCustomer,
+} from "../customer/customerController";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -16,6 +23,7 @@ const ENUM = (function* () {
 })();
 
 export const ORDER_STATUS = {
+  WAITING_PAYMENT: ENUM.next().value,
   WAITING: ENUM.next().value,
   MERCHANT_CONFIRM: ENUM.next().value,
   DURING_GET: ENUM.next().value,
@@ -34,10 +42,17 @@ const ORDER_DEFAULT = {
   merchantID: null,
   listShippersAreRequestedLv1: [],
   listShippersAreRequestedLv2: [],
+  optionPayment: "cash", // [zalopay, cash]
   status: ORDER_STATUS.WAITING,
 };
 
-const createOrder = (orderID, customerID, merchantID, shipperID): any => {
+const createOrder = (
+  orderID: string,
+  customerID: string,
+  merchantID: string,
+  shipperID: string,
+  optionPayment: string
+): any => {
   return {
     // @ts-expect-error
     ...ORDER_DEFAULT.clone(),
@@ -45,6 +60,7 @@ const createOrder = (orderID, customerID, merchantID, shipperID): any => {
     shipperID,
     customerID,
     merchantID,
+    optionPayment,
   };
 };
 
@@ -61,37 +77,60 @@ if (config.LOG_SOCKET.indexOf("order") > -1)
     console.table(_listOrder);
   }, 5000);
 
-export const addOrder = async (orderID): Promise<void> => {
+export const addOrder = async (orderID): Promise<boolean> => {
   // const order = await Order.findOne({ _id: orderID });
-  const order: any = {
-    id: orderID,
-    Merchant: "605590f06480d31ec55b289d",
-    Shipper: null,
-    User: "6055849d6480d31ec55b2898",
-    coor: { lat: 0, lng: 0 },
-    status: ORDER_STATUS.WAITING,
-  };
+  try {
+    // const order: any = {
+    //   id: orderID,
+    //   Merchant: "605590f06480d31ec55b289d",
+    //   Shipper: null,
+    //   User: "6055849d6480d31ec55b2898",
+    //   coor: { lat: 0, lng: 0 },
+    //   optionPayment: "cash",
+    //   status: ORDER_STATUS.WAITING,
+    // };
 
-  _listOrder.push(
-    createOrder(orderID, order.User, order.Merchant, order.Shipper)
-  );
+    const order: any = {
+      id: orderID,
+      Merchant: "605590f06480d31ec55b289d",
+      Shipper: null,
+      User: "6055849d6480d31ec55b2898",
+      coor: { lat: 0, lng: 0 },
+      optionPayment: "zalopay",
+      status: ORDER_STATUS.WAITING_PAYMENT,
+    };
 
-  const socketMerchantID: string = getMerchant(order.Merchant).socketID;
+    _listOrder.push(
+      createOrder(
+        orderID,
+        order.User,
+        order.Merchant,
+        order.Shipper,
+        order.optionPayment
+      )
+    );
 
-  // const merchant = await Merchant.findOne({_id: order.Merchant}).select("IsPartner");
-  const merchant: any = { IsPartner: true };
-
-  if (merchant.IsPartner) {
     _io
-      .to(socketMerchantID)
-      .emit(
-        TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
-        normalizeResponse("Server request confirm order", order)
-      );
+      .of("/")
+      .sockets.get(`${getCustomer(order.User).socketID}`)
+      .join(orderID);
 
-    _io.of("/").sockets.get(`${socketMerchantID}`).join(orderID);
-  } else {
-    changeStatusOrder(orderID, order.User, ORDER_STATUS.MERCHANT_CONFIRM);
+    // const merchant = await Merchant.findOne({_id: order.Merchant}).select("IsPartner");
+    const merchant: any = { IsPartner: true };
+
+    if (order.optionPayment === "cash") {
+      if (merchant.IsPartner) {
+        changeStatusOrder(orderID, order.Merchant, ORDER_STATUS.WAITING);
+      } else {
+        changeStatusOrder(orderID, order.User, ORDER_STATUS.MERCHANT_CONFIRM);
+      }
+    } else if (order.optionPayment === "zalopay") {
+    }
+
+    return true;
+  } catch (e) {
+    console.log(`[${TAG_LOG_ERROR}_ADD_ORDER]: ${e.message}`);
+    return false;
   }
 };
 
@@ -138,7 +177,12 @@ export const changeStatusOrder = async (
 
   // check role of user change
   const userPermission: boolean =
-    [order.customerID, order.merchantID, order.shipperID].indexOf(userID) < 0
+    [
+      order.customerID,
+      order.merchantID,
+      order.shipperID,
+      "system_admin",
+    ].indexOf(userID) < 0
       ? false
       : true;
 
@@ -191,6 +235,16 @@ export const changeStatusOrder = async (
 
     // auto invoke event call shipper, customer
     switch (status) {
+      case ORDER_STATUS.WAITING:
+        // This method will invoke by add order or another where
+
+        // If order invoke by ZaloPay Callback
+        if (order.optionPayment === "zalopay")
+          sendStatusPaymentToCustomer(order.customerID, order);
+
+        sendOrderToMerchant(order.merchantID, order);
+        break;
+
       case ORDER_STATUS.MERCHANT_CONFIRM:
         sendOrderToShipper(order, 10);
         break;

@@ -8,17 +8,17 @@ class Mac {
 
   _createOrderMacData(order): string {
     return (
-      order.appid +
+      order.app_id +
       "|" +
-      order.apptransid +
+      order.app_trans_id +
       "|" +
-      order.appuser +
+      order.app_user +
       "|" +
       order.amount +
       "|" +
-      order.apptime +
+      order.app_time +
       "|" +
-      order.embeddata +
+      order.embed_data +
       "|" +
       order.item
     );

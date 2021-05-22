@@ -1,4 +1,5 @@
 import { Order } from "@vohoaian/datn-models";
+import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import * as orderController from "../order";
@@ -35,6 +36,18 @@ export const removeMerchant = (id) => {
   listMetchantOnline = listMetchantOnline.filter(
     (merchant) => merchant.id !== id
   );
+};
+
+export const sendOrderToMerchant = (merchantID, order) => {
+  const socketMerchantID: string = getMerchant(merchantID).socketID;
+  _io
+    .to(socketMerchantID)
+    .emit(
+      TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
+      normalizeResponse("Server request confirm order", order)
+    );
+
+  _io.of("/").sockets.get(`${socketMerchantID}`).join(order.id);
 };
 
 // Merchant confirm order

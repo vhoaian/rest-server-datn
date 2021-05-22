@@ -7,9 +7,10 @@ import path from "path";
 
 import * as config from "./config";
 import Mac from "./Mac";
+import configApp from "../config";
 
 const pathPublicKey: string = path.join(
-  __dirname,
+  __dirname.replace("/dist", ""),
   "src",
   "payment",
   "publickey.pem"
@@ -25,7 +26,7 @@ class ZaloPay {
   private publicURL: string;
 
   constructor() {
-    this.publicURL = "";
+    this.publicURL = configApp.URL_SERVER;
   }
 
   VerifyCallback(data, requestMac) {
@@ -33,11 +34,11 @@ class ZaloPay {
     const mac = CryptoJS.HmacSHA256(data, config.key2).toString();
 
     if (mac !== requestMac) {
-      result.returncode = -1;
-      result.returnmessage = "mac not equal";
+      result.return_code = -1;
+      result.return_message = "mac not equal";
     } else {
-      result.returncode = 1;
-      result.returnmessage = "success";
+      result.return_code = 1;
+      result.return_message = "success";
     }
 
     return result;
@@ -47,20 +48,23 @@ class ZaloPay {
     return `${moment().format("YYMMDD")}_${config.appid}_${++uid}`;
   }
 
-  NewOrder({ amount, description }) {
+  NewOrder({ orderID, amount = 10000, description = "TEST SOCKET" }) {
+    console.log("NEW ORDER: ", orderID);
     const self: any = this;
     return {
       amount,
       description,
-      appid: config.appid,
-      appuser: "Demo",
-      embeddata: JSON.stringify({
-        forward_callback: self.publicURL + "/callback",
+      app_id: config.appid,
+      app_user: "Demo",
+      embed_data: JSON.stringify({
         description,
+        orderID,
       }),
       item: JSON.stringify([{ name: "demo item", amount }]),
-      apptime: Date.now(),
-      apptransid: this.GenTransID(),
+      app_time: Date.now(),
+      app_trans_id: this.GenTransID(),
+      callback_url: `${this.publicURL}/callback-zalopay`,
+      bank_code: "zalopayapp",
     };
   }
 
@@ -72,7 +76,7 @@ class ZaloPay {
       params: order,
     });
 
-    result.apptransid = order.apptransid;
+    result.app_trans_id = order.app_trans_id;
     return result;
   }
 
@@ -171,5 +175,4 @@ class ZaloPay {
 }
 
 const zaloPay = new ZaloPay();
-
 export default zaloPay;

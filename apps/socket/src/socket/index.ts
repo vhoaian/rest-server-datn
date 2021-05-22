@@ -5,6 +5,8 @@ import configApp from "../config";
 import configEventListener from "./eventListener";
 import { setIO as setIoOrder } from "./eventListener/order";
 import { setIO as setIoShipper } from "./eventListener/shipper/shipperController";
+import { setIO as setIoMerChant } from "./eventListener/merchant/merchantController";
+import { setIO as setIoCustomer } from "./eventListener/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
 
 // Deep copy array
@@ -91,6 +93,8 @@ export const config = (server): void => {
 
   setIoOrder(_io);
   setIoShipper(_io);
+  setIoMerChant(_io);
+  setIoCustomer(_io);
 
   _io.on("connection", setUpConnection);
 
