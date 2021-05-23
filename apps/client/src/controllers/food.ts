@@ -24,18 +24,22 @@ import { nomalizeResponse } from '../utils/normalize';
 //     .catch(() => res.status(500).json({ errors: ['Error'] }));
 // }
 
-export function getFoods(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  Food.find({ FoodCategory: req.data.foodcategory })
-    .exec()
-    .then((docs) => {
-      res.send(nomalizeResponse(docs));
+export async function getFoods(req, res) {
+  const categories = (
+    await Food.find({
+      FoodCategory: req.data.foodcategory,
     })
-    .catch(() => res.status(500).json({ errors: ['Error'] }));
+      .sort({ Order: 1 })
+      .select('-FoodCategory -Status -Type')
+      .exec()
+  ).map((c) => {
+    const t = c.toObject();
+    t.id = t._id;
+    delete t._id;
+    return t;
+  });
+
+  res.send(nomalizeResponse(categories));
 }
 
 // export function deleteFood(req, res) {

@@ -1,21 +1,52 @@
 import express from 'express';
-import { body, param } from 'express-validator';
+import { body, param, query } from 'express-validator';
 import {
   validateInput,
   jwtAuthentication,
   validatePrivateResource,
 } from '../middlewares/services';
-import { addOrder } from '../controllers/order';
+import {
+  addOrder,
+  getOrder,
+  getOrders,
+  getShippingFee,
+} from '../controllers/order';
 const router = express.Router();
 
 // Đơn hàng của tôi
-// router.get('/', getDeliveryAddresses);
+router.get('/', jwtAuthentication, getOrders);
+
+router.get(
+  '/:id',
+  param('id').isMongoId(),
+  validateInput,
+  jwtAuthentication,
+  getOrder
+);
+
+// Tính phí ship
+router.get(
+  '/shippingfee',
+  query('longitude').isFloat().toFloat(),
+  query('latitude').isFloat().toFloat(),
+  query('restaurant').isMongoId(),
+  query('deliveryaddress').optional().isMongoId(),
+  validateInput,
+  getShippingFee
+);
 
 // Đặt hàng
 router.post(
   '/',
-  body('foods').isArray(),
-  body('total').isInt(),
+  body('foods').isArray().toArray(),
+  body('subtotal').isInt().toInt(),
+  body('method').isInt().toInt(),
+  body('shippingfee').isInt().toInt(),
+  body('deliveryaddress').optional().isMongoId(),
+  body('address').optional().isString(),
+  body('note').optional().isString(),
+  body('phone').optional().isNumeric().isLength({ min: 10, max: 10 }),
+  // body('promocodes').isArray(),
   validateInput,
   jwtAuthentication,
   addOrder

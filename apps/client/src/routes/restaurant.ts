@@ -41,10 +41,10 @@ router.get(
   query('longitude').optional().isFloat().toFloat(),
   query('keyword').default('').isString(),
   query('perpage').default(10).isInt({ max: 50 }).toInt(),
-  query('sort').default(1).isInt().toInt(),
+  query('sort').default(0).isInt({ min: 0, max: 4 }).toInt(),
   query('city').optional().isInt().toInt(),
-  // query('areas').optional().isArray().toArray(),
-  // query('types').optional().isArray().toArray(),
+  query('areas').optional().isArray().toArray(),
+  query('types').optional().isArray().toArray(),
   validateInput,
   getRestaurants
 );
@@ -59,12 +59,14 @@ router.use(
         req.data = { restaurant };
       });
   }),
+  validateInput,
   foodCategoryRouter
 );
 
 router.get(
   '/:restaurant/foods',
   param('restaurant').isMongoId(),
+  validateInput,
   getFoodsOfRestaurant
 );
 
@@ -77,7 +79,7 @@ router.get(
         if (!restaurant) return Promise.reject('Khong tim thay restaurant');
         req.data = {
           restaurant: withFilter(
-            'id Name Avatar Description Anouncement FullAddress OpenHours Phone'
+            'id Name Avatar Description Anouncement FullAddress OpenHours Phone Geolocation'
           )(restaurant.toObject({ virtuals: true })),
         };
       });

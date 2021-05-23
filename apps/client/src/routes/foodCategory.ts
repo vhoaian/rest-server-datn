@@ -1,21 +1,19 @@
 import { FoodCategory } from '@vohoaian/datn-models';
 import { body, param } from 'express-validator';
-import {
-  createFoodCategory,
-  getFoodCategories,
-} from '../controllers/foodCategory';
+import { getFoodCategories } from '../controllers/foodCategory';
 import foodRouter from './food';
 import express from 'express';
+import { validateInput } from '../middlewares/services';
 
 const router = express.Router();
 
 // TODO: type
-router.post(
-  '/',
-  body('name').notEmpty().isString(),
-  body('status').optional().isInt(),
-  createFoodCategory
-);
+// router.post(
+//   '/',
+//   body('name').notEmpty().isString(),
+//   body('status').optional().isInt(),
+//   createFoodCategory
+// );
 
 router.get('/', getFoodCategories);
 
@@ -29,6 +27,7 @@ router.use(
         req.data = { foodcategory };
       });
   }),
+  validateInput,
   foodRouter
 );
 

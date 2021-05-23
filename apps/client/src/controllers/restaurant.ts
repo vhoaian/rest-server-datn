@@ -92,9 +92,18 @@ type RestaurantQuery = {
   RelatePoint?: number;
 };
 
-// TODO: Đặt danh sách từ khoá sắp xếp
 export async function getRestaurants(req, res) {
-  const { page, perpage, sort, latitude, longitude, keyword, city } = req.query; // phan trang/ vi tri/ sap xep
+  const {
+    page,
+    perpage,
+    sort,
+    latitude,
+    longitude,
+    keyword,
+    city,
+    types,
+    area,
+  } = req.query; // phan trang/ vi tri/ sap xep
   let restaurantsByDistance: RestaurantQuery[] = [] as any;
   let restaurantsByKeyword: RestaurantQuery[] = [] as any;
   let restaurants: RestaurantQuery[] = [] as any;
@@ -110,7 +119,6 @@ export async function getRestaurants(req, res) {
   // Tìm theo liên quan (nếu có keyword)
   if (haveKeyword) {
     restaurantsByKeyword = await findRelatedRestaurants(keyword);
-    console.log(restaurantsByKeyword);
   }
 
   if (!haveLocation && !haveKeyword) {
@@ -137,7 +145,7 @@ export async function getRestaurants(req, res) {
           $in: restaurants.map((r) => r.Restaurant),
         },
       }).exec();
-    } else if (sort == 2) {
+    } /*if (sort == 0)*/ else {
       // SX theo liên quan
 
       if (!haveKeyword) {
