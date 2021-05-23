@@ -19,6 +19,8 @@ export async function addOrder(req, res) {
     method,
     note,
     address,
+    longitude,
+    latitude,
   } = req.body;
   let { phone } = req.body;
   if (foods.length == 0) return res.send(nomalizeResponse(null, 2)); // Danh sách rỗng
@@ -40,7 +42,7 @@ export async function addOrder(req, res) {
       .exec()
   )?.FoodCategory as any).Restaurant;
 
-  let delivery;
+  let delivery: any = null;
   let addr = address;
 
   if (deliveryaddress) {
@@ -189,8 +191,8 @@ export async function addOrder(req, res) {
     Distance: 0,
     Address: addr,
     Coor: {
-      longitude: delivery.Geolocation?.longitude,
-      latitude: delivery.Geolocation?.latitude,
+      longitude: delivery?.Geolocation?.longitude ?? longitude,
+      latitude: delivery?.Geolocation?.latitude ?? latitude,
     },
     PaymentMethod: method,
     Note: note,

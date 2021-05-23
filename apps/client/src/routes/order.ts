@@ -16,14 +16,6 @@ const router = express.Router();
 // Đơn hàng của tôi
 router.get('/', jwtAuthentication, getOrders);
 
-router.get(
-  '/:id',
-  param('id').isMongoId(),
-  validateInput,
-  jwtAuthentication,
-  getOrder
-);
-
 // Tính phí ship
 router.get(
   '/shippingfee',
@@ -35,6 +27,14 @@ router.get(
   getShippingFee
 );
 
+router.get(
+  '/:id',
+  param('id').isMongoId(),
+  validateInput,
+  jwtAuthentication,
+  getOrder
+);
+
 // Đặt hàng
 router.post(
   '/',
@@ -43,6 +43,8 @@ router.post(
   body('method').isInt().toInt(),
   body('shippingfee').isInt().toInt(),
   body('deliveryaddress').optional().isMongoId(),
+  body('longitude').optional().isFloat().toFloat(),
+  body('latitude').optional().isFloat().toFloat(),
   body('address').optional().isString(),
   body('note').optional().isString(),
   body('phone').optional().isNumeric().isLength({ min: 10, max: 10 }),
