@@ -2,7 +2,11 @@ import { Restaurant } from '@vohoaian/datn-models';
 import express from 'express';
 import { body, param, query } from 'express-validator';
 
-import { getRestaurantInfo, getRestaurants } from '../controllers/restaurant';
+import {
+  getFoodsOfRestaurant,
+  getRestaurantInfo,
+  getRestaurants,
+} from '../controllers/restaurant';
 import { validateInput } from '../middlewares/services';
 import { withFilter } from '../utils/objects';
 import foodCategoryRouter from './foodCategory';
@@ -36,8 +40,11 @@ router.get(
   query('latitude').optional().isFloat().toFloat(),
   query('longitude').optional().isFloat().toFloat(),
   query('keyword').default('').isString(),
-  query('perpage').default(10).isInt().toInt(),
-  query('sort').default('distance').isString(),
+  query('perpage').default(10).isInt({ max: 50 }).toInt(),
+  query('sort').default(1).isInt().toInt(),
+  query('city').optional().isInt().toInt(),
+  // query('areas').optional().isArray().toArray(),
+  // query('types').optional().isArray().toArray(),
   validateInput,
   getRestaurants
 );
@@ -55,11 +62,11 @@ router.use(
   foodCategoryRouter
 );
 
-// router.get(
-//   '/:restaurant/foods',
-//   param('restaurant').isMongoId(),
-//   getFoodsOfRestaurant
-// );
+router.get(
+  '/:restaurant/foods',
+  param('restaurant').isMongoId(),
+  getFoodsOfRestaurant
+);
 
 router.get(
   '/:restaurant',
