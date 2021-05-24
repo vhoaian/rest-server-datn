@@ -8,7 +8,7 @@ const app = express();
 import restaurantRouter from "./routes/restaurant";
 import userRouter from "./routes/user";
 import generalRouter from "./routes/general";
-import driverRouter from "./routes/driver";
+import shipperRouter from "./routes/shipper";
 import reportRouter from "./routes/report";
 
 app.use(cors());
@@ -22,7 +22,7 @@ connect("PRODUCTION");
 app.use("/", generalRouter);
 app.use("/restaurants", restaurantRouter);
 app.use("/users", userRouter);
-app.use("/drivers", driverRouter);
+app.use("/shippers", shipperRouter);
 app.use("/report", reportRouter);
 
 app.use(function (req, res) {

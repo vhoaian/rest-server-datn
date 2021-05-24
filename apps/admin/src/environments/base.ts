@@ -24,6 +24,10 @@ export const Constants = {
   SERVER: {
     CREATE_RES_ERROR: 100,
     GET_RES_ERROR: 101,
+    GET_USER_ERROR: 110,
+    GET_SHIPPER_ERROR: 120,
+    GET_GENERAL_ERROR: 190,
+    GET_NOTICE_ERROR: 191,
   },
 };
 

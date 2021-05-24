@@ -1,16 +1,16 @@
 import express from "express";
-const driverRouter = express.Router();
+const shipperRouter = express.Router();
 import { validateInput } from "../middlewares/services";
 import { query } from "express-validator";
-import { getDriverManagement } from "../controllers/driver";
+import { getShipperManagement } from "../controllers/shipper";
 
-driverRouter.get(
+shipperRouter.get(
   "/",
   query("email").default("").isString(),
   query("page").default(1).isInt().toInt(),
   query("phone").default("").isString(),
   validateInput,
-  getDriverManagement
+  getShipperManagement
 );
 
-export default driverRouter;
+export default shipperRouter;

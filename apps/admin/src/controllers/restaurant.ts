@@ -14,21 +14,23 @@ export async function getRestaurantManagementInfo(req, res) {
   }
 
   try {
+    console.log(districtID);
     const cities = await City.find({}).exec();
     if (cityID !== 0) {
       selectedCity = cities.filter((elm) => elm.Id === cityID)[0];
-      option.Address = {};
-      option.Address.City = selectedCity.Name;
+      option["Address.City"] = selectedCity.Name;
+      districts = selectedCity.Districts;
+
+      if (districtID !== 0) {
+        const selectedDistrict = districts.filter(
+          (elm) => elm.Id === districtID
+        )[0];
+        option["Address.District"] = selectedDistrict.Name;
+      }
     }
-    if (districtID !== 0 && selectedCity) {
-      const selectedDistrict = selectedCity.filter(
-        (elm) => elm.Id === districts
-      )[0];
-      option.Address.District = selectedDistrict.Name;
-    }
-    if (cityID !== 0) {
-      districts = await City.findDistricts(cityID);
-    }
+    // if (cityID !== 0) {
+    //   districts = await City.findDistricts(cityID);
+    // }
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
     let restaurants = await Restaurant.find(option)
@@ -38,7 +40,7 @@ export async function getRestaurantManagementInfo(req, res) {
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
-    //console.log(restaurants);
+
     restaurants = restaurants.map((restaurant) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       return {
@@ -84,7 +86,7 @@ export async function getRestaurantManagementInfo(req, res) {
     );
   } catch (error) {
     console.log(`[ERROR]: restaurant management: ${error}`);
-    res.send(nomalizeResponse(null, 10));
+    res.send(nomalizeResponse(null, Constants.SERVER.GET_RES_ERROR));
   }
 }
 

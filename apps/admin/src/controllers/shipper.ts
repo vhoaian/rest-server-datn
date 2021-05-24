@@ -1,8 +1,8 @@
-import { User } from "@vohoaian/datn-models";
-import { Constants } from "../environments/base";
 import { nomalizeResponse } from "../utils/normalize";
+import { Shipper } from "@vohoaian/datn-models";
+import { Constants } from "../environments/base";
 
-export async function getUserManagementInfo(req, res) {
+export async function getShipperManagement(req, res) {
   const { page, email, phone } = req.query;
   const option = {};
   if (email !== "") {
@@ -14,38 +14,38 @@ export async function getUserManagementInfo(req, res) {
     option.Phone = regex;
   }
   try {
-    const totalUsers = await User.countDocuments(option).exec();
+    const totalShippers = await shipper.countDocuments(option).exec();
 
-    let users = await User.find(option)
+    let shippers = await Shipper.find(option)
       .select("Phone Email Point Status CreatedAt")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
     //sort by point
-    users = users.sort((a, b) => {
+    shippers = shippers.sort((a, b) => {
       return b.Point - a.Point;
     });
 
-    users = users.map((user) => {
+    shippers = shippers.map((user) => {
       return {
         _id: user._id,
         phone: user.Phone,
         email: user.Email,
         point: user.Point,
         status: user.Status,
-        createdAt: user.CreatedAt,
+        createdAt: user.createdAt,
       };
     });
 
     res.send(
-      nomalizeResponse({ totalUsers, users }, 0, {
-        totalPage: Math.ceil(totalUsers / Constants.PAGENATION.PER_PAGE),
+      nomalizeResponse({ totalShippers, shippers }, 0, {
+        totalPage: Math.ceil(totalShippers / Constants.PAGENATION.PER_PAGE),
         currentPage: page,
         perPage: Constants.PAGENATION.PER_PAGE,
       })
     );
   } catch (error) {
     console.log(`[ERROR]: user management: ${error}`);
-    res.send(nomalizeResponse(null, Constants.SERVER.GET_USER_ERROR));
+    res.send(nomalizeResponse(null, Constants.SERVER.GET_SHIPPER_ERROR));
   }
 }
