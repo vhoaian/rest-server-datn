@@ -1,4 +1,8 @@
-import { Restaurant, SecondaryRestaurant } from '@vohoaian/datn-models';
+import {
+  FoodCategory,
+  Restaurant,
+  SecondaryRestaurant,
+} from '@vohoaian/datn-models';
 import { validationResult } from 'express-validator';
 import { nomalizeResponse } from '../utils/normalize';
 import { withFilter } from '../utils/objects';
@@ -51,55 +55,96 @@ function findNearRestaurants(latitude, longitude): Promise<RestaurantQuery[]> {
   ]).exec();
 }
 
-function findRelatedRestaurants(keyword): Promise<RestaurantQuery[]> {
-  return SecondaryRestaurant.aggregate([
+async function findRelatedRestaurants(keyword): Promise<RestaurantQuery[]> {
+  const result = await SecondaryRestaurant.aggregate([
     { $match: { $text: { $search: keyword } } },
     { $project: { Restaurant: 1, _id: 0 } },
   ]).exec();
+
+  for (let i = 0; i < result.length; i++) result[i].RelatePoint = i;
+  return result;
 }
 
 function commonRestaurant(
   a1: RestaurantQuery[],
   a2: RestaurantQuery[]
 ): RestaurantQuery[] {
-  return a1
-    .filter((x) => a2.some((y) => x.Restaurant.equals(y.Restaurant)))
-    .map((x, i) => ({
-      ...x,
-      Distance: x.Distance ?? a2[i].Distance,
-    }));
+  const result = [] as RestaurantQuery[];
+
+  for (let i = 0; i < a1.length; i++) {
+    for (let j = 0; j < a2.length; j++) {
+      if (a1[i].Restaurant.equals(a2[j].Restaurant)) {
+        result.push({
+          ...a1[i],
+          Distance: a1[i].Distance ?? a2[j].Distance,
+          RelatePoint: a1[i].RelatePoint ?? a2[j].RelatePoint,
+        });
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 type RestaurantQuery = {
   Restaurant: Mongoose.Types.ObjectId;
   Distance?: number;
+  RelatePoint?: number;
 };
 
-// TODO: Đặt danh sách từ khoá sắp xếp
 export async function getRestaurants(req, res) {
-  const { page, perpage, sort, latitude, longitude, keyword } = req.query; // phan trang/ vi tri/ sap xep
-  // const restaurants = await Promise.all(
-  // (
-  // await Restaurant.find({})
-  //   .skip((page - 1) * perpage)
-  //   .limit(perpage)
-  //   .exec()
+  const {
+    // phân trang
+    page,
+    perpage,
+    // sắp xếp
+    sort,
+    // vị trí
+    latitude,
+    longitude,
+    // từ khoá
+    keyword,
+    // lọc
+    city,
+    types,
+    districts,
+  } = req.query; // phan trang/ vi tri/ sap xep
   let restaurantsByDistance: RestaurantQuery[] = [] as any;
   let restaurantsByKeyword: RestaurantQuery[] = [] as any;
   let restaurants: RestaurantQuery[] = [] as any;
   let resolvedRestaurants = [] as any;
-  if (longitude && latitude) {
+
+  const filter: { City?: number; District?: any; Categories?: any } = {};
+  if (typeof city == 'number') filter.City = city;
+  if (typeof types == 'object')
+    filter.Categories = {
+      $in: types,
+    };
+  if (typeof districts == 'object')
+    filter.District = {
+      $in: districts,
+    };
+
+  const haveLocation = longitude && latitude;
+  const haveKeyword = keyword.length > 0;
+  // Tìm theo khoảng cách (nếu có long và lat)
+  if (haveLocation) {
     restaurantsByDistance = await findNearRestaurants(latitude, longitude);
   }
-  if (keyword.length > 0) {
+
+  // Tìm theo liên quan (nếu có keyword)
+  if (haveKeyword) {
     restaurantsByKeyword = await findRelatedRestaurants(keyword);
   }
 
-  if (!(longitude && latitude) && keyword.length == 0) {
-    resolvedRestaurants = await Restaurant.find({}).exec();
+  if (!haveLocation && !haveKeyword) {
+    resolvedRestaurants = await Restaurant.find({ ...filter }).exec();
   } else {
-    if (sort == 'distance') {
-      if (longitude && latitude) {
+    // Nếu có 1 trong 2 hoặc cả 2
+    if (sort === 1) {
+      // SX theo khoảng cách
+      if (haveLocation) {
+        // Có toạ độ
         restaurants =
           restaurantsByKeyword.length == 0 && keyword.length == 0
             ? restaurantsByDistance
@@ -107,16 +152,21 @@ export async function getRestaurants(req, res) {
             ? restaurantsByKeyword
             : commonRestaurant(restaurantsByDistance, restaurantsByKeyword);
       } else {
+        // Không có toạ độ => SX theo keyword
         restaurants = restaurantsByKeyword;
       }
+
       resolvedRestaurants = await Restaurant.find({
         _id: {
           $in: restaurants.map((r) => r.Restaurant),
         },
+        ...filter,
       }).exec();
-    } else if (sort == 'relate') {
-      if (keyword.length == 0) {
-        resolvedRestaurants = await Restaurant.find({}).exec();
+    } /*if (sort == 0)*/ else {
+      // SX theo liên quan
+
+      if (!haveKeyword) {
+        resolvedRestaurants = await Restaurant.find({ ...filter }).exec();
       } else {
         restaurants =
           restaurantsByDistance.length == 0
@@ -127,28 +177,44 @@ export async function getRestaurants(req, res) {
           _id: {
             $in: restaurants.map((r) => r.Restaurant),
           },
+          ...filter,
         }).exec();
       }
     }
   }
 
-  const result = await Promise.all(
+  let result = await Promise.all(
     resolvedRestaurants.map(async (r, i) => {
       const o = r.toObject({ virtuals: true });
-      o.Distance = restaurants[i]?.Distance;
       o.IsOpening = await r.isOpening();
-
       return withFilter(
-        'Name FullAddress OpenHours id Avatar IsOpening Distance'
+        'Name FullAddress OpenHours id Avatar IsOpening Distance Categories'
       )(o);
     })
   );
 
+  if (restaurants.length > 0) {
+    const temp = [] as any;
+    for (let i = 0; i < restaurants.length; i++) {
+      for (let j = 0; j < result.length; j++) {
+        if (restaurants[i].Restaurant.equals((result as any)[j].id)) {
+          temp.push({
+            ...(result as any)[j],
+            Distance: restaurants[i]?.Distance,
+          });
+          break;
+        }
+      }
+    }
+    result = temp;
+  }
+
   res.send(
-    nomalizeResponse(result, 0, {
-      totalPage: Math.ceil(resolvedRestaurants.length / perpage),
+    nomalizeResponse(result.slice((page - 1) * perpage, page * perpage), 0, {
+      totalPage: Math.ceil(result.length / perpage),
       currentPage: page,
       perPage: perpage,
+      total: result.length,
     })
   );
 }
@@ -156,4 +222,36 @@ export async function getRestaurants(req, res) {
 export function getRestaurantInfo(req, res) {
   const { restaurant } = req.data;
   res.send(nomalizeResponse(restaurant));
+}
+
+export async function getFoodsOfRestaurant(req, res) {
+  const categories = (
+    await FoodCategory.find({
+      Restaurant: req.params.restaurant,
+    })
+      .populate({
+        path: 'Foods',
+        select: '-Type -Status',
+        options: { sort: { Order: 1 } },
+      })
+      .select('-Status -Restaurant')
+      .sort({
+        Order: 1,
+      })
+      .exec()
+  ).map((o) => {
+    const t = o.toObject();
+    t.id = t._id;
+    delete t._id;
+    t.Foods = o.Foods?.map((f) => {
+      const t = f.toObject();
+      t.id = t._id;
+      delete t._id;
+      delete (t as any).FoodCategory;
+      return t;
+    }) as any;
+    return t;
+  });
+
+  res.send(nomalizeResponse(categories));
 }

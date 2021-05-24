@@ -1,7 +1,7 @@
 import { User } from '@vohoaian/datn-models';
 import express from 'express';
 import { body, param } from 'express-validator';
-import { addUser, getUser, updateUser } from '../controllers/user';
+import { getUser, updateUser } from '../controllers/user';
 import {
   validateInput,
   jwtAuthentication,
@@ -29,15 +29,6 @@ authRouter.put(
   jwtAuthentication,
   validatePrivateResource(),
   updateUser
-);
-
-authRouter.post(
-  '/',
-  body('name').notEmpty(),
-  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
-  body('gender').isInt({ min: 0, max: 3 }),
-  validateInput,
-  addUser
 );
 
 // Router địa chỉ (gán req.user._data)

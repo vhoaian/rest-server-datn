@@ -1,5 +1,5 @@
-import { City } from '@vohoaian/datn-models';
-import { nomalizeResponse } from '../utils/normalize';
+import { City } from "@vohoaian/datn-models";
+import { nomalizeResponse } from "../utils/normalize";
 
 export async function getCities(req, res) {
   try {
@@ -10,7 +10,7 @@ export async function getCities(req, res) {
   }
 }
 
-export async function getDistricts(req, res) {
+async function getDistricts(req, res) {
   const { result } = req.data;
 
   res.send(nomalizeResponse(result));

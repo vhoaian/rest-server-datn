@@ -6,8 +6,6 @@ import {
   requestOTPForLogin,
   verifyOTPForRegistration,
   verifyOTPForLogin,
-  requestOTPForPhoneRegistration,
-  verifyOTPForPhoneRegistration,
 } from '../controllers/auth';
 import { validateInput } from '../middlewares/services';
 const authRouter = express.Router();
@@ -44,22 +42,6 @@ authRouter.post(
   body('phone').isNumeric().isLength({ min: 10, max: 10 }),
   validateInput,
   requestOTPForLogin
-);
-
-// Lấy otp để đăng ký bằng sdt
-authRouter.post(
-  '/phone/register/otp/call',
-  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
-  validateInput,
-  requestOTPForPhoneRegistration
-);
-
-// Nhập otp để đăng ký bằng sdt
-authRouter.post(
-  '/phone/register/otp/verify',
-  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
-  validateInput,
-  verifyOTPForPhoneRegistration
 );
 
 // Nhập otp để xác nhận đăng nhập bằng sdt

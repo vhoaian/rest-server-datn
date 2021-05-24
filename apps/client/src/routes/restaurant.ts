@@ -2,7 +2,11 @@ import { Restaurant } from '@vohoaian/datn-models';
 import express from 'express';
 import { body, param, query } from 'express-validator';
 
-import { getRestaurantInfo, getRestaurants } from '../controllers/restaurant';
+import {
+  getFoodsOfRestaurant,
+  getRestaurantInfo,
+  getRestaurants,
+} from '../controllers/restaurant';
 import { validateInput } from '../middlewares/services';
 import { withFilter } from '../utils/objects';
 import foodCategoryRouter from './foodCategory';
@@ -36,8 +40,11 @@ router.get(
   query('latitude').optional().isFloat().toFloat(),
   query('longitude').optional().isFloat().toFloat(),
   query('keyword').default('').isString(),
-  query('perpage').default(10).isInt().toInt(),
-  query('sort').default('distance').isString(),
+  query('perpage').default(10).isInt({ max: 50 }).toInt(),
+  query('sort').default(0).isInt({ min: 0, max: 4 }).toInt(),
+  query('city').optional().isInt().toInt(),
+  query('districts').optional().isNumeric().toArray(),
+  query('types').optional().isNumeric().toArray(),
   validateInput,
   getRestaurants
 );
@@ -52,14 +59,16 @@ router.use(
         req.data = { restaurant };
       });
   }),
+  validateInput,
   foodCategoryRouter
 );
 
-// router.get(
-//   '/:restaurant/foods',
-//   param('restaurant').isMongoId(),
-//   getFoodsOfRestaurant
-// );
+router.get(
+  '/:restaurant/foods',
+  param('restaurant').isMongoId(),
+  validateInput,
+  getFoodsOfRestaurant
+);
 
 router.get(
   '/:restaurant',
@@ -70,7 +79,7 @@ router.get(
         if (!restaurant) return Promise.reject('Khong tim thay restaurant');
         req.data = {
           restaurant: withFilter(
-            'id Name Avatar Description Anouncement FullAddress OpenHours'
+            'id Name Avatar Description Anouncement FullAddress OpenHours Phone Geolocation Categories'
           )(restaurant.toObject({ virtuals: true })),
         };
       });
