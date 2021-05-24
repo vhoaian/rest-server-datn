@@ -43,8 +43,8 @@ router.get(
   query('perpage').default(10).isInt({ max: 50 }).toInt(),
   query('sort').default(0).isInt({ min: 0, max: 4 }).toInt(),
   query('city').optional().isInt().toInt(),
-  query('areas').optional().isArray().toArray(),
-  query('types').optional().isArray().toArray(),
+  query('districts').optional().isNumeric().toArray(),
+  query('types').optional().isNumeric().toArray(),
   validateInput,
   getRestaurants
 );
@@ -79,7 +79,7 @@ router.get(
         if (!restaurant) return Promise.reject('Khong tim thay restaurant');
         req.data = {
           restaurant: withFilter(
-            'id Name Avatar Description Anouncement FullAddress OpenHours Phone Geolocation'
+            'id Name Avatar Description Anouncement FullAddress OpenHours Phone Geolocation Categories'
           )(restaurant.toObject({ virtuals: true })),
         };
       });

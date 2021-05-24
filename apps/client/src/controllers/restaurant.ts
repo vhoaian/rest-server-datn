@@ -94,20 +94,36 @@ type RestaurantQuery = {
 
 export async function getRestaurants(req, res) {
   const {
+    // phân trang
     page,
     perpage,
+    // sắp xếp
     sort,
+    // vị trí
     latitude,
     longitude,
+    // từ khoá
     keyword,
+    // lọc
     city,
     types,
-    area,
+    districts,
   } = req.query; // phan trang/ vi tri/ sap xep
   let restaurantsByDistance: RestaurantQuery[] = [] as any;
   let restaurantsByKeyword: RestaurantQuery[] = [] as any;
   let restaurants: RestaurantQuery[] = [] as any;
   let resolvedRestaurants = [] as any;
+
+  const filter: { City?: number; District?: any; Categories?: any } = {};
+  if (typeof city == 'number') filter.City = city;
+  if (typeof types == 'object')
+    filter.Categories = {
+      $in: types,
+    };
+  if (typeof districts == 'object')
+    filter.District = {
+      $in: districts,
+    };
 
   const haveLocation = longitude && latitude;
   const haveKeyword = keyword.length > 0;
@@ -122,7 +138,7 @@ export async function getRestaurants(req, res) {
   }
 
   if (!haveLocation && !haveKeyword) {
-    resolvedRestaurants = await Restaurant.find({}).exec();
+    resolvedRestaurants = await Restaurant.find({ ...filter }).exec();
   } else {
     // Nếu có 1 trong 2 hoặc cả 2
     if (sort === 1) {
@@ -144,12 +160,13 @@ export async function getRestaurants(req, res) {
         _id: {
           $in: restaurants.map((r) => r.Restaurant),
         },
+        ...filter,
       }).exec();
     } /*if (sort == 0)*/ else {
       // SX theo liên quan
 
       if (!haveKeyword) {
-        resolvedRestaurants = await Restaurant.find({}).exec();
+        resolvedRestaurants = await Restaurant.find({ ...filter }).exec();
       } else {
         restaurants =
           restaurantsByDistance.length == 0
@@ -160,6 +177,7 @@ export async function getRestaurants(req, res) {
           _id: {
             $in: restaurants.map((r) => r.Restaurant),
           },
+          ...filter,
         }).exec();
       }
     }
@@ -170,7 +188,7 @@ export async function getRestaurants(req, res) {
       const o = r.toObject({ virtuals: true });
       o.IsOpening = await r.isOpening();
       return withFilter(
-        'Name FullAddress OpenHours id Avatar IsOpening Distance'
+        'Name FullAddress OpenHours id Avatar IsOpening Distance Categories'
       )(o);
     })
   );
@@ -193,7 +211,7 @@ export async function getRestaurants(req, res) {
 
   res.send(
     nomalizeResponse(result.slice((page - 1) * perpage, page * perpage), 0, {
-      totalPage: Math.ceil(resolvedRestaurants.length / perpage),
+      totalPage: Math.ceil(result.length / perpage),
       currentPage: page,
       perPage: perpage,
       total: result.length,
