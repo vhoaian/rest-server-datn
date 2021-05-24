@@ -12,7 +12,12 @@ export const environment = {
     secretKey: "final-project",
   },
   BCRYPT_SALT: bcryptJs.genSaltSync(10),
-  URL_SERVER: "",
+  URL_SERVER: "https://7b3ceba2c606.ngrok.io",
+  ZALO_PAY: {
+    appid: 2554,
+    key1: "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
+    key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
+  },
 };
 
 export enum ERROR_CODE {
