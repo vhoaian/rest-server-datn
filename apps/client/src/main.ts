@@ -6,6 +6,7 @@ import authRouter from "./routes/auth";
 import cityRouter from "./routes/city";
 import restaurantRouter from "./routes/restaurant";
 import userRouter from "./routes/user";
+import orderRouter from "./routes/order";
 import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 
@@ -25,7 +26,7 @@ app.use("/auth", authRouter);
 app.use("/cities", cityRouter);
 app.use("/restaurants", restaurantRouter);
 app.use("/users", userRouter);
-//app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/orders", orderRouter);
 
 app.use(function (req, res) {
   res.status(404).end();

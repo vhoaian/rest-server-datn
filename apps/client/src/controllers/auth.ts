@@ -84,7 +84,7 @@ export const verifyOTPForRegistration = withId(async function (req, res) {
         const isSuccess = await verifyOTP(user.Phone, otp);
         if (isSuccess) {
           User.findByIdAndUpdate(id, { Status: 0 }).exec();
-          response = { errorCode: 0, data: { token: getToken(user) } };
+          response = { errorCode: 0, data: { token: getToken(user.id) } };
           removeOTP(user.Phone);
         } else {
           response = { errorCode: 3, data: null }; // ma otp sai
@@ -132,7 +132,6 @@ export async function loginWithGoogleAccount(req, res) {
           },
         };
       } else {
-        getToken(user);
         response = {
           errorCode: 0,
           data: {
@@ -142,7 +141,7 @@ export async function loginWithGoogleAccount(req, res) {
       }
     }
   } else {
-    response = { errorCode: 2, data: null }; // token sai hoac het han
+    response = { errorCode: 9, data: null }; // token sai hoac het han
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
 }
@@ -152,67 +151,27 @@ export const requestOTPForLogin = withPhone(async function (req, res) {
   let response: OTPSentResponse;
   const u = await User.findOne({ Phone: phone }).exec();
   if (!u) {
-    response = { errorCode: 2, data: null }; // user khong ton tai
-  } else {
-    if (u.Status == -1) {
-      response = { errorCode: 6, data: { user: u.id } }; // user chua kich hoat
-    } else {
-      await requestOTP(phone, true);
-      response = { errorCode: 0, data: null };
-    }
+    const newUser = await User.create({
+      FullName: phone,
+      Gender: 0,
+      Phone: phone,
+      Status: -1, // chua xac nhan sdt tren he thong
+    });
+    response = {
+      errorCode: 0, // chua kich hoat
+      data: {
+        user: newUser.id,
+      },
+    };
   }
-  res.send(nomalizeResponse(response.data, response.errorCode));
-});
-
-export const requestOTPForPhoneRegistration = withPhone(async function (
-  req,
-  res
-) {
-  const phone = req.uphone;
-  let response: OTPSentResponse;
-  const u = await User.findOne({ Phone: phone }).exec();
-  if (!u) {
-    response = { errorCode: 2, data: null }; // user khong ton tai
-  } else {
-    if (u.Status == -1) {
-      await requestOTP(phone, true);
-      response = { errorCode: 0, data: null };
-    } else {
-      response = { errorCode: 5, data: null }; // user da kich hoat
-    }
-  }
-  res.send(nomalizeResponse(response.data, response.errorCode));
-});
-
-export const verifyOTPForPhoneRegistration = withPhone(async function (
-  req,
-  res
-) {
-  const otp = req.body.otp;
-  const phone = req.uphone;
-  let response: OTPVerifiedResponse;
-
-  const user = await User.findOne({ Phone: phone }).exec();
-  if (!user) {
-    response = { errorCode: 2, data: null }; // user khong ton tai
-  } else {
-    if (user.Status == -1) {
-      if (user.Phone.length > 0) {
-        const isSuccess = await verifyOTP(user.Phone, otp);
-        if (isSuccess) {
-          User.findOneAndUpdate({ Phone: phone }, { Status: 0 }).exec();
-          response = { errorCode: 0, data: { token: getToken(user) } };
-          removeOTP(user.Phone);
-        } else {
-          response = { errorCode: 3, data: null }; // ma otp sai
-        }
-      } else {
-        response = { errorCode: 4, data: null }; // khong tim duoc so dien thoai
-      }
-    } else {
-      response = { errorCode: 5, data: null }; // user da kich hoat
-    }
-  }
+  // else {
+  // if (u.Status == -1) {
+  //   response = { errorCode: 6, data: { user: u.id } }; // user chua kich hoat
+  // } else {
+  await requestOTP(phone, true);
+  response = { errorCode: 0, data: null };
+  // }
+  // }
   res.send(nomalizeResponse(response.data, response.errorCode));
 });
 
@@ -225,17 +184,21 @@ export const verifyOTPForLogin = withPhone(async function (req, res) {
   if (!user) {
     response = { errorCode: 2, data: null }; // user khong ton tai
   } else {
-    if (user.Status != -1) {
-      const isSuccess = await verifyOTP(user.Phone, otp);
-      if (isSuccess) {
-        response = { errorCode: 0, data: { token: getToken(user) } };
-        removeOTP(user.Phone);
-      } else {
-        response = { errorCode: 3, data: null }; // ma otp sai
+    // if (user.Status != -1) {
+    const isSuccess = await verifyOTP(user.Phone, otp);
+    if (isSuccess) {
+      response = { errorCode: 0, data: { token: getToken(user.id) } };
+      removeOTP(user.Phone);
+      if (user.Status == -1) {
+        user.Status = 0;
+        await user.save();
       }
     } else {
-      response = { errorCode: 6, data: { user: user.id } }; // user chua kich hoat
+      response = { errorCode: 3, data: null }; // ma otp sai
     }
+    // } else {
+    //   response = { errorCode: 6, data: { user: user.id } }; // user chua kich hoat
+    // }
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
 });
