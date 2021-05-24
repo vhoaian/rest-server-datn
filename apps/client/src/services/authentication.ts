@@ -18,18 +18,3 @@ export async function loginWithGoogle(
 
   return { email, id, name, picture };
 }
-
-export async function getUserInfo(id) {
-  // const userInfo = await User.findById(id)
-  //   .select('FullName Phone Email Status Gender DOB Address Point')
-  //   .exec();
-  // if (!userInfo) {
-  //   return { errorCode: 10 };
-  // }
-  // if (userInfo.Status == -1) {
-  //   return { errorCode: 1 };
-  // }
-  // return {
-  //   data: userInfo,
-  // };
-}

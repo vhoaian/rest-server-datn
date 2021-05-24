@@ -2,13 +2,17 @@ import express from 'express';
 import { body } from 'express-validator';
 import {
   loginWithGoogleAccount,
-  requestOTPForThirdPartyRegistration,
-  requestOTPForExistUser,
-  verifyOTPForThirdPartyRegistration,
+  requestOTPForRegistration,
+  requestOTPForLogin,
+  verifyOTPForRegistration,
+  verifyOTPForLogin,
+  requestOTPForPhoneRegistration,
+  verifyOTPForPhoneRegistration,
 } from '../controllers/auth';
-import { jwtAuthentication, validateInput } from '../middlewares/services';
+import { validateInput } from '../middlewares/services';
 const authRouter = express.Router();
 
+// Đăng nhập gg bằng `idToken`
 authRouter.post(
   '/google',
   body('idToken').notEmpty().isString(),
@@ -16,91 +20,55 @@ authRouter.post(
   loginWithGoogleAccount
 );
 
+// Lấy otp để đăng ký bằng gg
 authRouter.post(
   '/google/otp/call',
-  body('user').notEmpty().isMongoId(),
-  body('phone')
-    .notEmpty()
-    .isString()
-    .matches(/^[0-9]*$/g),
+  body('user').isMongoId(),
+  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
   validateInput,
-  requestOTPForThirdPartyRegistration
+  requestOTPForRegistration
 );
 
+// Nhập otp để xác nhận đăng ký bằng gg
 authRouter.post(
   '/google/otp/verify',
   body('user').notEmpty().isMongoId(),
-  body('otp')
-    .notEmpty()
-    .isString()
-    .isLength({ min: 6, max: 6 })
-    .matches(/^[0-9]*$/g),
+  body('otp').isNumeric().isLength({ min: 6, max: 6 }),
   validateInput,
-  verifyOTPForThirdPartyRegistration
+  verifyOTPForRegistration
 );
 
-authRouter.post(
-  '/otp/call',
-
-  jwtAuthentication,
-  validateInput,
-  requestOTPForExistUser
-);
-
-authRouter.post(
-  '/otp/verify',
-
-  body('otp')
-    .notEmpty()
-    .isString()
-    .isLength({ min: 6, max: 6 })
-    .matches(/^[0-9]*$/g),
-  jwtAuthentication,
-  validateInput,
-  requestOTPForExistUser
-);
-
+// Lấy otp để đăng nhập bằng sdt
 authRouter.post(
   '/phone/otp/call',
-  body('phone')
-    .notEmpty()
-    .isString()
-    .matches(/^[0-9]*$/g),
+  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
   validateInput,
-  requestOTPForExistUser
+  requestOTPForLogin
 );
 
+// Lấy otp để đăng ký bằng sdt
+authRouter.post(
+  '/phone/register/otp/call',
+  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
+  validateInput,
+  requestOTPForPhoneRegistration
+);
+
+// Nhập otp để đăng ký bằng sdt
+authRouter.post(
+  '/phone/register/otp/verify',
+  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
+  validateInput,
+  verifyOTPForPhoneRegistration
+);
+
+// Nhập otp để xác nhận đăng nhập bằng sdt
 authRouter.post(
   '/phone/otp/verify',
-  body('phone')
-    .notEmpty()
-    .isString()
-    .matches(/^[0-9]*$/g),
-  body('otp')
-    .notEmpty()
-    .isString()
-    .isLength({ min: 6, max: 6 })
-    .matches(/^[0-9]*$/g),
+  body('otp').isNumeric().isLength({ min: 6, max: 6 }),
+  body('phone').isNumeric().isLength({ min: 10, max: 10 }),
   validateInput,
-  requestOTPForExistUser
+  verifyOTPForLogin
 );
-
-// authRouter.get('/user-info', jwtAuthentication(), authController.getUserInfo);
-
-// authRouter.put(
-//   '/user-info',
-//   body('fullname').optional().isString(),
-//   body('gender').optional().isInt(),
-//   body('dob')
-//     .optional()
-//     .matches(
-//       /^([0][1-9]|[1][0-2])[/]([0][1-9]|[1|2][0-9]|[3][0|1])[/][0-9]{4}$/m
-//     ),
-//   body('address').optional().isString(),
-//   body('district').optional().isString(),
-//   body('city').optional().isString(),
-//   jwtAuthentication(),
-//   authController.updateUserInfo
-// );
 
 export default authRouter;
