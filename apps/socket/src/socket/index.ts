@@ -3,13 +3,29 @@ import socketIO from "socket.io";
 import _ from "underscore";
 import configApp from "../config";
 import configEventListener from "./eventListener";
+import { setIO as setIoOrder } from "./eventListener/order";
+import { setIO as setIoShipper } from "./eventListener/shipper/shipperController";
+import { setIO as setIoMerChant } from "./eventListener/merchant/merchantController";
+import { setIO as setIoCustomer } from "./eventListener/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
 
-const checkAuthToken = (token, callback) => {
-  try {
-    const decode = jwt.verify(token, configApp.JWT.secretKey);
+// Deep copy array
+// @ts-expect-error
+Array.prototype.clone = function () {
+  return JSON.parse(JSON.stringify(this));
+};
 
-    // @ts-expect-error
+// Deep copy object
+// @ts-expect-error
+Object.prototype.clone = function () {
+  return JSON.parse(JSON.stringify(this));
+};
+
+// Check authenticate
+const checkAuthToken = (token, callback): void => {
+  try {
+    const decode: any = jwt.verify(token, configApp.JWT.secretKey);
+
     if (decode.exp < Math.floor(new Date().getTime() / 1000))
       return callback(new Error("Token expired"), null);
 
@@ -19,12 +35,54 @@ const checkAuthToken = (token, callback) => {
   }
 };
 
-// Save io
-let _io = null;
-export const getIO = () => _io;
+// Setup for each connection
+const setUpConnection = (socket): void => {
+  socket.auth = false;
+  socket.on("authenticate", (data) => {
+    checkAuthToken(data.token, (err, decode) => {
+      if (!err && decode) {
+        console.log(`[${TAG_LOG}]: Authenticated socket ${socket.id}`);
+        socket.auth = true;
+        socket.decode = decode;
+
+        // If this socket is authenticated, we will call function configEventListener for config socket event listener.
+        configEventListener(_io, socket);
+
+        _.each(_io.nsps, (nsp) => {
+          if (_.findWhere(nsp.sockets, { id: socket.id })) {
+            console.log(`[${TAG_LOG}]: Restoring socket to ${nsp.name}`);
+            nsp.connected[socket.id] = socket;
+          }
+        });
+
+        // Invoke event authenticated
+        socket.emit("authenticated", "Authenticated");
+      } else {
+        // Invoke event unauthenticated
+        socket.emit("unauthenticated", err.message);
+        console.log(`[${TAG_LOG_ERROR}]: ${err.message}`);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`[${TAG_LOG}_DISCONNECT]: ${socket.id} disconnect.`);
+    });
+  });
+
+  setTimeout(() => {
+    // After 5 seconds, if user is still not connected, we will disconnect this socket and invoke event unauthenticated.
+    if (!socket.auth) {
+      // socket.disconnect("unauthenticated");
+    }
+  }, 5000);
+};
+
+// Storage io
+let _io: any = null;
+export const getIO = (): any => _io;
 
 // Config socket server
-export const config = (server) => {
+export const config = (server): void => {
   if (_io !== null) return;
 
   // @ts-expect-error
@@ -33,49 +91,13 @@ export const config = (server) => {
     origins: [`${configApp.URL_SERVER}:${configApp.PORT}`],
   });
 
-  // @ts-expect-error
-  _io.on("connection", (socket) => {
-    socket.auth = false;
-    socket.on("authenticate", (data) => {
-      checkAuthToken(data.token, (err, success) => {
-        if (!err && success) {
-          console.log(`[${TAG_LOG}]: Authenticated socket ${socket.id}`);
-          socket.auth = true;
-          socket.decode = success;
+  setIoOrder(_io);
+  setIoShipper(_io);
+  setIoMerChant(_io);
+  setIoCustomer(_io);
 
-          configEventListener(_io, socket);
+  _io.on("connection", setUpConnection);
 
-          // @ts-expect-error
-          _.each(_io.nsps, (nsp) => {
-            if (_.findWhere(nsp.sockets, { id: socket.id })) {
-              console.log(`[${TAG_LOG}]: Restoring socket to ${nsp.name}`);
-              nsp.connected[socket.id] = socket;
-            }
-          });
-
-          // Notify client authentiacte success
-          socket.emit("authenticated", "Authenticated");
-        } else {
-          // Notify client authentiacte fail
-          socket.emit("unauthenticate", err.message);
-          console.log(`[${TAG_LOG_ERROR}]: ${err.message}`);
-        }
-      });
-
-      socket.on("disconnect", () => {
-        console.log(`[${TAG_LOG}_DISCONNECT]: ${socket.id} disconnect.`);
-      });
-    });
-
-    setTimeout(() => {
-      // sau 5s mà client vẫn chưa dc auth, lúc đấy chúng ta mới disconnect.
-      if (!socket.auth) {
-        // socket.disconnect("unauthenticate");
-      }
-    }, 5000);
-  });
-
-  // @ts-expect-error
   _.each(_io.nsps, (nsp) => {
     nsp.on("connect", (socket) => {
       console.log(socket.id);
