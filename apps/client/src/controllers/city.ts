@@ -10,7 +10,7 @@ export async function getCities(req, res) {
   }
 }
 
-async function getDistricts(req, res) {
+export async function getDistricts(req, res) {
   const { result } = req.data;
 
   res.send(nomalizeResponse(result));
