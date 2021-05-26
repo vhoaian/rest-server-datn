@@ -157,11 +157,6 @@ class ShipperController {
         // <>
         .slice(0, maxShipper);
 
-      if (listShipperSelected.length === 0) {
-        orderInController.listShipperSkipOrder = [];
-        continue;
-      }
-
       // Send order to Shipper
       listShipperSelected.forEach((shipper) => {
         orderInController.listShipperAreBeingRequest.push(shipper.id);
@@ -180,6 +175,12 @@ class ShipperController {
       });
 
       await sleep(this.MAXIMUM_TIME_DELAY_REQUEST_ORDER);
+
+      if (listShipperSelected.length === 0) {
+        orderInController.listShipperSkipOrder = [];
+        continue;
+      }
+
       const orderBreak = orderController.getOrderByID(order.id);
       if (
         !orderBreak ||
