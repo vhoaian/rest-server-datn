@@ -1,6 +1,6 @@
-import * as customerController from "./customerController";
-import * as orderController from "../order";
 import { TAG_EVENT } from "../../TAG_EVENT";
+import orderController from "../order";
+import customerController from "./customerController";
 
 // Config for customer
 const customerConfig = (io, socket) => {

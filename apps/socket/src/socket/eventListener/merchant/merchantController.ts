@@ -1,71 +1,87 @@
-import { Order } from "@vohoaian/datn-models";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
-import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
-import * as orderController from "../order";
+import { TAG_EVENT } from "../../TAG_EVENT";
+import orderController from "../order";
 
-const MERCHANT_DEFAULT = {
-  id: null,
-  socketID: null,
-  listOrderID: [],
-};
+class MerchantController {
+  private _listMetchantOnline: Array<any> = [];
+  private _io: any = null;
+  private static MERCHANT_DEFAULT: any = {
+    id: null,
+    socketID: null,
+    listOrderID: [],
+  };
 
-let listMetchantOnline: any = [];
-let _io: any = null;
-export const setIO = (io) => {
-  _io = io;
-};
+  constructor() {
+    // Log list customer online
+    if (config.LOG_SOCKET.indexOf("merchant") > -1)
+      setInterval(() => {
+        console.log("LIST MERCHANT ONLINE");
+        console.table(this._listMetchantOnline);
+      }, 5000);
+  }
 
-// Log list customer online
-if (config.LOG_SOCKET.indexOf("merchant") > -1)
-  setInterval(() => {
-    console.log("LIST MERCHANT ONLINE");
-    console.table(listMetchantOnline);
-  }, 5000);
+  setIO(io) {
+    this._io = io;
+  }
 
-export const getMerchant = (id): any => {
-  return listMetchantOnline.find((merchant) => merchant.id === id) || null;
-};
+  addMerchant = (id, socketID) => {
+    this._listMetchantOnline.push({
+      ...MerchantController.MERCHANT_DEFAULT.clone(),
+      id,
+      socketID,
+    });
+  };
 
-export const addMerchant = (id, socketID) => {
-  // @ts-expect-error
-  listMetchantOnline.push({ ...MERCHANT_DEFAULT.clone(), id, socketID });
-};
+  getMerchant(id): any {
+    return (
+      this._listMetchantOnline.find((merchant) => merchant.id === id) || null
+    );
+  }
 
-export const removeMerchant = (id) => {
-  listMetchantOnline = listMetchantOnline.filter(
-    (merchant) => merchant.id !== id
-  );
-};
+  getSocket(merchantID) {
+    return this._io
+      .of("/")
+      .sockets.get(`${this.getMerchant(merchantID).socketID}`);
+  }
 
-export const sendOrderToMerchant = (merchantID, order) => {
-  console.log("SEND ORDER TO MERCHANT");
-  const socketMerchantID: string = getMerchant(merchantID).socketID;
-  _io
-    .to(socketMerchantID)
-    .emit(
+  removeMerchant(id) {
+    const index = this._listMetchantOnline.findIndex(
+      (merchant) => merchant.id === id
+    );
+    if (index < 0) return;
+
+    this._listMetchantOnline.splice(index, 1);
+  }
+
+  sendOrderToMerchant(merchantID, order) {
+    const merchantSocket = this.getSocket(merchantID);
+
+    merchantSocket.emit(
       TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
       normalizeResponse("Server request confirm order", order)
     );
 
-  _io.of("/").sockets.get(`${socketMerchantID}`).join(order.id);
-};
+    merchantSocket.join(order.id);
+  }
 
-// Merchant confirm order
-export const confirmOrder = (orderID, merchantID) => {
-  // Update status order
-  return orderController.changeStatusOrder(
-    orderID,
-    merchantID,
-    orderController.ORDER_STATUS.MERCHANT_CONFIRM
-  );
-};
+  confirmOrder(orderID, merchantID) {
+    // Update status order
+    return orderController.changeStatusOrder(
+      orderID,
+      merchantID,
+      orderController.ORDER_STATUS.MERCHANT_CONFIRM
+    );
+  }
 
-// Merchant cancel order
-export const cancelOrder = (orderID, merchantID): Promise<boolean> => {
-  return orderController.changeStatusOrder(
-    orderID,
-    merchantID,
-    orderController.ORDER_STATUS.CANCEL_BY_MERCHANT
-  );
-};
+  cancelOrder(orderID, merchantID): Promise<boolean> {
+    return orderController.changeStatusOrder(
+      orderID,
+      merchantID,
+      orderController.ORDER_STATUS.CANCEL_BY_MERCHANT
+    );
+  }
+}
+
+const merchantController = new MerchantController();
+export default merchantController;

@@ -2,48 +2,62 @@ import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT } from "../../TAG_EVENT";
 
-const isLog = config.LOG_SOCKET.indexOf("customer") > -1 ? true : false;
-
 const CUSTOMER_DEFAULT = {
   id: null,
   socketID: null,
 };
 
-let listCustomerOnline: any = [];
-let _io: any = null;
-export const setIO = (io) => (_io = io);
+class CustomerController {
+  private _listCustomerOnline: any = [];
+  private _io: any = null;
 
-// Log list customer online
-if (isLog)
-  setInterval(() => {
-    console.log("LIST CUSTOMER ONLINE");
-    console.table(listCustomerOnline);
-  }, 5000);
+  constructor() {
+    if (config.LOG_SOCKET.indexOf("customer") > -1 ? true : false)
+      setInterval(() => {
+        console.log("LIST CUSTOMER ONLINE");
+        console.table(this._listCustomerOnline);
+      }, 5000);
+  }
 
-export const getCustomer = (id): any => {
-  console.log(listCustomerOnline.find((cus) => cus.id === `${id}`));
-  return listCustomerOnline.find((cus) => cus.id === `${id}`) || null;
-};
+  setIO(io) {
+    this._io = io;
+  }
 
-export const addCustomer = (id, socketID) => {
-  listCustomerOnline.push({ id, socketID });
-};
+  getCustomer(customerID): any {
+    return (
+      this._listCustomerOnline.find((cus) => cus.id === `${customerID}`) || null
+    );
+  }
 
-export const removeCustomer = (id) => {
-  const indexCus = listCustomerOnline.findIndex((cus) => cus.id === id);
-  if (indexCus < 0) return;
+  getSocket(customerID) {
+    return this._io
+      .of("/")
+      .sockets.get(`${this.getCustomer(customerID).socketID}`);
+  }
 
-  listCustomerOnline.splice(indexCus, 1);
-};
+  addCustomer(customerID, socketID) {
+    this._listCustomerOnline.push({ id: customerID, socketID });
+  }
 
-export const sendStatusPaymentToCustomer = (customerID, order) => {
-  const customerSocketID = getCustomer(customerID).socketID;
+  removeCustomer = (customerID) => {
+    const indexCus = this._listCustomerOnline.findIndex(
+      (cus) => cus.id === customerID
+    );
+    if (indexCus < 0) return;
 
-  _io.to(customerSocketID).emit(
-    TAG_EVENT.RESPONSE_CUSTOMER_PAYMENT_ORDER,
-    normalizeResponse("Payment status", {
-      success: true,
-      message: "Payment success",
-    })
-  );
-};
+    this._listCustomerOnline.splice(indexCus, 1);
+  };
+
+  sendStatusPaymentToCustomer = (customerID, order) => {
+    this.getSocket(customerID).emit(
+      TAG_EVENT.RESPONSE_CUSTOMER_PAYMENT_ORDER,
+      normalizeResponse("Payment status", {
+        success: true,
+        message: "Payment success",
+      })
+    );
+  };
+}
+
+const customerController = new CustomerController();
+export default customerController;
