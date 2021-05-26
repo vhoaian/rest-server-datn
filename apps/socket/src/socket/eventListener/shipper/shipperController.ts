@@ -20,7 +20,7 @@ const sleep = (time: number): Promise<void> =>
 
 class ShipperController {
   public _io: any = null;
-  private MAXIMUM_TIME_DESTRUCT: number = 60 * 1000;
+  private MAXIMUM_TIME_DESTRUCT: number = 10 * 1000;
   private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 10 * 1000;
   private _listShipperOnline: Array<any> = [];
 
@@ -63,6 +63,7 @@ class ShipperController {
     // auto reconnect
     const shipper: any = this.getShipper(id);
     if (shipper) {
+      console.log("SHIPPER RECONNECT");
       shipper.socketID = socketID;
       shipper.coor = coor;
       clearTimeout(shipper.seftDestruct);
@@ -73,7 +74,11 @@ class ShipperController {
         .getOrderByShipperID(id)
         .map((order) => ({ ...order, id: order.orderID }));
 
-      this.getSocket(id).emit(
+      // join room
+      const socketShipper = this.getSocket(id);
+      listOrder.forEach((odr) => socketShipper.join(odr.id));
+
+      socketShipper.emit(
         TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
         normalizeResponse("Reconnect", { listOrder })
       );
@@ -85,18 +90,34 @@ class ShipperController {
   }
 
   removeShipper(id) {
-    const index = this._listShipperOnline.findIndex(
-      (shipper) => shipper.id === id
-    );
-    if (index < 0)
+    const shipper = this.getShipper(id);
+    if (!shipper)
       return console.log(
         `[${TAG_LOG_ERROR}_REMOVE_SHIPPER]: shipper does not exits`
       );
 
     // Set timeout to seft destruct
-    this._listShipperOnline[index].seftDestruct = setTimeout(() => {
-      this._listShipperOnline.splice(index, 1);
+    shipper.seftDestruct = setTimeout(() => {
+      this.handleShipperDisconnect(id);
     }, this.MAXIMUM_TIME_DESTRUCT);
+  }
+
+  private handleShipperDisconnect(id) {
+    // Cancel all order
+    const shipper = this.getShipper(id);
+    shipper.listOrderID.forEach((orderID) => {
+      orderController.changeStatusOrder(
+        orderID,
+        shipper.id,
+        orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
+      );
+    });
+
+    // Delete shipper
+    const index = this._listShipperOnline.findIndex(
+      (shipper) => shipper.id === id
+    );
+    this._listShipperOnline.splice(index, 1);
   }
 
   updateShipperCoor(id, coor) {
