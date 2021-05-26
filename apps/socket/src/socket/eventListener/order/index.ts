@@ -78,27 +78,20 @@ if (config.LOG_SOCKET.indexOf("order") > -1)
   }, 5000);
 
 export const addOrder = async (orderID): Promise<boolean> => {
-  // const order = await Order.findOne({ _id: orderID });
   try {
-    // const order: any = {
-    //   id: orderID,
-    //   Merchant: "605590f06480d31ec55b289d",
-    //   Shipper: null,
-    //   User: "6055849d6480d31ec55b2898",
-    //   coor: { lat: 0, lng: 0 },
-    //   optionPayment: "cash",
-    //   status: ORDER_STATUS.WAITING,
-    // };
-
     const order: any = {
       id: orderID,
       Merchant: "605590f06480d31ec55b289d",
       Shipper: null,
       User: "6055849d6480d31ec55b2898",
+      // User: "60abbfaabfbb5a38c0558d40",
+      Tool: true,
       coor: { lat: 0, lng: 0 },
-      optionPayment: "zalopay",
+      PaymentMethod: 1,
       status: ORDER_STATUS.WAITING_PAYMENT,
     };
+
+    // const order: any = await Order.findOne({ _id: orderID });
 
     _listOrder.push(
       createOrder(
@@ -110,21 +103,17 @@ export const addOrder = async (orderID): Promise<boolean> => {
       )
     );
 
-    _io
-      .of("/")
-      .sockets.get(`${getCustomer(order.User).socketID}`)
-      .join(orderID);
+    _io.of("/").sockets.get(getCustomer(order.User).socketID).join(orderID);
 
-    // const merchant = await Merchant.findOne({_id: order.Merchant}).select("IsPartner");
-    const merchant: any = { IsPartner: true };
+    const merchantIsPartner = order.Tool;
 
-    if (order.optionPayment === "cash") {
-      if (merchant.IsPartner) {
+    if (order.PaymentMethod === 0) {
+      if (merchantIsPartner) {
         changeStatusOrder(orderID, order.Merchant, ORDER_STATUS.WAITING);
       } else {
         changeStatusOrder(orderID, order.User, ORDER_STATUS.MERCHANT_CONFIRM);
       }
-    } else if (order.optionPayment === "zalopay") {
+    } else if (order.PaymentMethod === 1) {
     }
 
     return true;
@@ -161,8 +150,9 @@ export const changeStatusOrder = async (
   status: number
 ): Promise<boolean> => {
   // check order
-  const order = _listOrder.find((order) => order.orderID === orderID) || null;
-  if (!order) {
+  const orderOnList =
+    _listOrder.find((order) => order.orderID === orderID) || null;
+  if (!orderOnList) {
     console.log(`[${TAG_LOG_ERROR}]: order does not exist.`);
     return false;
   }
@@ -178,9 +168,9 @@ export const changeStatusOrder = async (
   // check role of user change
   const userPermission: boolean =
     [
-      order.customerID,
-      order.merchantID,
-      order.shipperID,
+      orderOnList.customerID,
+      orderOnList.merchantID,
+      orderOnList.shipperID,
       "system_admin",
     ].indexOf(userID) < 0
       ? false
@@ -198,15 +188,15 @@ export const changeStatusOrder = async (
     // order.Status = status;
     // order?.save();
 
-    const prevStatus = order.status;
+    const prevStatus = orderOnList.status;
 
     // Test
-    order.id = orderID;
-    order.status = status;
+    orderOnList.id = orderID;
+    orderOnList.status = status;
 
     // Check case CUSTOMER cancel order
     if (status === ORDER_STATUS.CANCEL_BY_CUSTOMER)
-      if (!order.shipperID) {
+      if (!orderOnList.shipperID) {
         _io
           .to(orderID)
           .emit(
@@ -214,7 +204,7 @@ export const changeStatusOrder = async (
             normalizeResponse("Change status order", { orderID, status })
           );
 
-        order.listShippersAreRequestedLv1.forEach((shipperID) => {
+        orderOnList.listShippersAreRequestedLv1.forEach((shipperID) => {
           const shipper = getShipper(shipperID);
           shipper.beingRequested = false;
           _io.of("/").sockets.get(`${shipper.socketID}`).leave(orderID);
@@ -222,7 +212,7 @@ export const changeStatusOrder = async (
         removeOrder(orderID);
         return true;
       } else {
-        order.status = prevStatus;
+        orderOnList.status = prevStatus;
         return false;
       }
 
@@ -239,14 +229,14 @@ export const changeStatusOrder = async (
         // This method will invoke by add order or another where
 
         // If order invoke by ZaloPay Callback
-        if (order.optionPayment === "zalopay")
-          sendStatusPaymentToCustomer(order.customerID, order);
+        if (orderOnList.optionPayment === "zalopay")
+          sendStatusPaymentToCustomer(orderOnList.customerID, orderOnList);
 
-        sendOrderToMerchant(order.merchantID, order);
+        sendOrderToMerchant(orderOnList.merchantID, orderOnList);
         break;
 
       case ORDER_STATUS.MERCHANT_CONFIRM:
-        sendOrderToShipper(order, 10);
+        sendOrderToShipper(orderOnList, 10);
         break;
       case ORDER_STATUS.DURING_GET:
         break;

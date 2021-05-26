@@ -20,8 +20,9 @@ if (isLog)
     console.table(listCustomerOnline);
   }, 5000);
 
-export const getCustomer = (id) => {
-  return listCustomerOnline.find((cus) => cus.id === id) || null;
+export const getCustomer = (id): any => {
+  console.log(listCustomerOnline.find((cus) => cus.id === `${id}`));
+  return listCustomerOnline.find((cus) => cus.id === `${id}`) || null;
 };
 
 export const addCustomer = (id, socketID) => {
@@ -32,7 +33,7 @@ export const removeCustomer = (id) => {
   const indexCus = listCustomerOnline.findIndex((cus) => cus.id === id);
   if (indexCus < 0) return;
 
-  listCustomerOnline.splice(indexCus, 0);
+  listCustomerOnline.splice(indexCus, 1);
 };
 
 export const sendStatusPaymentToCustomer = (customerID, order) => {

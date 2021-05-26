@@ -24,11 +24,13 @@ export const cbZaloPay = async (req, res) => {
 
   if (result.return_code !== -1) {
     const { app_trans_id, embed_data } = JSON.parse(dataStr);
-    const { orderID } = JSON.parse(embed_data);
+    const { orderID, tool } = JSON.parse(embed_data);
 
     // invoke for client about status order
     // .. do something ..
-    changeStatusOrder(orderID, "system_admin", ORDER_STATUS.WAITING);
+    if (tool) changeStatusOrder(orderID, "system_admin", ORDER_STATUS.WAITING);
+    else
+      changeStatusOrder(orderID, "system_admin", ORDER_STATUS.MERCHANT_CONFIRM);
   }
 
   res.send(result);

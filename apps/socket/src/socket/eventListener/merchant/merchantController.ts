@@ -39,6 +39,7 @@ export const removeMerchant = (id) => {
 };
 
 export const sendOrderToMerchant = (merchantID, order) => {
+  console.log("SEND ORDER TO MERCHANT");
   const socketMerchantID: string = getMerchant(merchantID).socketID;
   _io
     .to(socketMerchantID)

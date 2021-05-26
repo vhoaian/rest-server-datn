@@ -59,6 +59,7 @@ class ZaloPay {
       embed_data: JSON.stringify({
         description,
         orderID,
+        tool: true,
       }),
       item: JSON.stringify([{ name: "demo item", amount }]),
       app_time: Date.now(),

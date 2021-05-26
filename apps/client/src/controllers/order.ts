@@ -206,7 +206,7 @@ export async function addOrder(req, res) {
     Phone: phone,
   });
 
-  // **** SOCKET SERVER **** \\ Notify for socket server
+  // **** SOCKET SERVER **** \\ Notify for socket server \\ 0 - cash | 1 - zalopay
   const responseSocketServer: {
     success: boolean;
     message: string;

@@ -1,19 +1,24 @@
 import * as orderController from "../../socket/eventListener/order";
 import ZaloPay from "../../payment/ZaloPay";
+import { Order } from "@vohoaian/datn-models";
 
 const service = {
   async createOrder(
     orderID: string
   ): Promise<{ success: boolean; message: string; paymentInfo: any }> {
+    console.log("HOOK CREATE ORDER");
+
     let paymentInfo: any = null;
     let success: boolean = false;
     if (orderID) {
       success = await orderController.addOrder(orderID);
 
-      // const order = await Order.findOne({});
-      const order = { optionPayment: "zalopay" };
+      // const order: any = await Order.findOne({ _id: orderID });
+      const order = { PaymentMethod: 1 };
 
-      if (order.optionPayment === "zalopay") {
+      // paymentMethod : 0 - cash | 1 - zalopay
+      const paymentMethods = ["cash", "zalopay"];
+      if (paymentMethods[order.PaymentMethod] === "zalopay") {
         paymentInfo = await ZaloPay.CreateOrder({ orderID });
         console.log(paymentInfo);
       }
