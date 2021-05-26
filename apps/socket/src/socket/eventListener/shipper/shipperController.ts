@@ -3,6 +3,7 @@ import config from "../../../config";
 import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
+import clone from "../../../utils/clone";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -35,8 +36,7 @@ class ShipperController {
   }
 
   private createShipper(id, socketID, coor): any {
-    // @ts-expect-error
-    return { ...SHIPPER_DEFAULT.clone(), id, socketID, coor };
+    return { ...clone(SHIPPER_DEFAULT), id, socketID, coor };
   }
 
   setIO(io) {
@@ -155,9 +155,7 @@ class ShipperController {
       const orderInController = orderController.getOrderByID(order.id);
       if (!orderInController) return;
 
-      const listShipperSelected = this._listShipperOnline
-        // @ts-expect-error
-        .clone()
+      const listShipperSelected = clone(this._listShipperOnline)
         // 1. Filter shipper full order
         .filter((shipper) => shipper.listOrderID.length < shipper.maximumOrder)
         // 2. Filter shipper being requested

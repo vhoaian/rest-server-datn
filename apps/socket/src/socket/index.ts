@@ -9,18 +9,6 @@ import merchantController from "./eventListener/merchant/merchantController";
 import customerController from "./eventListener/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
 
-// Deep copy array
-// @ts-expect-error
-Array.prototype.clone = function () {
-  return JSON.parse(JSON.stringify(this));
-};
-
-// Deep copy object
-// @ts-expect-error
-Object.prototype.clone = function () {
-  return JSON.parse(JSON.stringify(this));
-};
-
 // Check authenticate
 const checkAuthToken = (token, callback): void => {
   try {

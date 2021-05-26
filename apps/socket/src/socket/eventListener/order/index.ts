@@ -5,6 +5,7 @@ import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import customerController from "../customer/customerController";
 import merchantController from "../merchant/merchantController";
 import shipperController from "../shipper/shipperController";
+import clone from "../../../utils/clone";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -61,7 +62,7 @@ class OrderController {
     paymentMethod
   ): any {
     return {
-      ...this.ORDER_DEFAULT.clone(),
+      ...clone(this.ORDER_DEFAULT),
       orderID,
       shipperID,
       customerID,
@@ -105,7 +106,8 @@ class OrderController {
         )
       );
 
-      customerController.getSocket(order.User).join(orderID);
+      const socketCustomer = customerController.getSocket(order.User);
+      if (socketCustomer) socketCustomer.join(orderID);
 
       const merchantIsPartner = order.Tool;
 
@@ -174,6 +176,7 @@ class OrderController {
     }
 
     console.log(orderOnList);
+    console.log("userID");
     console.log(userID);
 
     // check status
@@ -203,9 +206,10 @@ class OrderController {
     }
 
     try {
-      // const order = await Order.findOne({ _id: orderID });
-      // order.Status = status;
-      // order?.save();
+      const order = await Order.findOne({ _id: orderID })
+        .populate("User")
+        .populate("Restaurant");
+      console.log(order);
 
       const prevStatus = orderOnList.status;
 
@@ -258,7 +262,7 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.MERCHANT_CONFIRM:
-          shipperController.sendOrderToShipper(orderOnList, 2);
+          shipperController.sendOrderToShipper(orderOnList, 1);
           break;
         case this.ORDER_STATUS.DURING_GET:
           break;

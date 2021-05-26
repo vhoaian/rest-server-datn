@@ -2,6 +2,7 @@ import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
+import clone from "../../../utils/clone";
 
 class MerchantController {
   private _listMerchantOnline: Array<any> = [];
@@ -36,7 +37,7 @@ class MerchantController {
       merchant.selfDestruct = null;
     } else {
       this._listMerchantOnline.push({
-        ...this.MERCHANT_DEFAULT.clone(),
+        ...clone(this.MERCHANT_DEFAULT),
         id,
         socketID,
       });
