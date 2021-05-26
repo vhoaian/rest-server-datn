@@ -1,23 +1,25 @@
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
-import { TAG_EVENT } from "../../TAG_EVENT";
+import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 
 class MerchantController {
-  private _listMetchantOnline: Array<any> = [];
+  private _listMerchantOnline: Array<any> = [];
   private _io: any = null;
-  private static MERCHANT_DEFAULT: any = {
+  private MERCHANT_DEFAULT: any = {
     id: null,
     socketID: null,
     listOrderID: [],
+    selfDestruct: null,
   };
+  private MAXIMUM_TIME_DESTRUCT: number = 10 * 1000;
 
   constructor() {
     // Log list customer online
     if (config.LOG_SOCKET.indexOf("merchant") > -1)
       setInterval(() => {
         console.log("LIST MERCHANT ONLINE");
-        console.table(this._listMetchantOnline);
+        console.table(this._listMerchantOnline);
       }, 5000);
   }
 
@@ -26,16 +28,39 @@ class MerchantController {
   }
 
   addMerchant = (id, socketID) => {
-    this._listMetchantOnline.push({
-      ...MerchantController.MERCHANT_DEFAULT.clone(),
-      id,
-      socketID,
-    });
+    const merchant = this.getMerchant(id);
+    if (merchant) {
+      console.log("MERCHANT RECONNECT");
+      merchant.socketID = socketID;
+      clearTimeout(merchant.selfDestruct);
+      merchant.selfDestruct = null;
+    } else {
+      this._listMerchantOnline.push({
+        ...this.MERCHANT_DEFAULT.clone(),
+        id,
+        socketID,
+      });
+    }
+
+    // send all order if merchant has order before
+    const listOrder = orderController
+      .getOrderByMerchantID(id)
+      .map((order) => ({ ...order, id: order.orderID }));
+    if (listOrder.length === 0) return;
+
+    // join room
+    const socketMerchant = this.getSocket(id);
+    listOrder.forEach((odr) => socketMerchant.join(odr.id));
+
+    socketMerchant.emit(
+      TAG_EVENT.RESPONSE_MERCHANT_RECONNECT,
+      normalizeResponse("Reconnect", { listOrder })
+    );
   };
 
   getMerchant(id): any {
     return (
-      this._listMetchantOnline.find((merchant) => merchant.id === id) || null
+      this._listMerchantOnline.find((merchant) => merchant.id === id) || null
     );
   }
 
@@ -46,12 +71,34 @@ class MerchantController {
   }
 
   removeMerchant(id) {
-    const index = this._listMetchantOnline.findIndex(
+    const merchant = this.getMerchant(id);
+    if (!merchant)
+      return console.log(
+        `[${TAG_LOG_ERROR}_REMOVE_MERCHANT]: merchant does not exits`
+      );
+
+    orderController.getOrderByMerchantID(id).forEach((order) => {
+      orderController.getSocket(order.orderID).emit(
+        TAG_EVENT.RESPONSE_DISCONNECT_ROOM,
+        normalizeResponse("Merchant disconnect", {
+          orderID: order.orderID,
+          merchantID: id,
+        })
+      );
+    });
+
+    // Set timeout to seft destruct
+    merchant.selfDestruct = setTimeout(() => {
+      this.handleMerchantDisconnect(id);
+    }, this.MAXIMUM_TIME_DESTRUCT);
+  }
+
+  private handleMerchantDisconnect(id) {
+    // Delete merchant
+    const index = this._listMerchantOnline.findIndex(
       (merchant) => merchant.id === id
     );
-    if (index < 0) return;
-
-    this._listMetchantOnline.splice(index, 1);
+    this._listMerchantOnline.splice(index, 1);
   }
 
   sendOrderToMerchant(merchantID, order) {

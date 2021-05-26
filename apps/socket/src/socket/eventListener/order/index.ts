@@ -69,7 +69,7 @@ class OrderController {
     };
   }
 
-  private getSocket(orderID) {
+  getSocket(orderID) {
     return this._io.to(orderID);
   }
 
@@ -132,20 +132,30 @@ class OrderController {
   }
 
   removeOrder(orderID): void {
+    console.log("REMOVE ORDER");
+
     const indexOrder = this._listOrder.findIndex(
       (order) => order.orderID === orderID
     );
     const { merchantID, shipperID } = this._listOrder[indexOrder];
 
     // leave all connect to room
-    merchantController.getSocket(merchantID).leave(orderID);
-    shipperController.getSocket(shipperID).leave(orderID);
+    if (merchantID) merchantController.getSocket(merchantID).leave(orderID);
+    if (shipperID) shipperController.getSocket(shipperID).leave(orderID);
 
     this._listOrder.splice(indexOrder, 1);
   }
 
   getOrderByShipperID(shipperID): any {
     return this._listOrder.filter((order) => order.shipperID === shipperID);
+  }
+
+  getOrderByMerchantID(merchantID): any {
+    return this._listOrder.filter((order) => order.merchantID === merchantID);
+  }
+
+  getOrderByCustomerID(customerID): any {
+    return this._listOrder.filter((order) => order.customerID === customerID);
   }
 
   async changeStatusOrder(
@@ -198,7 +208,7 @@ class OrderController {
       orderOnList.status = status;
 
       // Check case CUSTOMER cancel order
-      if (status === this.ORDER_STATUS.CANCEL_BY_CUSTOMER)
+      if (status === this.ORDER_STATUS.CANCEL_BY_CUSTOMER) {
         if (!orderOnList.shipperID) {
           this.getSocket(orderID).emit(
             TAG_EVENT.RESPONSE_CHANGE_STATUS_ROOM,
@@ -216,6 +226,7 @@ class OrderController {
           orderOnList.status = prevStatus;
           return false;
         }
+      }
 
       this.getSocket(orderID).emit(
         TAG_EVENT.RESPONSE_CHANGE_STATUS_ROOM,
@@ -252,7 +263,7 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.CANCEL_BY_CUSTOMER:
-          // check shipper, if the order doesn't have shipper, can cancel the order.
+          this.removeOrder(orderID);
           break;
 
         case this.ORDER_STATUS.CANCEL_BY_MERCHANT:
@@ -260,6 +271,7 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.CANCEL_BY_SHIPPER:
+          this.removeOrder(orderID);
           break;
 
         default:

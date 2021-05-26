@@ -12,7 +12,7 @@ const SHIPPER_DEFAULT = {
   beingRequested: false,
   maximumOrder: 3,
   maximumDistance: 10, // unit: km
-  seftDestruct: null,
+  selfDestruct: null,
 };
 
 const sleep = (time: number): Promise<void> =>
@@ -66,27 +66,26 @@ class ShipperController {
       console.log("SHIPPER RECONNECT");
       shipper.socketID = socketID;
       shipper.coor = coor;
-      clearTimeout(shipper.seftDestruct);
-      shipper.seftDestruct = null;
-
-      // send all order if shipper has order before
-      const listOrder = orderController
-        .getOrderByShipperID(id)
-        .map((order) => ({ ...order, id: order.orderID }));
-
-      // join room
-      const socketShipper = this.getSocket(id);
-      listOrder.forEach((odr) => socketShipper.join(odr.id));
-
-      socketShipper.emit(
-        TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
-        normalizeResponse("Reconnect", { listOrder })
-      );
-
-      return;
+      clearTimeout(shipper.selfDestruct);
+      shipper.selfDestruct = null;
+    } else {
+      this._listShipperOnline.push(this.createShipper(id, socketID, coor));
     }
 
-    this._listShipperOnline.push(this.createShipper(id, socketID, coor));
+    // send all order if shipper has order before
+    const listOrder = orderController
+      .getOrderByShipperID(id)
+      .map((order) => ({ ...order, id: order.orderID }));
+    if (listOrder.length === 0) return;
+
+    // join room
+    const socketShipper = this.getSocket(id);
+    listOrder.forEach((odr) => socketShipper.join(odr.id));
+
+    socketShipper.emit(
+      TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
+      normalizeResponse("Reconnect", { listOrder })
+    );
   }
 
   removeShipper(id) {
@@ -96,8 +95,18 @@ class ShipperController {
         `[${TAG_LOG_ERROR}_REMOVE_SHIPPER]: shipper does not exits`
       );
 
+    orderController.getOrderByShipperID(id).forEach((order) => {
+      orderController.getSocket(order.orderID).emit(
+        TAG_EVENT.RESPONSE_DISCONNECT_ROOM,
+        normalizeResponse("Shipper disconnect", {
+          orderID: order.orderID,
+          shipper: id,
+        })
+      );
+    });
+
     // Set timeout to seft destruct
-    shipper.seftDestruct = setTimeout(() => {
+    shipper.selfDestruct = setTimeout(() => {
       this.handleShipperDisconnect(id);
     }, this.MAXIMUM_TIME_DESTRUCT);
   }
