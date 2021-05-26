@@ -33,8 +33,8 @@ class OrderController {
     shipperID: null,
     customerID: null,
     merchantID: null,
-    listShippersAreRequestedLv1: [],
-    listShippersAreRequestedLv2: [],
+    listShipperSkipOrder: [],
+    listShipperAreBeingRequest: [],
     optionPayment: "cash", // [zalopay, cash]
     status: this.ORDER_STATUS.WAITING,
   };
@@ -205,7 +205,7 @@ class OrderController {
             normalizeResponse("Change status order", { orderID, status })
           );
 
-          orderOnList.listShippersAreRequestedLv1.forEach((shipperID) => {
+          orderOnList.listShipperAreBeingRequest.forEach((shipperID) => {
             const shipper = shipperController.getShipper(shipperID);
             shipper.beingRequested = false;
             shipperController.getSocket(shipperID).leave(orderID);
@@ -241,7 +241,7 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.MERCHANT_CONFIRM:
-          shipperController.sendOrderToShipper(orderOnList, 10);
+          shipperController.sendOrderToShipper(orderOnList, 2);
           break;
         case this.ORDER_STATUS.DURING_GET:
           break;
@@ -283,7 +283,7 @@ class OrderController {
 
     if (!order.shipperID) {
       order.shipperID = shipperID;
-      order.listShippersAreRequestedLv1
+      order.listShipperAreBeingRequest
         .filter((shipper) => shipper !== shipperID)
         .forEach((shipperID) =>
           shipperController.missOrder(orderID, shipperID)

@@ -15,9 +15,13 @@ const SHIPPER_DEFAULT = {
   seftDestruct: null,
 };
 
+const sleep = (time: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, time));
+
 class ShipperController {
   public _io: any = null;
-  public static MAXIMUM_TIME_DESTRUCT: number = 60 * 1000;
+  private MAXIMUM_TIME_DESTRUCT: number = 60 * 1000;
+  private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 10 * 1000;
   private _listShipperOnline: Array<any> = [];
 
   constructor() {
@@ -92,7 +96,7 @@ class ShipperController {
     // Set timeout to seft destruct
     this._listShipperOnline[index].seftDestruct = setTimeout(() => {
       this._listShipperOnline.splice(index, 1);
-    }, ShipperController.MAXIMUM_TIME_DESTRUCT);
+    }, this.MAXIMUM_TIME_DESTRUCT);
   }
 
   updateShipperCoor(id, coor) {
@@ -115,7 +119,6 @@ class ShipperController {
   }
 
   async sendOrderToShipper(order, maxShipper) {
-    const maximumTimeDelay = 10 * 1000;
     const coorMerchant = { lat: 0, lng: 0 };
 
     do {
@@ -126,19 +129,16 @@ class ShipperController {
         // @ts-expect-error
         .clone()
         // 1. Filter shipper full order
-        .filter((shipper) =>
-          shipper.listOrderID.length < shipper.maximumOrder ? shipper : null
-        )
+        .filter((shipper) => shipper.listOrderID.length < shipper.maximumOrder)
         // 2. Filter shipper being requested
-        .filter((shipper) => (shipper.beingRequested ? null : shipper))
-        // 3. Filter shipper refused previous request
-        .filter((shipper) => {
-          const index = orderInController.listShippersAreRequestedLv1.indexOf(
-            shipper.id
-          );
-          if (index < 0) return shipper;
-          return null;
-        })
+        .filter((shipper) => !shipper.beingRequested)
+        // 3. Filter shipper skip order
+        .filter(
+          (shipper) =>
+            !orderInController.listShipperSkipOrder.find(
+              (sprID) => sprID === shipper.id
+            )
+        )
         // 4. Filter if distance is larger than shipper's expectation
         .filter(
           (shipper) =>
@@ -157,40 +157,42 @@ class ShipperController {
         // <>
         .slice(0, maxShipper);
 
-      // Update listShipperAreRequested
-      orderInController.listShippersAreRequestedLv2 =
-        orderInController.listShippersAreRequestedLv1;
-
-      orderInController.listShippersAreRequestedLv1 = listShipperSelected.map(
-        (shipper) => shipper.id
-      );
+      if (listShipperSelected.length === 0) {
+        orderInController.listShipperSkipOrder = [];
+        continue;
+      }
 
       // Send order to Shipper
       listShipperSelected.forEach((shipper) => {
+        orderInController.listShipperAreBeingRequest.push(shipper.id);
+
         this.getShipper(shipper.id).beingRequested = true;
 
         const socketShipper = this.getSocket(shipper.id);
         socketShipper.join(order.id);
         socketShipper.emit(
           TAG_EVENT.RESPONSE_SHIPPER_CONFIRM_ORDER,
-          normalizeResponse("Confirm order", { ...order, maximumTimeDelay })
+          normalizeResponse("Confirm order", {
+            ...order,
+            requestTime: this.MAXIMUM_TIME_DELAY_REQUEST_ORDER,
+          })
         );
       });
 
-      console.log("LIST SHIPPER LENGHT:", listShipperSelected.length);
-
-      await new Promise((res) => setTimeout(res, maximumTimeDelay));
-
+      await sleep(this.MAXIMUM_TIME_DELAY_REQUEST_ORDER);
       const orderBreak = orderController.getOrderByID(order.id);
-
-      if (!orderBreak) break;
-      if (orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER)
+      if (
+        !orderBreak ||
+        orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER ||
+        orderBreak.shipperID
+      )
         break;
-      if (orderBreak.shipperID) break;
 
-      orderBreak.listShippersAreRequestedLv1.forEach((shipperID) =>
-        this.missOrder(orderBreak.orderID, shipperID)
-      );
+      listShipperSelected.forEach((shipper) => {
+        this.missOrder(orderBreak.orderID, shipper.id);
+        orderInController.listShipperSkipOrder.push(shipper.id);
+        orderInController.listShipperAreBeingRequest = [];
+      });
     } while (true);
   }
 
