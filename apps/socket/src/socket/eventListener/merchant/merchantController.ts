@@ -103,9 +103,7 @@ class MerchantController {
   }
 
   sendOrderToMerchant(merchantID, order) {
-    console.log("sendOrderToMerchant:", merchantID);
     const merchantSocket = this.getSocket(merchantID);
-
     merchantSocket.emit(
       TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
       normalizeResponse("Server request confirm order", order)

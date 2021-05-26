@@ -98,9 +98,9 @@ class OrderController {
       this._listOrder.push(
         this.createOrder(
           orderID,
-          order.User,
-          order.Restaurant,
-          order.Shipper,
+          `${order.User}`,
+          `${order.Restaurant}`,
+          order.Shipper ? `${order.Shipper}` : null,
           order.PaymentMethod
         )
       );
@@ -114,13 +114,13 @@ class OrderController {
           console.log("SEND ORDER TO MERCHANT");
           this.changeStatusOrder(
             orderID,
-            order.Merchant,
+            `${order.Restaurant}`,
             this.ORDER_STATUS.WAITING
           );
         } else {
           this.changeStatusOrder(
             orderID,
-            order.User,
+            `${order.User}`,
             this.ORDER_STATUS.MERCHANT_CONFIRM
           );
         }
@@ -172,6 +172,9 @@ class OrderController {
       console.log(`[${TAG_LOG_ERROR}]: order does not exist.`);
       return false;
     }
+
+    console.log(orderOnList);
+    console.log(userID);
 
     // check status
     const isInValidStatus =
