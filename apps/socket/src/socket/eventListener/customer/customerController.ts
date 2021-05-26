@@ -33,6 +33,7 @@ class CustomerController {
   }
 
   getSocket(customerID) {
+    console.log(this.getCustomer(customerID));
     return this._io
       .of("/")
       .sockets.get(`${this.getCustomer(customerID).socketID}`);

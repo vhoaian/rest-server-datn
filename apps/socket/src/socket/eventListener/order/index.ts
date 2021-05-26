@@ -1,3 +1,4 @@
+import { Order } from "@vohoaian/datn-models";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
@@ -57,7 +58,7 @@ class OrderController {
     customerID,
     merchantID,
     shipperID,
-    optionPayment
+    paymentMethod
   ): any {
     return {
       ...this.ORDER_DEFAULT.clone(),
@@ -65,7 +66,7 @@ class OrderController {
       shipperID,
       customerID,
       merchantID,
-      optionPayment,
+      paymentMethod,
     };
   }
 
@@ -79,27 +80,28 @@ class OrderController {
 
   async addOrder(orderID): Promise<boolean> {
     try {
-      const order: any = {
-        id: orderID,
-        Merchant: "605590f06480d31ec55b289d",
-        Shipper: null,
-        User: "6055849d6480d31ec55b2898",
-        // User: "60abbfaabfbb5a38c0558d40",
-        Tool: true,
-        coor: { lat: 0, lng: 0 },
-        PaymentMethod: 0,
-        status: this.ORDER_STATUS.WAITING_PAYMENT,
-      };
+      // const order: any = {
+      //   id: orderID,
+      //   Merchant: "605590f06480d31ec55b289d",
+      //   Shipper: null,
+      //   User: "6055849d6480d31ec55b2898",
+      //   // User: "60abbfaabfbb5a38c0558d40",
+      //   Tool: true,
+      //   coor: { lat: 0, lng: 0 },
+      //   PaymentMethod: 0,
+      //   status: this.ORDER_STATUS.WAITING_PAYMENT,
+      // };
 
-      // const order: any = await Order.findOne({ _id: orderID });
+      const order: any = (await Order.findOne({ _id: orderID })).toObject();
+      console.log(order);
 
       this._listOrder.push(
         this.createOrder(
           orderID,
           order.User,
-          order.Merchant,
+          order.Restaurant,
           order.Shipper,
-          order.optionPayment
+          order.PaymentMethod
         )
       );
 
@@ -109,6 +111,7 @@ class OrderController {
 
       if (order.PaymentMethod === 0) {
         if (merchantIsPartner) {
+          console.log("SEND ORDER TO MERCHANT");
           this.changeStatusOrder(
             orderID,
             order.Merchant,

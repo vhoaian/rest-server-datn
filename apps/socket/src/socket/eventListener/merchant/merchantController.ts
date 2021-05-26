@@ -60,11 +60,12 @@ class MerchantController {
 
   getMerchant(id): any {
     return (
-      this._listMerchantOnline.find((merchant) => merchant.id === id) || null
+      this._listMerchantOnline.find((merchant) => merchant.id == id) || null
     );
   }
 
   getSocket(merchantID) {
+    console.log(this.getMerchant(merchantID));
     return this._io
       .of("/")
       .sockets.get(`${this.getMerchant(merchantID).socketID}`);
@@ -102,6 +103,7 @@ class MerchantController {
   }
 
   sendOrderToMerchant(merchantID, order) {
+    console.log("sendOrderToMerchant:", merchantID);
     const merchantSocket = this.getSocket(merchantID);
 
     merchantSocket.emit(
