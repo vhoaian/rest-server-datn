@@ -28,12 +28,10 @@ const shipperConfig = (io, socket) => {
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_SKIP_ORDER, ({ orderID }) => {
     shipperController.skipOrder(orderID, socket.id);
-    socket.leave(orderID);
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CANCEL_ORDER, ({ orderID }) => {
     shipperController.cancelOrder(orderID, socket.decode.id);
-    socket.leave(orderID);
   });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_TOOK_FOOD, ({ orderID }) => {
@@ -42,7 +40,6 @@ const shipperConfig = (io, socket) => {
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_DELIVERED, ({ orderID }) => {
     shipperController.deliveredOrder(orderID, socket.decode.id);
-    socket.leave(orderID);
   });
 
   socket.on("disconnect", () => {

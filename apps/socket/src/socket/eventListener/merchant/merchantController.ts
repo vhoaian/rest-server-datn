@@ -66,7 +66,6 @@ class MerchantController {
   }
 
   getSocket(merchantID) {
-    console.log(this.getMerchant(merchantID));
     return this._io
       .of("/")
       .sockets.get(`${this.getMerchant(merchantID).socketID}`);

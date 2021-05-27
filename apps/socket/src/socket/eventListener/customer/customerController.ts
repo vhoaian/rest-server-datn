@@ -36,17 +36,15 @@ class CustomerController {
     const customer = this.getCustomer(`${customerID}`);
     if (!customer) return null;
 
-    console.log(customer);
-
     return this._io.of("/").sockets.get(`${customer.socketID}`);
   }
 
   addCustomer(customerID, socketID) {
     const customer: any = this.getCustomer(customerID);
     if (customer) {
-      console.log("MERCHANT RECONNECT");
+      console.log("CUSTOMER RECONNECT");
       customer.socketID = socketID;
-      clearTimeout(customer.seftDestruct);
+      clearTimeout(customer.selfDestruct);
       customer.selfDestruct = null;
     } else {
       this._listCustomerOnline.push({ id: customerID, socketID });

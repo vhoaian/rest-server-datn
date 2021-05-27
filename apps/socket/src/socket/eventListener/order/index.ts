@@ -81,20 +81,8 @@ class OrderController {
 
   async addOrder(orderID): Promise<boolean> {
     try {
-      // const order: any = {
-      //   id: orderID,
-      //   Merchant: "605590f06480d31ec55b289d",
-      //   Shipper: null,
-      //   User: "6055849d6480d31ec55b2898",
-      //   // User: "60abbfaabfbb5a38c0558d40",
-      //   Tool: true,
-      //   coor: { lat: 0, lng: 0 },
-      //   PaymentMethod: 0,
-      //   status: this.ORDER_STATUS.WAITING_PAYMENT,
-      // };
-
-      const order: any = (await Order.findOne({ _id: orderID })).toObject();
-      console.log(order);
+      const orderDB: any = await Order.findOne({ _id: orderID });
+      const order = orderDB.toObject();
 
       this._listOrder.push(
         this.createOrder(
@@ -105,7 +93,6 @@ class OrderController {
           order.PaymentMethod
         )
       );
-
       const socketCustomer = customerController.getSocket(order.User);
       if (socketCustomer) socketCustomer.join(orderID);
 
@@ -175,10 +162,6 @@ class OrderController {
       return false;
     }
 
-    console.log(orderOnList);
-    console.log("userID");
-    console.log(userID);
-
     // check status
     const isInValidStatus =
       Object.values(this.ORDER_STATUS).indexOf(status) < 0 ? true : false;
@@ -209,7 +192,6 @@ class OrderController {
       const order = await Order.findOne({ _id: orderID })
         .populate("User")
         .populate("Restaurant");
-      console.log(order);
 
       const prevStatus = orderOnList.status;
 
