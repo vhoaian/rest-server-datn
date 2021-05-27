@@ -4,7 +4,10 @@ import shipperController from "./shipperController";
 
 // Config for shipper
 const shipperConfig = (io, socket) => {
-  shipperController.addShipper(socket.decode.id, socket.id, { lat: 0, lng: 0 });
+  shipperController.addShipper(socket.decode.id, socket.id, {
+    lat: 0,
+    lng: 0,
+  });
 
   socket.on(TAG_EVENT.REQUEST_SHIPPER_CHANGE_COOR, ({ coor }) => {
     shipperController.updateShipperCoor(socket.decode.id, coor);

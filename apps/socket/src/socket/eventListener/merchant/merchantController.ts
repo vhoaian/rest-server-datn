@@ -3,6 +3,7 @@ import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
+import { Order } from "@vohoaian/datn-models";
 
 class MerchantController {
   private _listMerchantOnline: Array<any> = [];
@@ -102,14 +103,26 @@ class MerchantController {
     this._listMerchantOnline.splice(index, 1);
   }
 
-  sendOrderToMerchant(merchantID, order) {
+  async sendOrderToMerchant(merchantID, orderInList) {
+    // Get order to return for merchant
+    const orderDB: any = await Order.findOne({ _id: orderInList.orderID })
+      // .populate("User", "Avatar Email FullName Phone")
+      // .populate("Restaurant", "Address Avatar IsPartner Phone");
+      .populate("User")
+      .populate("Restaurant");
+
+    const order: any = orderDB?.toObject();
+
     const merchantSocket = this.getSocket(merchantID);
     merchantSocket.emit(
       TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
-      normalizeResponse("Server request confirm order", order)
+      normalizeResponse("Server request confirm order", {
+        ...order,
+        Status: orderInList.status,
+      })
     );
 
-    merchantSocket.join(order.id);
+    merchantSocket.join(orderInList.orderID);
   }
 
   confirmOrder(orderID, merchantID) {

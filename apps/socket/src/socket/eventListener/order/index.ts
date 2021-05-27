@@ -1,4 +1,5 @@
 import { Order } from "@vohoaian/datn-models";
+import mongoose from "mongoose";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
@@ -76,7 +77,9 @@ class OrderController {
   }
 
   getOrderByID = (orderID): any => {
-    return this._listOrder.find((order) => order.orderID === orderID) || null;
+    return (
+      this._listOrder.find((order) => order.orderID === `${orderID}`) || null
+    );
   };
 
   async addOrder(orderID): Promise<boolean> {
@@ -213,6 +216,9 @@ class OrderController {
             shipperController.getSocket(shipperID).leave(orderID);
           });
           this.removeOrder(orderID);
+
+          // Update status order on database
+          await Order.updateOne({ _id: orderID }, { Status: status });
           return true;
         } else {
           orderOnList.status = prevStatus;
@@ -270,6 +276,9 @@ class OrderController {
           break;
       }
 
+      // Update status order on database
+      await Order.updateOne({ _id: orderID }, { Status: status });
+
       return true;
     } catch (e) {
       console.log(`[${TAG_LOG_ERROR}]: ${e.message}`);
@@ -277,7 +286,7 @@ class OrderController {
     }
   }
 
-  async updateShipper(orderID, shipperID): Promise<boolean> {
+  async updateShipper(orderID: string, shipperID: string): Promise<boolean> {
     // update on DB
     // await Order.findOneAndUpdate({ _id: orderID }, { Shipper: shipperID });
 
@@ -292,6 +301,11 @@ class OrderController {
         .forEach((shipperID) =>
           shipperController.missOrder(orderID, shipperID)
         );
+
+      await Order.updateOne(
+        { _id: orderID },
+        { Shipper: new mongoose.Types.ObjectId(shipperID) }
+      );
       return true;
     }
 

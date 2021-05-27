@@ -97,7 +97,7 @@ class CustomerController {
     this._listCustomerOnline.splice(index, 1);
   }
 
-  sendStatusPaymentToCustomer = (customerID, order) => {
+  async sendStatusPaymentToCustomer(customerID, orderInList) {
     this.getSocket(customerID).emit(
       TAG_EVENT.RESPONSE_CUSTOMER_PAYMENT_ORDER,
       normalizeResponse("Payment status", {
@@ -105,7 +105,7 @@ class CustomerController {
         message: "Payment success",
       })
     );
-  };
+  }
 }
 
 const customerController = new CustomerController();

@@ -4,6 +4,7 @@ import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
+import { Order } from "@vohoaian/datn-models";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -12,7 +13,7 @@ const SHIPPER_DEFAULT = {
   listOrderID: [],
   beingRequested: false,
   maximumOrder: 3,
-  maximumDistance: 10, // unit: km
+  maximumDistance: 3, // unit: km
   selfDestruct: null,
 };
 
@@ -148,11 +149,25 @@ class ShipperController {
     });
   }
 
-  async sendOrderToShipper(order, maxShipper) {
-    const coorMerchant = { lat: 0, lng: 0 };
+  async sendOrderToShipper(orderInList, maxShipper) {
+    // Get order to return for merchant
+    const orderDB: any = await Order.findOne({ _id: orderInList.orderID })
+      .populate("User", "Avatar Email FullName Phone")
+      .populate("Restaurant", "Address Avatar IsPartner Phone Location");
+
+    const order: any = orderDB.toObject();
+
+    const [latMer = 0, lngMer = 0] = order.Restaurant.Location.coordinates;
+    const coorMerchant = {
+      lat: latMer,
+      lng: lngMer,
+    };
+
+    console.log(coorMerchant);
+    console.log(calcDistanceBetween2Coor(coorMerchant, { lat: 0, lng: 0 }));
 
     do {
-      const orderInController = orderController.getOrderByID(order.id);
+      const orderInController = orderController.getOrderByID(order._id);
       if (!orderInController) return;
 
       const listShipperSelected = clone(this._listShipperOnline)
@@ -185,6 +200,8 @@ class ShipperController {
         // <>
         .slice(0, maxShipper);
 
+      console.log(listShipperSelected);
+
       // Send order to Shipper
       listShipperSelected.forEach((shipper) => {
         orderInController.listShipperAreBeingRequest.push(shipper.id);
@@ -192,11 +209,12 @@ class ShipperController {
         this.getShipper(shipper.id).beingRequested = true;
 
         const socketShipper = this.getSocket(shipper.id);
-        socketShipper.join(order.id);
+        socketShipper.join(orderInList.orderID);
         socketShipper.emit(
           TAG_EVENT.RESPONSE_SHIPPER_CONFIRM_ORDER,
           normalizeResponse("Confirm order", {
             ...order,
+            Status: orderInList.status,
             requestTime: this.MAXIMUM_TIME_DELAY_REQUEST_ORDER,
           })
         );
