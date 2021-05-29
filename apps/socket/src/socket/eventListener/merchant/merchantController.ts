@@ -62,14 +62,16 @@ class MerchantController {
 
   getMerchant(id): any {
     return (
-      this._listMerchantOnline.find((merchant) => merchant.id == id) || null
+      this._listMerchantOnline.find((merchant) => merchant.id === `${id}`) ||
+      null
     );
   }
 
   getSocket(merchantID) {
-    return this._io
-      .of("/")
-      .sockets.get(`${this.getMerchant(merchantID).socketID}`);
+    const merchant = this.getMerchant(merchantID);
+    if (merchant) return null;
+
+    return this._io.of("/").sockets.get(`${merchant.socketID}`);
   }
 
   removeMerchant(id) {
@@ -114,6 +116,12 @@ class MerchantController {
     const order: any = orderDB?.toObject();
 
     const merchantSocket = this.getSocket(merchantID);
+    if (!merchantSocket) {
+      return console.log(
+        `[${TAG_LOG_ERROR}_MERCHANT]: merchant not online ID: ${merchantID}`
+      );
+    }
+
     merchantSocket.emit(
       TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
       normalizeResponse("Server request confirm order", {
