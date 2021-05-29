@@ -13,7 +13,7 @@ const SHIPPER_DEFAULT = {
   listOrderID: [],
   beingRequested: false,
   maximumOrder: 3,
-  maximumDistance: 3, // unit: km
+  maximumDistance: 100, // unit: km
   selfDestruct: null,
 };
 
@@ -140,12 +140,17 @@ class ShipperController {
       lng: parseFloat(coor.lng),
     };
 
+    console.log(shipper.listOrderID);
+
     // Invoke event update coor shipper
     shipper.listOrderID.forEach((orderID) => {
-      this.getSocket(id).emit(
-        TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
-        normalizeResponse("Update Coor Shipper", coor)
-      );
+      console.log("UPDATE COOR SHIPPER TO ORDER");
+      orderController
+        .getSocket(orderID)
+        .emit(
+          TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
+          normalizeResponse("Update Coor Shipper", coor)
+        );
     });
   }
 
