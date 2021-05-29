@@ -69,7 +69,7 @@ class MerchantController {
 
   getSocket(merchantID) {
     const merchant = this.getMerchant(merchantID);
-    if (merchant) return null;
+    if (!merchant) return null;
 
     return this._io.of("/").sockets.get(`${merchant.socketID}`);
   }
