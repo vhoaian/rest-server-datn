@@ -10,7 +10,7 @@ import Mac from "./Mac";
 import configApp from "../config";
 
 const pathPublicKey: string = path.join(
-  __dirname.replace("/dist", ""),
+  __dirname.replace("/dist", "").replace("\\dist", ""),
   "src",
   "payment",
   "publickey.pem"
