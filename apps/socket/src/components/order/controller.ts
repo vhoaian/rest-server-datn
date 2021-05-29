@@ -10,7 +10,7 @@ export const getHomePage = (req, res) => {
 export const createOrder = async (req, res) => {
   const { orderID = "" } = req.body;
   const response = await service.createOrder(orderID);
-  res.send("response");
+  res.send(response);
 };
 
 export const cbZaloPay = async (req, res) => {
