@@ -1,4 +1,4 @@
-import * as orderController from "../../socket/eventListener/order";
+import orderController from "../../socket/eventListener/order";
 import ZaloPay from "../../payment/ZaloPay";
 import { Order } from "@vohoaian/datn-models";
 
@@ -13,13 +13,13 @@ const service = {
     if (orderID) {
       success = await orderController.addOrder(orderID);
 
-      // const order: any = await Order.findOne({ _id: orderID });
-      const order = { PaymentMethod: 1 };
+      const orderDB: any = await Order.findOne({ _id: orderID });
+      const order: any = orderDB.toObject();
 
       // paymentMethod : 0 - cash | 1 - zalopay
       const paymentMethods = ["cash", "zalopay"];
       if (paymentMethods[order.PaymentMethod] === "zalopay") {
-        paymentInfo = await ZaloPay.CreateOrder({ orderID });
+        paymentInfo = await ZaloPay.CreateOrder({ order });
         console.log(paymentInfo);
       }
     }

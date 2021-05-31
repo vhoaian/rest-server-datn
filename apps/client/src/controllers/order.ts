@@ -9,6 +9,7 @@ import { nomalizeResponse } from "../utils/normalize";
 import { withFilter } from "../utils/objects";
 import axios from "axios";
 import { environment } from "../environments/base";
+import { type } from "node:os";
 
 // const DAFilter = withFilter('FullAddress Phone Geolocation id');
 export async function addOrder(req, res) {
@@ -223,10 +224,16 @@ export async function addOrder(req, res) {
   });
 
   // **** SOCKET SERVER **** \\ Notify for socket server \\ 0 - cash | 1 - zalopay
-  const responseSocketServer: {
+  type SOCKET_RETURN_TYPE = {
     success: boolean;
     message: string;
     paymentInfo: any;
+  };
+
+  const {
+    data: responseData,
+  }: {
+    data: SOCKET_RETURN_TYPE;
   } = await axios.post(
     `${environment.URL_SOCKET_SERVER}/create-order`,
     { orderID: newOrder._id },
@@ -241,10 +248,11 @@ export async function addOrder(req, res) {
   const response = newOrderResponse;
   response.id = response._id;
   delete response._id;
+
   res.send(
     nomalizeResponse({
       ...response,
-      paymentInfo: responseSocketServer.paymentInfo,
+      paymentInfo: responseData.paymentInfo,
     })
   );
 }

@@ -3,23 +3,11 @@ import socketIO from "socket.io";
 import _ from "underscore";
 import configApp from "../config";
 import configEventListener from "./eventListener";
-import { setIO as setIoOrder } from "./eventListener/order";
-import { setIO as setIoShipper } from "./eventListener/shipper/shipperController";
-import { setIO as setIoMerChant } from "./eventListener/merchant/merchantController";
-import { setIO as setIoCustomer } from "./eventListener/customer/customerController";
+import orderController from "./eventListener/order";
+import shipperController from "./eventListener/shipper/shipperController";
+import merchantController from "./eventListener/merchant/merchantController";
+import customerController from "./eventListener/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
-
-// Deep copy array
-// @ts-expect-error
-Array.prototype.clone = function () {
-  return JSON.parse(JSON.stringify(this));
-};
-
-// Deep copy object
-// @ts-expect-error
-Object.prototype.clone = function () {
-  return JSON.parse(JSON.stringify(this));
-};
 
 // Check authenticate
 const checkAuthToken = (token, callback): void => {
@@ -91,10 +79,10 @@ export const config = (server): void => {
     origins: [`${configApp.URL_SERVER}:${configApp.PORT}`],
   });
 
-  setIoOrder(_io);
-  setIoShipper(_io);
-  setIoMerChant(_io);
-  setIoCustomer(_io);
+  orderController.setIO(_io);
+  shipperController.setIO(_io);
+  merchantController.setIO(_io);
+  customerController.setIO(_io);
 
   _io.on("connection", setUpConnection);
 

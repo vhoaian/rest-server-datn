@@ -4,11 +4,13 @@ import readline from "readline";
 
 import credentials from "./credentials";
 
-const oAuth2Client = new google.auth.OAuth2(
+const oAuth2Client: any = new google.auth.OAuth2(
   credentials.CLIENT_ID,
   credentials.CLIENT_SECRET,
   credentials.REDIRECT_URLS[0]
 );
+
+const TOKEN_PATH = "";
 
 oAuth2Client.setCredentials({ refresh_token: credentials.REFRESH_TOKEN });
 const drive = google.drive({ version: "v3", auth: oAuth2Client });

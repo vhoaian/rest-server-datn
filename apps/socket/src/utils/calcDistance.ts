@@ -17,5 +17,5 @@ export const calcDistanceBetween2Coor = (p1, p2) => {
             Math.sin(difflon / 2)
       )
     );
-  return d;
+  return d / 1000;
 };

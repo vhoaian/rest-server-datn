@@ -10,7 +10,7 @@ import Mac from "./Mac";
 import configApp from "../config";
 
 const pathPublicKey: string = path.join(
-  __dirname.replace("/dist", ""),
+  __dirname.replace("/dist", "").replace("\\dist", ""),
   "src",
   "payment",
   "publickey.pem"
@@ -48,8 +48,13 @@ class ZaloPay {
     return `${moment().format("YYMMDD")}_${config.appid}_${++uid}`;
   }
 
-  NewOrder({ orderID, amount = 10000, description = "TEST SOCKET" }) {
-    console.log("NEW ORDER: ", orderID);
+  NewOrder({ order }: any) {
+    console.log("NEW ORDER: ", order._id);
+
+    const amount: number = order.Total || 0;
+    const description: string = `Pay for order ${order._id}`;
+    const app_trans_id: string = this.GenTransID();
+
     const self: any = this;
     return {
       amount,
@@ -58,12 +63,12 @@ class ZaloPay {
       app_user: "Demo",
       embed_data: JSON.stringify({
         description,
-        orderID,
-        tool: true,
+        orderID: order._id,
+        tool: order.Tool,
       }),
-      item: JSON.stringify([{ name: "demo item", amount }]),
+      item: JSON.stringify([]),
       app_time: Date.now(),
-      app_trans_id: this.GenTransID(),
+      app_trans_id,
       callback_url: `${this.publicURL}/callback-zalopay`,
       bank_code: "zalopayapp",
     };

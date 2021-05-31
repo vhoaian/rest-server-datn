@@ -1,0 +1,23 @@
+POST http://localhost:8000/orders
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwYWJiZmFhYmZiYjVhMzhjMDU1OGQ0MCIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTYyMjAzOTg2OCwiZXhwIjoxNjIyMDU0MjY4fQ.raxG0KEXE05I0aG1meU1F1vLGDt7N17QrJp07XuFOvU
+
+{
+    "foods": [{
+        "id": "60a79a9cb7245f28182cf906",
+        "price": 104000,
+        "quantity": 2
+    },
+    {
+        "id": "60a79a9cb7245f28182cf90a",
+        "price": 35000,
+        "quantity": 1
+    }],
+    "subtotal": 243001,
+    "shippingfee": 10000,
+    "address": "273 Nguyễn Văn Cừ, P. 4, Quận 5, TP. HCM",
+    "phone": "0331234567",
+    "longitude": 100.1234567,
+    "latitude": 10.1234567,
+    "method": 0
+}
