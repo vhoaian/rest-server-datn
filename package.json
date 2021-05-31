@@ -30,7 +30,7 @@
   },
   "private": true,
   "dependencies": {
-    "@vohoaian/datn-models": "^1.2.0",
+    "@vohoaian/datn-models": "^1.2.1",
     "@vohoaian/datn-otp": "^1.0.0",
     "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",
@@ -43,8 +43,8 @@
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.29.1",
     "node-fetch": "^2.6.1",
-    "node-rsa": "^1.1.1",
     "node-geocoder": "^3.27.0",
+    "node-rsa": "^1.1.1",
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
     "socket.io": "^4.0.1",
