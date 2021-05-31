@@ -85,23 +85,3 @@ export async function getGeneralStatistics(req, res) {
     res.send(nomalizeResponse(null, Constants.SERVER.GET_GENERAL_ERROR));
   }
 }
-
-export async function getNotification(req, res) {
-  try {
-    const reports = await Driver.find({ Solve: 0 }).exec();
-    const permission = await Permission.find({ Status: 1 }).exec();
-
-    res.send(
-      nomalizeResponse(
-        {
-          reports,
-          permission,
-        },
-        0
-      )
-    );
-  } catch (error) {
-    console.log(`[ERROR] get notification: ${error}`);
-    res.send(nomalizeResponse(null, Constants.SERVER.GET_NOTICE_ERROR));
-  }
-}
