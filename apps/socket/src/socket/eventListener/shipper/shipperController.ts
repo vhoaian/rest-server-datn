@@ -1,8 +1,10 @@
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
-import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
-import * as orderController from "../order";
+import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
+import orderController from "../order";
+import clone from "../../../utils/clone";
+import { Order } from "@vohoaian/datn-models";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -11,336 +13,335 @@ const SHIPPER_DEFAULT = {
   listOrderID: [],
   beingRequested: false,
   maximumOrder: 3,
-  maximumDistance: 10, // unit: km
-  seftDestruct: null,
+  maximumDistance: 100, // unit: km
+  selfDestruct: null,
 };
 
-let _listShipperOnline: any = [];
-let _io: any = null;
-export const setIO = (io) => {
-  _io = io;
-};
+const sleep = (time: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, time));
 
-// [LOG]: Log list customer online every 5 seconds
-if (config.LOG_SOCKET.indexOf("shipper") > -1) {
-  setInterval(() => {
-    console.log("LIST SHIPPER ONLINE");
-    console.table(_listShipperOnline);
-  }, 5000);
-}
+class ShipperController {
+  public _io: any = null;
+  private MAXIMUM_TIME_DESTRUCT: number = 10 * 1000;
+  private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 10 * 1000;
+  private _listShipperOnline: Array<any> = [];
 
-// create new shipper
-const createShipper = (id, socketID, coor) => {
-  // @ts-expect-error
-  return { ...SHIPPER_DEFAULT.clone(), id, socketID, coor };
-};
+  constructor() {
+    // [LOG]: Log list customer online every 5 seconds
+    if (config.LOG_SOCKET.indexOf("shipper") > -1) {
+      setInterval(() => {
+        console.log("LIST SHIPPER ONLINE");
+        console.table(this._listShipperOnline);
+      }, 5000);
+    }
+  }
 
-// ============================ EXPORT ============================ //
-// Get Shipper
-export const getShipper = (id) => {
-  const indexOf = _listShipperOnline.map((shipper) => shipper.id).indexOf(id);
-  if (indexOf < 0) return null;
+  private createShipper(id, socketID, coor): any {
+    return { ...clone(SHIPPER_DEFAULT), id, socketID, coor };
+  }
 
-  return _listShipperOnline[indexOf];
-};
+  setIO(io) {
+    this._io = io;
+  }
 
-export const getShipperBySocketID = (socketID) => {
-  const indexOf = _listShipperOnline
-    .map((shipper: any) => shipper.socketID)
-    .indexOf(socketID);
-  if (indexOf < 0) return null;
+  getSocket(id): any {
+    return this._io.of("/").sockets.get(`${this.getShipper(id).socketID}`);
+  }
 
-  return _listShipperOnline[indexOf];
-};
+  getShipper(id): any {
+    return this._listShipperOnline.find((shipper) => shipper.id === id) || null;
+  }
 
-// Add shipper
-export const addShipper = (id, socketID, coor) => {
-  // auto reconnect
-  const shipper: any = getShipper(id);
-  if (shipper) {
-    shipper.socketID = socketID;
-    shipper.coor = coor;
-    clearTimeout(shipper.seftDestruct);
-    shipper.seftDestruct = null;
+  getShipperBySocketID(socketID): any {
+    return (
+      this._listShipperOnline.find(
+        (shipper) => shipper.socketID === socketID
+      ) || null
+    );
+  }
+
+  addShipper(id, socketID, coor) {
+    // auto reconnect
+    const shipper: any = this.getShipper(id);
+    if (shipper) {
+      console.log("SHIPPER RECONNECT");
+      shipper.socketID = socketID;
+      shipper.coor = coor;
+      clearTimeout(shipper.selfDestruct);
+      shipper.selfDestruct = null;
+    } else {
+      this._listShipperOnline.push(this.createShipper(id, socketID, coor));
+    }
 
     // send all order if shipper has order before
     const listOrder = orderController
       .getOrderByShipperID(id)
       .map((order) => ({ ...order, id: order.orderID }));
+    if (listOrder.length === 0) return;
 
-    _io
-      .to(socketID)
-      .emit(
-        TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
-        normalizeResponse("Reconnect", { listOrder })
-      );
-    return;
+    // join room
+    const socketShipper = this.getSocket(id);
+    listOrder.forEach((odr) => socketShipper.join(odr.id));
+
+    socketShipper.emit(
+      TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
+      normalizeResponse("Reconnect", { listOrder })
+    );
   }
 
-  _listShipperOnline.push(createShipper(id, socketID, coor));
-};
-
-// Remove shipper
-export const removeShipper = (id) => {
-  const MAXIMUM_TIME_DESTRUCT = 60 * 1000;
-
-  const index = _listShipperOnline.map((shipper) => shipper.id).indexOf(id);
-  if (index < 0)
-    return console.log(
-      `[${TAG_LOG_ERROR}_REMOVE_SHIPPER]: shipper does not exits`
-    );
-
-  // Set timeout to seft destruct
-  const shipper = _listShipperOnline[index];
-
-  shipper.seftDestruct = setTimeout(() => {
-    _listShipperOnline.splice(index, 1);
-  }, MAXIMUM_TIME_DESTRUCT);
-};
-
-// Update Shipper Coor. Return new coor
-export const updateShipperCoor = (id, coor) => {
-  const indexOf = _listShipperOnline.findIndex((shipper) => shipper.id === id);
-  if (indexOf < 0) return null;
-
-  _listShipperOnline[indexOf].coor = {
-    lat: parseFloat(coor.lat),
-    lng: parseFloat(coor.lng),
-  };
-
-  // Invoke event update coor shipper
-  _listShipperOnline[indexOf].listOrderID.forEach((orderID) => {
-    _io
-      .to(orderID)
-      .emit(
-        TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
-        normalizeResponse("Update Coor Shipper", coor)
+  removeShipper(id) {
+    const shipper = this.getShipper(id);
+    if (!shipper)
+      return console.log(
+        `[${TAG_LOG_ERROR}_REMOVE_SHIPPER]: shipper does not exits`
       );
-  });
-};
 
-// Slect shippers to take order. Return array shipper
-export const sendOrderToShipper = async (order, maxShipper) => {
-  // Algorithm select shipper
-  const maximumTimeDelay = 10 * 1000;
-
-  // 1. Nearest: distance = Shipper -> Restaurant
-  // 2. Rating:
-
-  // Get coor merchant:
-  const coorMerchant = { lat: 0, lng: 0 };
-
-  do {
-    const orderInController = orderController.getOrderByID(order.id);
-    if (!orderInController) return;
-
-    // Filter & Select shipper
-    const listShipperSelected = _listShipperOnline
-      .clone()
-      // Filter shipper being requested
-      .filter((shipper) => (shipper.beingRequested ? null : shipper))
-      // Filter shipper refused previous request
-      .filter((shipper) => {
-        const index = orderInController.listShippersAreRequestedLv1.indexOf(
-          shipper.id
-        );
-        if (index < 0) return shipper;
-        return null;
-      })
-      // Filter shipper full order
-      .filter((shipper) =>
-        shipper.listOrderID.length < shipper.maximumOrder ? shipper : null
-      )
-      // Filter if distance is larger than shipper's expectation
-      .filter((shipper) => {
-        const coorShipper = { lat: 0, lng: 0 };
-
-        const distanceShipper = calcDistanceBetween2Coor(
-          coorMerchant,
-          coorShipper
-        );
-
-        if (shipper.maximumDistance >= distanceShipper) return shipper;
-        return null;
-      })
-      // Sort to get nearest shippers
-      .sort((shipper1, shipper2) => {
-        const coorShipper1 = { lat: 0, lng: 0 };
-        const coorShipper2 = { lat: 0, lng: 0 };
-
-        const distanceShipper1 = calcDistanceBetween2Coor(
-          coorMerchant,
-          coorShipper1
-        );
-        const distanceShipper2 = calcDistanceBetween2Coor(
-          coorMerchant,
-          coorShipper2
-        );
-
-        return distanceShipper1 > distanceShipper2 ? -1 : 1;
-      })
-      // <>
-      // Add more rule to sort shipper
-      // <>
-      .slice(0, maxShipper);
-
-    // Update listShipperAreRequested
-    orderInController.listShippersAreRequestedLv2 =
-      orderInController.listShippersAreRequestedLv1;
-
-    orderInController.listShippersAreRequestedLv1 = listShipperSelected.map(
-      (shipper) => shipper.id
-    );
-
-    // Send order to Shipper
-    listShipperSelected.forEach((shipper) => {
-      getShipperBySocketID(shipper.socketID).beingRequested = true;
-
-      _io.of("/").sockets.get(`${shipper.socketID}`).join(order.id);
-
-      _io
-        .to(shipper.socketID)
-        .emit(
-          TAG_EVENT.RESPONSE_SHIPPER_CONFIRM_ORDER,
-          normalizeResponse("Confirm order", { ...order, maximumTimeDelay })
-        );
+    orderController.getOrderByShipperID(id).forEach((order) => {
+      orderController.getSocket(order.orderID).emit(
+        TAG_EVENT.RESPONSE_DISCONNECT_ROOM,
+        normalizeResponse("Shipper disconnect", {
+          orderID: order.orderID,
+          shipper: id,
+        })
+      );
     });
 
-    console.log("LIST SHIPPER LENGHT:", listShipperSelected.length);
+    // Set timeout to seft destruct
+    shipper.selfDestruct = setTimeout(() => {
+      this.handleShipperDisconnect(id);
+    }, this.MAXIMUM_TIME_DESTRUCT);
+  }
 
-    await new Promise((res) => setTimeout(res, maximumTimeDelay));
+  private handleShipperDisconnect(id) {
+    // Cancel all order
+    const shipper = this.getShipper(id);
+    shipper.listOrderID.forEach((orderID) => {
+      orderController.changeStatusOrder(
+        orderID,
+        shipper.id,
+        orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
+      );
+    });
 
-    const orderBreak = orderController.getOrderByID(order.id);
-
-    if (!orderBreak) break;
-    if (orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER)
-      break;
-    if (orderBreak.shipperID) break;
-
-    orderBreak.listShippersAreRequestedLv1.forEach((shipperID) =>
-      missOrder(orderBreak.orderID, shipperID)
+    // Delete shipper
+    const index = this._listShipperOnline.findIndex(
+      (shipper) => shipper.id === id
     );
-  } while (true);
-};
+    this._listShipperOnline.splice(index, 1);
+  }
 
-// Shipper => Checkin => socket
-export const missOrder = (orderID, shipperID) => {
-  const shipper = getShipper(shipperID);
+  updateShipperCoor(id, coor) {
+    const shipper = this.getShipper(id);
+    if (!shipper) return;
 
-  if (!shipper) return;
+    // Update coor
+    shipper.coor = {
+      lat: parseFloat(coor.lat),
+      lng: parseFloat(coor.lng),
+    };
 
-  shipper.beingRequested = false;
+    console.log(shipper.listOrderID);
 
-  _io.of("/").sockets.get(`${shipper.socketID}`).leave(orderID);
+    // Invoke event update coor shipper
+    shipper.listOrderID.forEach((orderID) => {
+      console.log("UPDATE COOR SHIPPER TO ORDER");
+      orderController
+        .getSocket(orderID)
+        .emit(
+          TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
+          normalizeResponse("Update Coor Shipper", coor)
+        );
+    });
+  }
 
-  _io
-    .to(shipper.socketID)
-    .emit(
+  async sendOrderToShipper(orderInList, maxShipper) {
+    // Get order to return for merchant
+    const orderDB: any = await Order.findOne({ _id: orderInList.orderID })
+      .populate("User", "Avatar Email FullName Phone")
+      .populate("Restaurant", "Address Avatar IsPartner Phone Location");
+
+    const order: any = orderDB.toObject();
+
+    const [latMer = 0, lngMer = 0] = order.Restaurant.Location.coordinates;
+    const coorMerchant = {
+      lat: latMer,
+      lng: lngMer,
+    };
+
+    console.log(coorMerchant);
+    console.log(calcDistanceBetween2Coor(coorMerchant, { lat: 0, lng: 0 }));
+
+    do {
+      const orderInController = orderController.getOrderByID(order._id);
+      if (!orderInController) return;
+
+      const listShipperSelected = clone(this._listShipperOnline)
+        // 1. Filter shipper full order
+        .filter((shipper) => shipper.listOrderID.length < shipper.maximumOrder)
+        // 2. Filter shipper being requested
+        .filter((shipper) => !shipper.beingRequested)
+        // 3. Filter shipper skip order
+        .filter(
+          (shipper) =>
+            !orderInController.listShipperSkipOrder.find(
+              (sprID) => sprID === shipper.id
+            )
+        )
+        // 4. Filter if distance is larger than shipper's expectation
+        .filter(
+          (shipper) =>
+            shipper.maximumDistance >=
+            calcDistanceBetween2Coor(coorMerchant, shipper.coor)
+        )
+        // 5. Sort to get nearest shippers
+        .sort((shipper1, shipper2) =>
+          calcDistanceBetween2Coor(coorMerchant, shipper1.coor) >
+          calcDistanceBetween2Coor(coorMerchant, shipper2.coor)
+            ? -1
+            : 1
+        )
+        // <>
+        // Add more rule to sort shipper
+        // <>
+        .slice(0, maxShipper);
+
+      console.log(listShipperSelected);
+
+      // Send order to Shipper
+      listShipperSelected.forEach((shipper) => {
+        orderInController.listShipperAreBeingRequest.push(shipper.id);
+
+        this.getShipper(shipper.id).beingRequested = true;
+
+        const socketShipper = this.getSocket(shipper.id);
+        socketShipper.join(orderInList.orderID);
+        socketShipper.emit(
+          TAG_EVENT.RESPONSE_SHIPPER_CONFIRM_ORDER,
+          normalizeResponse("Confirm order", {
+            ...order,
+            Status: orderInList.status,
+            requestTime: this.MAXIMUM_TIME_DELAY_REQUEST_ORDER,
+          })
+        );
+      });
+
+      await sleep(this.MAXIMUM_TIME_DELAY_REQUEST_ORDER);
+
+      if (listShipperSelected.length === 0) {
+        orderInController.listShipperSkipOrder = [];
+        continue;
+      }
+
+      const orderBreak = orderController.getOrderByID(order.id);
+      if (
+        !orderBreak ||
+        orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER ||
+        orderBreak.shipperID
+      )
+        break;
+
+      listShipperSelected.forEach((shipper) => {
+        this.missOrder(orderBreak.orderID, shipper.id);
+        orderInController.listShipperSkipOrder.push(shipper.id);
+        orderInController.listShipperAreBeingRequest = [];
+      });
+    } while (true);
+  }
+
+  missOrder(orderID, shipperID) {
+    const shipper = this.getShipper(shipperID);
+    if (!shipper) return;
+
+    shipper.beingRequested = false;
+
+    const socketShipper = this.getSocket(shipperID);
+
+    socketShipper.leave(orderID);
+    socketShipper.emit(
       TAG_EVENT.RESPONSE_SHIPPER_SKIP_CONFIRM_ORDER,
       normalizeResponse(
         "This order already has shipper, please skip this order",
         { orderID }
       )
     );
-};
+  }
 
-// Shipper confirm order
-export const confirmOrder = async (orderID, socketID) => {
-  // Update shipper
-  const indexShipper = _listShipperOnline
-    .map((shipper) => shipper.socketID)
-    .indexOf(socketID);
+  async confirmOrder(orderID, shipperID) {
+    const shipper = this.getShipper(shipperID);
+    if (!shipper) return false;
 
-  if (indexShipper < 0) return false;
+    shipper.beingRequested = false;
+    const socketShipper = this.getSocket(shipperID);
 
-  const shipperID = _listShipperOnline[indexShipper].id;
-  _listShipperOnline[indexShipper].beingRequested = false;
-
-  // Check the order is there any shipper?
-  if (!(await orderController.updateShipper(orderID, shipperID))) {
-    _io
-      .to(socketID)
-      .emit(
+    // Check the order is there any shipper?
+    if (!(await orderController.updateShipper(orderID, shipperID))) {
+      socketShipper.emit(
         TAG_EVENT.RESPONSE_SHIPPER_CONFIRM_ORDER_FAILED,
         normalizeResponse(
           "Confirm order failed, the order already has shipper.",
           { orderID }
         )
       );
+      return false;
+    }
 
-    return false;
+    shipper.listOrderID.push(orderID);
+
+    // Update status order
+    orderController.changeStatusOrder(
+      orderID,
+      shipperID,
+      orderController.ORDER_STATUS.DURING_GET
+    );
+    return true;
   }
 
-  _listShipperOnline[indexShipper].listOrderID.push(orderID);
+  skipOrder(orderID, socketID) {
+    console.log("SKIP ORDER");
+    const shipper = this.getShipperBySocketID(socketID);
+    if (!shipper) return;
 
-  // Update status order
-  orderController.changeStatusOrder(
-    orderID,
-    shipperID,
-    orderController.ORDER_STATUS.DURING_GET
-  );
-  return true;
-};
+    shipper.beingRequested = false;
+  }
 
-// Shipper confirm order
-export const skipOrder = (orderID, socketID) => {
-  console.log("SKIP ORDER");
-  const shipper = getShipperBySocketID(socketID);
-  if (!shipper) return;
+  cancelOrder(orderID, shipperID) {
+    // Update shipper
+    const shipper = this.getShipper(shipperID);
 
-  shipper.beingRequested = false;
-};
+    const indexOrderID = shipper.listOrderID.indexOf(orderID);
+    shipper.listOrderID.splice(indexOrderID, 1);
 
-// Shipper confirm order
-export const cancelOrder = (orderID, socketID) => {
-  // Update shipper
-  const indexShipper = _listShipperOnline
-    .map((shipper) => shipper.socketID)
-    .indexOf(socketID);
+    // Update status order
+    orderController.changeStatusOrder(
+      orderID,
+      shipper.id,
+      orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
+    );
+  }
 
-  if (indexShipper < 0) return;
+  tookFood(orderID, shipperID) {
+    // Update status order
+    orderController.changeStatusOrder(
+      orderID,
+      shipperID,
+      orderController.ORDER_STATUS.DURING_SHIP
+    );
+  }
 
-  const indexOrderID = _listShipperOnline[indexShipper].listOrderID.indexOf(
-    orderID
-  );
-  _listShipperOnline[indexShipper].listOrderID.splice(indexOrderID, 1);
+  deliveredOrder(orderID, shipperID) {
+    const shipper = this.getShipper(shipperID);
+    if (!shipper) return;
 
-  // Update status order
-  orderController.changeStatusOrder(
-    orderID,
-    _listShipperOnline[indexShipper].id,
-    orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
-  );
-};
+    const indexOrder: number = shipper.listOrderID.indexOf(orderID);
+    shipper.listOrderID.splice(indexOrder, 1);
 
-// Shipper took food
-export const tookFood = (orderID, shipperID) => {
-  // Update status order
-  orderController.changeStatusOrder(
-    orderID,
-    shipperID,
-    orderController.ORDER_STATUS.DURING_SHIP
-  );
-};
-
-// Shipper delivered
-export const deliveredOrder = (orderID, socketID) => {
-  // Update shipper
-  const idxShipper = _listShipperOnline
-    .map((shipper) => shipper.socketID)
-    .indexOf(socketID);
-
-  if (idxShipper < 0) return;
-  let listOrderID = _listShipperOnline[idxShipper].listOrderID;
-
-  _listShipperOnline[idxShipper].listOrderID = listOrderID.filter((_orderID) =>
-    _orderID === orderID ? null : _orderID
-  );
-
-  // Update status order
-  orderController.changeStatusOrder(
-    orderID,
-    _listShipperOnline[idxShipper].id,
-    orderController.ORDER_STATUS.DELIVERED
-  );
-};
+    // Update status order
+    orderController.changeStatusOrder(
+      orderID,
+      shipperID,
+      orderController.ORDER_STATUS.DELIVERED
+    );
+  }
+}
+const shipperController = new ShipperController();
+export default shipperController;

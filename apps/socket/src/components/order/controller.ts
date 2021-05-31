@@ -1,9 +1,6 @@
 import service from "./service";
 import ZaloPay from "../../payment/ZaloPay";
-import {
-  changeStatusOrder,
-  ORDER_STATUS,
-} from "../../socket/eventListener/order";
+import orderController from "../../socket/eventListener/order";
 
 export const getHomePage = (req, res) => {
   const title = "Well come to Socket server!!";
@@ -13,7 +10,7 @@ export const getHomePage = (req, res) => {
 export const createOrder = async (req, res) => {
   const { orderID = "" } = req.body;
   const response = await service.createOrder(orderID);
-  res.send("response");
+  res.send(response);
 };
 
 export const cbZaloPay = async (req, res) => {
@@ -24,11 +21,23 @@ export const cbZaloPay = async (req, res) => {
 
   if (result.return_code !== -1) {
     const { app_trans_id, embed_data } = JSON.parse(dataStr);
-    const { orderID } = JSON.parse(embed_data);
+    const { orderID, tool } = JSON.parse(embed_data);
 
     // invoke for client about status order
     // .. do something ..
-    changeStatusOrder(orderID, "system_admin", ORDER_STATUS.WAITING);
+    if (tool) {
+      orderController.changeStatusOrder(
+        orderID,
+        "system_admin",
+        orderController.ORDER_STATUS.WAITING
+      );
+    } else {
+      orderController.changeStatusOrder(
+        orderID,
+        "system_admin",
+        orderController.ORDER_STATUS.MERCHANT_CONFIRM
+      );
+    }
   }
 
   res.send(result);

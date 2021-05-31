@@ -1,6 +1,6 @@
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import { TAG_EVENT } from "../../TAG_EVENT";
-import * as merchantController from "./merchantController";
+import merchantController from "./merchantController";
 
 // Confir for merchant
 const merchantConfig = (io, socket) => {

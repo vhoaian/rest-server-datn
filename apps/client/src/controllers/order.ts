@@ -4,9 +4,12 @@ import {
   Food,
   Order,
   User,
-} from '@vohoaian/datn-models';
-import { nomalizeResponse } from '../utils/normalize';
-import { withFilter } from '../utils/objects';
+} from "@vohoaian/datn-models";
+import { nomalizeResponse } from "../utils/normalize";
+import { withFilter } from "../utils/objects";
+import axios from "axios";
+import { environment } from "../environments/base";
+import { type } from "node:os";
 
 // const DAFilter = withFilter('FullAddress Phone Geolocation id');
 export async function addOrder(req, res) {
@@ -33,10 +36,10 @@ export async function addOrder(req, res) {
   const restaurant = ((
     await Food.findById(fids[0])
       .populate({
-        path: 'FoodCategory',
-        select: 'Restaurant',
+        path: "FoodCategory",
+        select: "Restaurant",
         populate: {
-          path: 'Restaurant',
+          path: "Restaurant",
         },
       })
       .exec()
@@ -48,7 +51,7 @@ export async function addOrder(req, res) {
   if (deliveryaddress) {
     delivery = await DeliveryAddress.findById(deliveryaddress)
       .populate({
-        path: 'User',
+        path: "User",
       })
       .exec();
 
@@ -178,8 +181,6 @@ export async function addOrder(req, res) {
     return res.send(nomalizeResponse(null, 13)); // Phí ship sai
   }
 
-  // Xử lý payment method
-
   // Xử lý distance
 
   // Thêm vào CSDL
@@ -206,15 +207,43 @@ export async function addOrder(req, res) {
     Phone: phone,
   });
 
+  // **** SOCKET SERVER **** \\ Notify for socket server \\ 0 - cash | 1 - zalopay
+  type SOCKET_RETURN_TYPE = {
+    success: boolean;
+    message: string;
+    paymentInfo: any;
+  };
+
+  const {
+    data: responseData,
+  }: {
+    data: SOCKET_RETURN_TYPE;
+  } = await axios.post(
+    `${environment.URL_SOCKET_SERVER}/create-order`,
+    { orderID: newOrder._id },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  // *********************** \\
+
   const response = newOrder.toObject();
   response.id = response._id;
   delete response._id;
-  res.send(nomalizeResponse(response));
+
+  res.send(
+    nomalizeResponse({
+      ...response,
+      paymentInfo: responseData.paymentInfo,
+    })
+  );
 }
 
 export async function getOrders(req, res) {
   const orders = await Order.find({ User: req.user.id })
-    .select('-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt')
+    .select("-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt")
     .exec();
 
   res.send(
@@ -235,7 +264,7 @@ export async function getOrder(req, res) {
     User: req.user.id,
     _id: id,
   })
-    .select('-Distance -Coor -Tool -User -UpdatedAt')
+    .select("-Distance -Coor -Tool -User -UpdatedAt")
     .exec();
 
   if (!order) return res.send(nomalizeResponse(null, 2));
