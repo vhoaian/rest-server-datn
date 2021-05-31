@@ -14,13 +14,13 @@ export async function getGeneralStatistics(req, res) {
     const preWeeks = getStartAndEndOfPreWeek(Date.now());
     let option = {};
     option = { CreatedAt: { $gte: preWeeks[0], $lte: preWeeks[1] }, Status: 0 };
-    let orders = await Order.find(option)
+    let orders: any = await Order.find(option)
       .select("Total CreatedAt AdditionalFees")
       .exec();
     const numberOfOrderInWeek = new Array(7).fill(0);
     const payOfOrderInWeek = new Array(7).fill(0);
     let totalPayment = 0;
-    orders = orders.map((order) => {
+    orders = orders.map((order: any) => {
       const index =
         order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
       numberOfOrderInWeek[index]++;

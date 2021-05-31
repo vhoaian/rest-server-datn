@@ -4,7 +4,7 @@ import { Constants } from "../environments/base";
 
 export async function getShipperManagement(req, res) {
   const { page, email, phone } = req.query;
-  const option = {};
+  const option: any = {};
   if (email !== "") {
     const regex = new RegExp(`^${email}.*`, "g");
     option.Email = regex;
@@ -14,9 +14,9 @@ export async function getShipperManagement(req, res) {
     option.Phone = regex;
   }
   try {
-    const totalShippers = await shipper.countDocuments(option).exec();
+    const totalShippers = await Shipper.countDocuments(option).exec();
 
-    let shippers = await Shipper.find(option)
+    let shippers: any = await Shipper.find(option)
       .select("Phone Email Point Status CreatedAt")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
@@ -26,7 +26,7 @@ export async function getShipperManagement(req, res) {
       return b.Point - a.Point;
     });
 
-    shippers = shippers.map((user) => {
+    shippers = shippers.map((user: any) => {
       return {
         _id: user._id,
         phone: user.Phone,
