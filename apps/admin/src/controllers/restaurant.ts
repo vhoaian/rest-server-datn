@@ -14,23 +14,29 @@ export async function getRestaurantManagementInfo(req, res) {
   }
 
   try {
-    console.log(districtID);
     const cities = await City.find({}).exec();
+
     if (cityID !== 0) {
-      selectedCity = cities.filter((elm) => elm.Id === cityID)[0];
-      option["Address.City"] = selectedCity.Name;
-      districts = selectedCity.Districts;
+      selectedCity = cities.filter((elm) => elm.Id === cityID);
+      if (selectedCity.length === 0) {
+        return res.send(nomalizeResponse(null, Constants.SERVER.INVALID_PARAM));
+      }
+      option["Address.City"] = selectedCity[0].Name;
+      districts = selectedCity[0].Districts;
 
       if (districtID !== 0) {
-        const selectedDistrict: any = districts.filter(
-          (elm: any) => elm.Id === districtID
-        )[0];
-        option["Address.District"] = selectedDistrict.Name;
+        const selectedDistrict = districts.filter(
+          (elm) => elm.Id === districtID
+        );
+        if (selectedDistrict.length === 0) {
+          return res.send(
+            nomalizeResponse(null, Constants.SERVER.INVALID_PARAM)
+          );
+        }
+        option["Address.District"] = selectedDistrict[0].Name;
       }
     }
-    // if (cityID !== 0) {
-    //   districts = await City.findDistricts(cityID);
-    // }
+
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
     let restaurants: any = await Restaurant.find(option)
