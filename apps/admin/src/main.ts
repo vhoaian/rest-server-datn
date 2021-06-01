@@ -5,6 +5,10 @@ import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 const app = express();
 
+import autoCalcReceipt from "./autoCalcReceipt";
+autoCalcReceipt.runAutoCalcReceipt();
+autoCalcReceipt.runAutoLockLatePayReceipt();
+
 import restaurantRouter from "./routes/restaurant";
 import userRouter from "./routes/user";
 import generalRouter from "./routes/general";
