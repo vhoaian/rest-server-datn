@@ -29,7 +29,14 @@ export async function addOrder(req, res) {
   if (foods.length == 0) return res.send(nomalizeResponse(null, 2)); // Danh sách rỗng
 
   const fids = foods.map((f) => f.id);
-  const foundFoods = await Food.find({ _id: { $in: fids } }).exec();
+  const _foundFoods = (
+    await Food.find({ _id: { $in: fids } }).exec()
+  ).map((x) => x.toObject());
+  const foundFoods: any[] = [];
+  for (let i = 0; i < fids.length; i++) {
+    const found = _foundFoods.find((f) => f._id.equals(fids[i]));
+    if (found) foundFoods.push(found);
+  }
   if (fids.length != foundFoods.length)
     return res.send(nomalizeResponse(null, 3)); // Không tìm thấy một số sản phẩm
 
@@ -70,9 +77,9 @@ export async function addOrder(req, res) {
     Price: food.OriginalPrice,
     Options: food.Options.filter((option) => option.IsMandatory).map(
       (option) => ({
-        id: (option as any)._doc.id,
+        id: option.id,
         Items: option.Items.filter((item) => item.IsDefault).map((item) => ({
-          id: (item as any)._doc.id,
+          id: item.id,
           Quantity: 1,
           // TODO
           Price: item.OriginalPrice,
@@ -97,77 +104,72 @@ export async function addOrder(req, res) {
 
   // kiem tra userOrder
   for (let i = 0; i < userOrder.length; i++) {
-    for (let j = 0; j < foundFoods.length; j++) {
-      if (userOrder[i].Food == foundFoods[j].id) {
-        // cung mot mon an
-        // TO DO
-        if (userOrder[i].Price != foundFoods[j].OriginalPrice)
-          return res.send(nomalizeResponse(null, 4)); // Sai giá
+    // TO DO
+    if (userOrder[i].Price != foundFoods[i].OriginalPrice)
+      return res.send(nomalizeResponse(null, 4)); // Sai giá
 
-        if (userOrder[i].Options?.length > 0) {
-          for (let k = 0; k < userOrder[i].Options.length; k++) {
-            const opt = userOrder[i].Options[k];
-            for (let l = 0; l < foundFoods[j].Options.length; l++) {
-              const opt2 = foundFoods[j].Options[l];
-              if (opt.id == (opt2 as any)._doc.id) {
-                if (opt.Items) {
-                  if (opt.Items.length > opt2.MaxSelect) {
-                    return res.send(nomalizeResponse(null, 7)); // một số lựa chọn chọn quá số lượng items cho phép
-                  } else if (opt.Items.length == 0) {
-                    return res.send(nomalizeResponse(null, 8)); // một số lựa chọn không có item nào bên trong mảng items
-                  } else {
-                    for (let m = 0; m < opt.Items.length; m++) {
-                      const item = opt.Items[m];
-                      for (let n = 0; n < opt2.Items.length; n++) {
-                        const item2 = opt2.Items[n];
-                        if (item.id == (item2 as any)._doc.id) {
-                          if (!(item.Quantity <= item2.MaxQuantity)) {
-                            return res.send(nomalizeResponse(null, 10)); // một số item chọn quá số lượng cho phép
-                          }
-                          // TODO
-                          if (!(item.Price == item2.OriginalPrice)) {
-                            return res.send(nomalizeResponse(null, 11)); // một số items sai giá
-                          }
-                          break;
-                        }
-                        if (n == opt2.Items.length - 1)
-                          return res.send(nomalizeResponse(null, 9)); // một số items không tồn tại
+    if (userOrder[i].Options?.length > 0) {
+      for (let k = 0; k < userOrder[i].Options.length; k++) {
+        const opt = userOrder[i].Options[k];
+        for (let l = 0; l < foundFoods[i].Options.length; l++) {
+          const opt2 = foundFoods[i].Options[l];
+          if (opt.id == opt2.id) {
+            if (opt.Items) {
+              if (opt.Items.length > opt2.MaxSelect) {
+                return res.send(nomalizeResponse(null, 7)); // một số lựa chọn chọn quá số lượng items cho phép
+              } else if (opt.Items.length == 0) {
+                return res.send(nomalizeResponse(null, 8)); // một số lựa chọn không có item nào bên trong mảng items
+              } else {
+                for (let m = 0; m < opt.Items.length; m++) {
+                  const item = opt.Items[m];
+                  for (let n = 0; n < opt2.Items.length; n++) {
+                    const item2 = opt2.Items[n];
+                    if (item.id == item2.id) {
+                      if (!(item.Quantity <= item2.MaxQuantity)) {
+                        return res.send(nomalizeResponse(null, 10)); // một số item chọn quá số lượng cho phép
                       }
+                      // TODO
+                      if (!(item.Price == item2.OriginalPrice)) {
+                        return res.send(nomalizeResponse(null, 11)); // một số items sai giá
+                      }
+                      break;
                     }
+                    if (n == opt2.Items.length - 1)
+                      return res.send(nomalizeResponse(null, 9)); // một số items không tồn tại
                   }
-                } else {
-                  return res.send(nomalizeResponse(null, 6)); // một số lựa chọn không được chọn lựa
                 }
-                break;
               }
-              if (l == foundFoods[j].Options.length - 1)
-                return res.send(nomalizeResponse(null, 5)); // một số lựa chọn không tồn tại
+            } else {
+              return res.send(nomalizeResponse(null, 6)); // một số lựa chọn không được chọn lựa
             }
+            break;
           }
+          if (l == foundFoods[i].Options.length - 1)
+            return res.send(nomalizeResponse(null, 5)); // một số lựa chọn không tồn tại
         }
+      }
+    }
 
-        if (!userOrder[i].Options) {
-          userOrder[i].Options = defaultOrder[j].Options;
-        } else {
-          const temp = [...userOrder[i].Options];
-          for (let k = 0; k < defaultOrder[j].Options.length; k++) {
-            for (let l = 0; l < userOrder[i].Options.length; l++) {
-              if (defaultOrder[j].Options[k].id == userOrder[i].Options[l].id)
-                break;
-              if (l == userOrder[i].Options.length - 1)
-                temp.push(defaultOrder[j].Options[k]);
-            }
-          }
-          userOrder[i].Options = temp;
+    if (!userOrder[i].Options) {
+      userOrder[i].Options = defaultOrder[i].Options;
+    } else {
+      const temp = [...userOrder[i].Options];
+      for (let k = 0; k < defaultOrder[i].Options.length; k++) {
+        for (let l = 0; l < userOrder[i].Options.length; l++) {
+          if (defaultOrder[i].Options[k].id == userOrder[i].Options[l].id)
+            break;
+          if (l == userOrder[i].Options.length - 1)
+            temp.push(defaultOrder[i].Options[k]);
         }
+      }
+      userOrder[i].Options = temp;
+    }
 
-        calsubtotal += userOrder[i].Price * (userOrder[i].Quantity ?? 1);
-        for (let k = 0; k < userOrder[j].Options.length; k++) {
-          for (let l = 0; l < userOrder[i].Options[k].Items.length; l++) {
-            const item = userOrder[i].Options[k].Items[l];
-            calsubtotal += (item.Quantity ?? 1) * item.Price;
-          }
-        }
+    calsubtotal += userOrder[i].Price * (userOrder[i].Quantity ?? 1);
+    for (let k = 0; k < userOrder[i].Options.length; k++) {
+      for (let l = 0; l < userOrder[i].Options[k].Items.length; l++) {
+        const item = userOrder[i].Options[k].Items[l];
+        calsubtotal += (item.Quantity ?? 1) * item.Price;
       }
     }
   }
@@ -207,6 +209,20 @@ export async function addOrder(req, res) {
     Phone: phone,
   });
 
+  const newOrderResponse = newOrder.toObject();
+  newOrderResponse.Foods.forEach((f, i) => {
+    (f as any).Name = foundFoods[i].Name;
+    (f as any).Avatar = foundFoods[i].Avatar;
+    f.Options.forEach((o, j) => {
+      const found = foundFoods[i].Options.find((x) => x.id == o.id);
+      if (found) (o as any).Name = found.Name;
+      o.Items.forEach((item, k) => {
+        const found2 = found.Items.find((x) => x.id == item.id);
+        if (found2) (item as any).Name = found2.Name;
+      });
+    });
+  });
+
   // **** SOCKET SERVER **** \\ Notify for socket server \\ 0 - cash | 1 - zalopay
   type SOCKET_RETURN_TYPE = {
     success: boolean;
@@ -229,7 +245,7 @@ export async function addOrder(req, res) {
   );
   // *********************** \\
 
-  const response = newOrder.toObject();
+  const response = newOrderResponse;
   response.id = response._id;
   delete response._id;
 

@@ -6,34 +6,40 @@ import geocoder from "../utils/geocoder";
 export async function getRestaurantManagementInfo(req, res) {
   const { city: cityID, search, page, district: districtID } = req.query;
   let districts = [];
-  const option = {};
-  let selectedCity = null;
+  const option: any = {};
+  let selectedCity: any = null;
   if (search !== "") {
     const regex = new RegExp(`${search}.*`, "g");
     option.Name = regex;
   }
 
   try {
-    console.log(districtID);
     const cities = await City.find({}).exec();
+
     if (cityID !== 0) {
-      selectedCity = cities.filter((elm) => elm.Id === cityID)[0];
-      option["Address.City"] = selectedCity.Name;
-      districts = selectedCity.Districts;
+      selectedCity = cities.filter((elm) => elm.Id === cityID);
+      if (selectedCity.length === 0) {
+        return res.send(nomalizeResponse(null, Constants.SERVER.INVALID_PARAM));
+      }
+      option["Address.City"] = selectedCity[0].Name;
+      districts = selectedCity[0].Districts;
 
       if (districtID !== 0) {
         const selectedDistrict = districts.filter(
           (elm) => elm.Id === districtID
-        )[0];
-        option["Address.District"] = selectedDistrict.Name;
+        );
+        if (selectedDistrict.length === 0) {
+          return res.send(
+            nomalizeResponse(null, Constants.SERVER.INVALID_PARAM)
+          );
+        }
+        option["Address.District"] = selectedDistrict[0].Name;
       }
     }
-    // if (cityID !== 0) {
-    //   districts = await City.findDistricts(cityID);
-    // }
+
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
-    let restaurants = await Restaurant.find(option)
+    let restaurants: any = await Restaurant.find(option)
       .collation({ locale: "en_US", numericOrdering: true })
       .select("Address Type Status Name ContractID CreatedAt Reviews")
       //.populate("Reviews")
@@ -41,7 +47,7 @@ export async function getRestaurantManagementInfo(req, res) {
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
 
-    restaurants = restaurants.map((restaurant) => {
+    restaurants = restaurants.map((restaurant: any) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       return {
         _id: restaurant._id,
@@ -55,9 +61,9 @@ export async function getRestaurantManagementInfo(req, res) {
       };
     });
 
-    const seftRestaurants = [];
-    const adminRestaurants = [];
-    restaurants.forEach((restaurant) => {
+    const seftRestaurants: any = [];
+    const adminRestaurants: any = [];
+    restaurants.forEach((restaurant: any) => {
       if (restaurant.type === 0 /*Constants.RESTAURANT.ADMIN_TYPE */) {
         adminRestaurants.push(restaurant);
       } else {

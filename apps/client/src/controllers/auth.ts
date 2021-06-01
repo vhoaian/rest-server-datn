@@ -117,7 +117,7 @@ export async function loginWithGoogleAccount(req, res) {
         Status: -1, // chua xac nhan sdt tren he thong
       });
       response = {
-        errorCode: 0, // chua kich hoat
+        errorCode: 8, // chua kich hoat
         data: {
           user: newUser.id,
         },
@@ -126,7 +126,7 @@ export async function loginWithGoogleAccount(req, res) {
       // Kiem tra kich hoat sdt
       if (user.Status == -1) {
         response = {
-          errorCode: 0, // chua kich hoat
+          errorCode: 8, // chua kich hoat
           data: {
             user: user.id,
           },
@@ -148,7 +148,6 @@ export async function loginWithGoogleAccount(req, res) {
 
 export const requestOTPForLogin = withPhone(async function (req, res) {
   const phone = req.uphone;
-  let response: OTPSentResponse;
   const u = await User.findOne({ Phone: phone }).exec();
   if (!u) {
     const newUser = await User.create({
@@ -157,19 +156,13 @@ export const requestOTPForLogin = withPhone(async function (req, res) {
       Phone: phone,
       Status: -1, // chua xac nhan sdt tren he thong
     });
-    response = {
-      errorCode: 0, // chua kich hoat
-      data: {
-        user: newUser.id,
-      },
-    };
   }
   // else {
   // if (u.Status == -1) {
   //   response = { errorCode: 6, data: { user: u.id } }; // user chua kich hoat
   // } else {
   await requestOTP(phone, true);
-  response = { errorCode: 0, data: null };
+  const response: OTPSentResponse = { errorCode: 0, data: null };
   // }
   // }
   res.send(nomalizeResponse(response.data, response.errorCode));

@@ -1,13 +1,13 @@
 import moment from "moment";
 
-export function getStartAndEndOfPreWeek(today) {
+export function getStartAndEndOfWeek(today, week) {
   const presentDay = new Date(today);
   const indexDay = presentDay.getDay();
   //first date of previous week
   const startDay =
-    presentDay.getDate() - indexDay + (indexDay === 0 ? -6 : 1) - 7;
+    presentDay.getDate() - indexDay + (indexDay === 0 ? -6 : 1) - week * 7;
   const endDay =
-    presentDay.getDate() - indexDay + (indexDay === 0 ? -6 : 1) - 1;
+    presentDay.getDate() - indexDay + (indexDay === 0 ? -6 : 1) + 6 - week * 7;
 
   const temp1 = new Date().setDate(startDay);
   const temp2 = new Date().setDate(endDay);

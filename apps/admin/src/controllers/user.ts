@@ -4,7 +4,7 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getUserManagementInfo(req, res) {
   const { page, email, phone } = req.query;
-  const option = {};
+  const option: any = {};
   if (email !== "") {
     const regex = new RegExp(`^${email}.*`, "g");
     option.Email = regex;
@@ -15,8 +15,13 @@ export async function getUserManagementInfo(req, res) {
   }
   try {
     const totalUsers = await User.countDocuments(option).exec();
+    const numberOfPages = Math.ceil(totalUsers / Constants.PAGENATION.PER_PAGE);
 
-    let users = await User.find(option)
+    if (page <= 0 || page > numberOfPages) {
+      return res.send(nomalizeResponse(null, Constants.SERVER.INVALID_PARAM));
+    }
+
+    let users: any = await User.find(option)
       .select("Phone Email Point Status CreatedAt")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
@@ -39,7 +44,7 @@ export async function getUserManagementInfo(req, res) {
 
     res.send(
       nomalizeResponse({ totalUsers, users }, 0, {
-        totalPage: Math.ceil(totalUsers / Constants.PAGENATION.PER_PAGE),
+        totalPage: numberOfPages,
         currentPage: page,
         perPage: Constants.PAGENATION.PER_PAGE,
       })
@@ -47,5 +52,29 @@ export async function getUserManagementInfo(req, res) {
   } catch (error) {
     console.log(`[ERROR]: user management: ${error}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_USER_ERROR));
+  }
+}
+
+export async function blockUserById(req, res) {
+  const { id } = req.body;
+  const { user } = req.data;
+  try {
+    const update = { Status: 0 };
+
+    if (user.Status === -1) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_USER)
+      );
+    }
+    user.Status === 0 ? (update.Status = -2) : update.Status === 0;
+
+    const result = await User.findByIdAndUpdate({ _id: id }, update, {
+      new: true,
+    }).exec();
+
+    res.send(nomalizeResponse(result, 0));
+  } catch (error) {
+    console.log(`[ERROR]: block user: ${error}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.BLOCK_USER_ERROR));
   }
 }
