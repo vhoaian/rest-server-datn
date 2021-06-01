@@ -6,8 +6,8 @@ import geocoder from "../utils/geocoder";
 export async function getRestaurantManagementInfo(req, res) {
   const { city: cityID, search, page, district: districtID } = req.query;
   let districts = [];
-  const option = {};
-  let selectedCity = null;
+  const option: any = {};
+  let selectedCity: any = null;
   if (search !== "") {
     const regex = new RegExp(`${search}.*`, "g");
     option.Name = regex;
@@ -39,7 +39,7 @@ export async function getRestaurantManagementInfo(req, res) {
 
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
-    let restaurants = await Restaurant.find(option)
+    let restaurants: any = await Restaurant.find(option)
       .collation({ locale: "en_US", numericOrdering: true })
       .select("Address Type Status Name ContractID CreatedAt Reviews")
       //.populate("Reviews")
@@ -47,7 +47,7 @@ export async function getRestaurantManagementInfo(req, res) {
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
 
-    restaurants = restaurants.map((restaurant) => {
+    restaurants = restaurants.map((restaurant: any) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       return {
         _id: restaurant._id,
@@ -61,9 +61,9 @@ export async function getRestaurantManagementInfo(req, res) {
       };
     });
 
-    const seftRestaurants = [];
-    const adminRestaurants = [];
-    restaurants.forEach((restaurant) => {
+    const seftRestaurants: any = [];
+    const adminRestaurants: any = [];
+    restaurants.forEach((restaurant: any) => {
       if (restaurant.type === 0 /*Constants.RESTAURANT.ADMIN_TYPE */) {
         adminRestaurants.push(restaurant);
       } else {

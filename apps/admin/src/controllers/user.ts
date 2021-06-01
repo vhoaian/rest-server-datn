@@ -4,7 +4,7 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getUserManagementInfo(req, res) {
   const { page, email, phone } = req.query;
-  const option = {};
+  const option: any = {};
   if (email !== "") {
     const regex = new RegExp(`^${email}.*`, "g");
     option.Email = regex;
@@ -21,7 +21,7 @@ export async function getUserManagementInfo(req, res) {
       return res.send(nomalizeResponse(null, Constants.SERVER.INVALID_PARAM));
     }
 
-    let users = await User.find(option)
+    let users: any = await User.find(option)
       .select("Phone Email Point Status CreatedAt")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)

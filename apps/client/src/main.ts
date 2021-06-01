@@ -12,6 +12,14 @@ import { connect } from "@vohoaian/datn-models";
 
 const app = express();
 
+// TEST
+// import ggAPI from "./googleAPI";
+
+// const filePath =
+//   "/Volumes/DATA/Education/2020_2021/Semester_2/Project_Graduation/Source_code/rest-server-datn/apps/client/src/googleAPI/test.png";
+// const FILE = { name: "TEST", type: "image/png", path: filePath };
+// ggAPI.uploadFile(FILE).then((d) => ggAPI.deleteFile(d.webContentLink));
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
