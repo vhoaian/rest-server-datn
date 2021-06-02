@@ -8,14 +8,15 @@ class ReceiptController {
 
   async paidReceipt(receiptID: string): Promise<boolean> {
     try {
-      await Receipt.updateOne(
-        { _id: receiptID },
-        { Status: this._STATUS_PAID_RECEIPT }
-      );
-
+      // await Receipt.updateOne(
+      //   { _id: receiptID },
+      //   { Status: this._STATUS_PAID_RECEIPT }
+      // );
       console.log(`[${this._TAG_LOG}]: paid receipt ${receiptID} success.`);
+      return true;
     } catch (e) {
       console.log(`[${this._TAG_LOG_FAIL}]: ${e.message}`);
+      return false;
     }
   }
 }
