@@ -12,43 +12,27 @@ import { TAG_EVENT } from "../../TAG_EVENT";
 import customerController from "../customer/customerController";
 import merchantController from "../merchant/merchantController";
 import shipperController from "../shipper/shipperController";
+import { Notification as NotificationModel } from "@vohoaian/datn-models";
 
 class NotificationController {
   private _TAG_LOG: string = "NOTIFICATION";
   private _TAG_LOG_FAIL: string = "NOTIFICATION_FAIL";
 
+  private _ROLE: Array<string> = ["customer", "shipper", "merchant", "admin"];
+
   constructor() {}
 
-  public pushNotification(notificationID: string): void {
+  public async pushNotification(notificationID: string): Promise<void> {
     try {
-      // const notify = await Notification.findOne({ _id: notificationID });
-      const notify: any = {
-        Title: "Notification Title",
-        SubTitle: "Notification sub title",
-        Receiver: "aaaa",
-        RoleReceiver: "customer",
-        Thumbnail: null,
-        CreateAt: new Date(),
-
-        toObject() {
-          return {
-            Title: "Notification Title",
-            SubTitle: "Notification sub title",
-            Receiver: "aaaa",
-            RoleReceiver: "merchant",
-            Thumbnail: null,
-            CreateAt: new Date(),
-          };
-        },
-      };
+      const notify = await NotificationModel.findOne({ _id: notificationID });
 
       if (!notify)
         return console.log(
           `[${this._TAG_LOG_FAIL}]: notification does not exits.`
         );
 
-      const { RoleReceiver } = notify.toObject();
-      switch (RoleReceiver) {
+      const { Receiver } = notify.toObject();
+      switch (this._ROLE[Receiver.Role]) {
         case "customer":
           this.pushNotiToCustomer(notify.toObject());
           break;
@@ -69,7 +53,7 @@ class NotificationController {
   }
 
   private pushNotiToCustomer(notification: any): void {
-    const socket = customerController.getSocket(notification.Receiver);
+    const socket = customerController.getSocket(notification.Receiver.Id);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: customer not online`);
 
@@ -81,7 +65,7 @@ class NotificationController {
   }
 
   private pushNotiToMerchant(notification: any): void {
-    const socket = merchantController.getSocket(notification.Receiver);
+    const socket = merchantController.getSocket(notification.Receiver.Id);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: merchant not online`);
 
@@ -93,7 +77,7 @@ class NotificationController {
   }
 
   private pushNotiToShipper(notification: any): void {
-    const socket = shipperController.getSocket(notification.Receiver);
+    const socket = shipperController.getSocket(notification.Receiver.Id);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: shipper not online`);
 
