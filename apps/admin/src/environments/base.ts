@@ -12,6 +12,7 @@ export const environment = {
   JWT: {
     secretKey: "final-project",
   },
+  URL_SOCKET_SERVER: "http://localhost:8010",
 };
 
 export const Constants = {
@@ -37,3 +38,5 @@ export const Constants = {
 export enum ERROR_CODE {
   SUCCESS = 0,
 }
+
+export default environment;

@@ -1,4 +1,6 @@
 import { Order, Restaurant, Shipper } from "@vohoaian/datn-models";
+import axios from "axios";
+import config from "../environments/base";
 
 // Receipt
 // |- id: ObjectID
@@ -193,14 +195,36 @@ class AutoCalcReceipt {
 
     // Calc fee
     const _feeApp: number = _allOrder.reduce((totalFee, currOrder) => {
-      totalFee += currOrder.ShippingFee * this._PERCENT_FEE_MERCHANT;
+      totalFee += currOrder.ShippingFee * this._PERCENT_FEE_SHIPPER;
       return totalFee;
     }, 0);
 
-    // If shipper has fee, server will create receipt
-    if (_feeApp > 0) {
-      console.log("FEE APP FOR SHIPPER:", _feeApp);
-    }
+    // Create receipt and notification
+    const dataReceipt = {
+      Payer: shipperID,
+      FeeTotal: _feeApp,
+      PercentFee: this._PERCENT_FEE_SHIPPER,
+      Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
+      DateStart: dateStart,
+      DateEnd: dateEnd,
+    };
+    // const newReceipt = new ReceiptModel(dataReceipt)
+    // newReceipt.save();
+
+    const dataNoti = {
+      Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
+      SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
+      Receiver: shipperID,
+      RoleReceiver: "shipper",
+    };
+
+    // const notification = new NotificationModel(dataNoti);
+    // notification.save();
+
+    const notification = { _id: "123" };
+
+    this.pushNotification(notification._id);
+    console.log("FEE APP FOR SHIPPER:", _feeApp);
   }
 
   private async calcFeeForMerchant(
@@ -228,10 +252,46 @@ class AutoCalcReceipt {
       return totalFee;
     }, 0);
 
-    // If shipper has fee, server will create receipt
-    if (_feeApp > 0) {
-      console.log("FEE APP FOR SHIPPER:", _feeApp);
-    }
+    // Create receipt and notification
+    const dataReceipt = {
+      Payer: merchantID,
+      FeeTotal: _feeApp,
+      PercentFee: this._PERCENT_FEE_MERCHANT,
+      Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
+      DateStart: dateStart,
+      DateEnd: dateEnd,
+    };
+    // const newReceipt = new ReceiptModel(dataReceipt)
+    // newReceipt.save();
+
+    const dataNoti = {
+      Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
+      SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
+      Receiver: merchantID,
+      RoleReceiver: "merchant",
+    };
+
+    // const notification = new NotificationModel(dataNoti);
+    // notification.save();
+
+    const notification = { _id: "123" };
+
+    this.pushNotification(notification._id);
+    console.log("FEE APP FOR MERCHANT:", _feeApp);
+  }
+
+  private async pushNotification(notificationID: string): Promise<void> {
+    try {
+      const body = {
+        notificationID,
+      };
+
+      axios.post(`${config.URL_SOCKET_SERVER}/notification`, body, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (e) {}
   }
 
   private checkLeapYear(year: number): boolean {
