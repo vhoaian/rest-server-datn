@@ -1,4 +1,4 @@
-import orderController from "../../socket/eventListener/order";
+import orderController from "../../socket/controller/order";
 import ZaloPay from "../../payment/ZaloPay";
 import { Order } from "@vohoaian/datn-models";
 
