@@ -2,11 +2,11 @@ import jwt from "jsonwebtoken";
 import socketIO from "socket.io";
 import _ from "underscore";
 import configApp from "../config";
-import configEventListener from "./eventListener";
-import orderController from "./eventListener/order";
-import shipperController from "./eventListener/shipper/shipperController";
-import merchantController from "./eventListener/merchant/merchantController";
-import customerController from "./eventListener/customer/customerController";
+import configEventListener from "./controller";
+import orderController from "./controller/order";
+import shipperController from "./controller/shipper/shipperController";
+import merchantController from "./controller/merchant/merchantController";
+import customerController from "./controller/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
 
 // Check authenticate
