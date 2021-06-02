@@ -1,6 +1,6 @@
 import service from "./service";
 import ZaloPay from "../../payment/ZaloPay";
-import orderController from "../../socket/eventListener/order";
+import orderController from "../../socket/controller/order";
 
 export const getHomePage = (req, res) => {
   const title = "Well come to Socket server!!";

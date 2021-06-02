@@ -3,7 +3,8 @@ import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
-import { Order } from "@vohoaian/datn-models";
+import { Food, Order } from "@vohoaian/datn-models";
+import { mapOptions } from "../order/utils";
 
 class MerchantController {
   private _listMerchantOnline: Array<any> = [];
@@ -108,12 +109,12 @@ class MerchantController {
   async sendOrderToMerchant(merchantID, orderInList) {
     // Get order to return for merchant
     const orderDB: any = await Order.findOne({ _id: orderInList.orderID })
-      // .populate("User", "Avatar Email FullName Phone")
-      // .populate("Restaurant", "Address Avatar IsPartner Phone");
-      .populate("User")
-      .populate("Restaurant");
+      .populate("User", "Avatar Email FullName Phone")
+      .populate("Restaurant", "Address Avatar IsPartner Phone")
+      .populate("Foods.Food", "Name Avatar OriginalPrice Options");
 
-    const order: any = orderDB?.toObject();
+    const order: any = orderDB.toObject();
+    mapOptions(order);
 
     const merchantSocket = this.getSocket(merchantID);
     if (!merchantSocket) {
