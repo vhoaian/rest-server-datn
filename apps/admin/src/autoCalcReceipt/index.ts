@@ -31,7 +31,7 @@ class AutoCalcReceipt {
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
 
   private _DAY_DELAY_PAY_RECEIPT: number = 14;
-  private _STATUS_NOT_PAID: number = 0;
+  private _STATUS_NOT_PAID: number = -1;
   private _STATUS_PAID: number = 1;
   private _STATUS_LOCK_ACC: number = -1;
 
@@ -251,8 +251,7 @@ class AutoCalcReceipt {
   }
 
   private checkEndDay(hour: number): boolean {
-    if (23 <= hour) return true;
-    return false;
+    return 23 <= hour;
   }
 
   private checkEndDayEndMonth(date: Date): boolean {
