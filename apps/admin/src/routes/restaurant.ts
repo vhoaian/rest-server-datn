@@ -1,7 +1,8 @@
 import express from "express";
-import { query, body } from "express-validator";
+import { query, body, param } from "express-validator";
 const restaurantRouter = express.Router();
 import {
+  deleteRestaurant,
   getRestaurantManagementInfo,
   createNewRestanrant,
 } from "../controllers/restaurant";
@@ -34,6 +35,13 @@ restaurantRouter.post(
   body("address").notEmpty().isString(),
   validateInput,
   createNewRestanrant
+);
+
+restaurantRouter.delete(
+  "/:id",
+  param("id").notEmpty().isMongoId(),
+  validateInput,
+  deleteRestaurant
 );
 
 export default restaurantRouter;

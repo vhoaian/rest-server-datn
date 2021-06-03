@@ -1,4 +1,4 @@
-import { City, Restaurant } from "@vohoaian/datn-models";
+import { City, Restaurant, Receipt } from "@vohoaian/datn-models";
 import { nomalizeResponse } from "../utils/normalize";
 import { Constants } from "../environments/base";
 import geocoder from "../utils/geocoder";
@@ -26,7 +26,7 @@ export async function getRestaurantManagementInfo(req, res) {
 
       if (districtID !== 0) {
         const selectedDistrict = districts.filter(
-          (elm) => elm.Id === districtID
+          (elm: any) => elm.Id === districtID
         );
         if (selectedDistrict.length === 0) {
           return res.send(
@@ -39,15 +39,23 @@ export async function getRestaurantManagementInfo(req, res) {
 
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
-    let restaurants: any = await Restaurant.find(option)
+    let adminRestaurants: any = await Restaurant.find(option)
       .collation({ locale: "en_US", numericOrdering: true })
       .select("Address Type Status Name ContractID CreatedAt Reviews")
       //.populate("Reviews")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
+    const receiptFee: any = await Promise.all(
+      adminRestaurants.map((restaurant: any) => {
+        return Receipt.find({
+          ["Payer.Id"]: restaurant._id,
+          Role: 2,
+        }).exec();
+      })
+    );
 
-    restaurants = restaurants.map((restaurant: any) => {
+    adminRestaurants = adminRestaurants.map((restaurant: any, i) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       return {
         _id: restaurant._id,
@@ -58,19 +66,24 @@ export async function getRestaurantManagementInfo(req, res) {
         contractID: restaurant.ContractID,
         createdAt: restaurant.CreatedAt,
         reviews: restaurant.Reviews,
+        serviceCharge:
+          receiptFee[i].Status === Constants.PAID.UNRESOLVE
+            ? "Nợ phí"
+            : "Đã thanh toán",
       };
     });
 
     const seftRestaurants: any = [];
-    const adminRestaurants: any = [];
-    restaurants.forEach((restaurant: any) => {
-      if (restaurant.type === 0 /*Constants.RESTAURANT.ADMIN_TYPE */) {
-        adminRestaurants.push(restaurant);
-      } else {
-        seftRestaurants.push(restaurant);
-      }
-    });
-
+    // const adminRestaurants: any = [];
+    //fix later
+    // restaurants.forEach((restaurant: any) => {
+    //   if (restaurant.type === 0 /*Constants.RESTAURANT.ADMIN_TYPE */) {
+    //     adminRestaurants.push(restaurant);
+    //   } else {
+    //     seftRestaurants.push(restaurant);
+    //   }
+    // });
+    //console.log(adminRestaurants);
     res.send(
       nomalizeResponse(
         {
@@ -141,7 +154,21 @@ export async function createNewRestanrant(req, res) {
     console.log(restaurant);
     return res.send(nomalizeResponse(restaurant));
   } catch (error) {
-    console.log(`[ERROR] get location ${error}`);
+    console.log(`[ERROR] create res ${error}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.CREATE_RES_ERROR));
+  }
+}
+
+export async function deleteRestaurant(req, res) {
+  const { id } = req.params;
+  try {
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      { _id: id },
+      { Status: -1 }
+    ).exec();
+    return res.send(nomalizeResponse(restaurant));
+  } catch (error) {
+    console.log(`[ERROR] delete res ${error}`);
+    return res.send(nomalizeResponse(null, Constants.SERVER.DELETE_RES_ERROR));
   }
 }
