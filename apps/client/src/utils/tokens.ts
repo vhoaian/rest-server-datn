@@ -1,14 +1,14 @@
-import { sign } from 'jsonwebtoken';
-import { environment } from '../environments/environment';
+import { sign } from "jsonwebtoken";
+import { environment } from "../environments/environment";
 
 export function getToken(id) {
   const payload = {
     id: id,
-    role: 'customer',
+    role: "customer",
   };
   // create token JWT
   const token = sign(payload, environment.JWT.secretKey, {
-    expiresIn: '4h',
+    expiresIn: "7d",
   });
   return token;
 }
