@@ -16,9 +16,11 @@ class GGAPI {
 
   constructor() {
     const pathCredentials = path.join(
-      __dirname.replace("/dist", "").replace("\\dist", ""),
+      process.cwd(),
+      "libs",
+      "google-api",
       "src",
-      "googleAPI",
+      "lib",
       "credentials.json"
     );
 
@@ -167,5 +169,4 @@ class GGAPI {
   }
 }
 
-const ggAPI = new GGAPI();
-export default ggAPI;
+export const ggAPI = new GGAPI();

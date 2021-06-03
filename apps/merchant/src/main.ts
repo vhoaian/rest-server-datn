@@ -3,13 +3,12 @@ import cors from "cors";
 import passport from "passport";
 import indexRouter from "./routes/index";
 import authRouter from "./routes/auth";
-import cityRouter from "./routes/city";
 import restaurantRouter from "./routes/restaurant";
-import userRouter from "./routes/user";
-import orderRouter from "./routes/order";
+import managerRouter from "./routes/manager";
+// import orderRouter from "./routes/order";
+import imageRouter from "./routes/image";
 import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
-
 const app = express();
 
 app.use(cors());
@@ -23,10 +22,10 @@ require("./middlewares");
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
-app.use("/cities", cityRouter);
 app.use("/restaurants", restaurantRouter);
-app.use("/users", userRouter);
-app.use("/orders", orderRouter);
+app.use("/managers", managerRouter);
+// app.use("/orders", orderRouter);
+app.use("/images", imageRouter);
 
 app.use(function (req, res) {
   res.status(404).end();
@@ -39,7 +38,7 @@ app.use(function (err, req, res, next) {
 
 const server = app.listen(environment.PORT, () => {
   console.log(
-    `The client application is listening at http://localhost:${environment.PORT}`
+    `The merchant application is listening at http://localhost:${environment.PORT}`
   );
 });
 
