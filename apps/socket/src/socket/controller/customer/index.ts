@@ -1,6 +1,7 @@
 import { TAG_EVENT } from "../../TAG_EVENT";
 import orderController from "../order";
 import customerController from "./customerController";
+import chatController from "../chat";
 
 // Config for customer
 const customerConfig = (io, socket) => {
@@ -21,6 +22,10 @@ const customerConfig = (io, socket) => {
       socket.decode.id,
       orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER
     );
+  });
+
+  socket.on(TAG_EVENT.REQUEST_CHAT, ({ roomID, message }) => {
+    chatController.sendMessage(roomID, "customer", message);
   });
 };
 

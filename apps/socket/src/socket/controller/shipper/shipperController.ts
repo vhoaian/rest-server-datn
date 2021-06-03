@@ -6,6 +6,7 @@ import orderController from "../order";
 import clone from "../../../utils/clone";
 import { Order } from "@vohoaian/datn-models";
 import { mapOptions } from "../order/utils";
+import chatController from "../chat";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -296,6 +297,13 @@ class ShipperController {
       shipperID,
       orderController.ORDER_STATUS.DURING_GET
     );
+
+    chatController.createRoom(
+      shipperID,
+      // @ts-expect-error
+      orderController.getOrderByID(orderID)?.customerID
+    );
+
     return true;
   }
 
