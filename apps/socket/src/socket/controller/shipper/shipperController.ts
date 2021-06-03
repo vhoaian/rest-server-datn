@@ -298,7 +298,7 @@ class ShipperController {
       orderController.ORDER_STATUS.DURING_GET
     );
 
-    chatController.createRoom(
+    chatController.openRoom(
       shipperID,
       // @ts-expect-error
       orderController.getOrderByID(orderID)?.customerID
