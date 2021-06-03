@@ -1,6 +1,11 @@
 import { Order, Restaurant, Shipper } from "@vohoaian/datn-models";
 import axios from "axios";
 import config from "../environments/base";
+import {
+  Receipt as ReceiptModel,
+  Notification as NotificationModel,
+} from "@vohoaian/datn-models";
+import mongoose from "mongoose";
 
 // Receipt
 // |- id: ObjectID
@@ -32,18 +37,20 @@ class AutoCalcReceipt {
   private _PERCENT_FEE_SHIPPER: number = 10; // unit %
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
 
-  private _DAY_DELAY_PAY_RECEIPT: number = 14;
   private _STATUS_NOT_PAID: number = -1;
   private _STATUS_PAID: number = 1;
+  private _DAY_DELAY_PAY_RECEIPT: number = 14;
   private _STATUS_LOCK_ACC: number = -1;
 
-  private TAG_LOG_SUCCESS: string = "AUTO_CALC_RECEIPT";
-  private TAG_LOG_FAILED: string = "AUTO_CALC_RECEIPT_FAILED";
+  private _TAG_LOG_SUCCESS: string = "AUTO_CALC_RECEIPT";
+  private _TAG_LOG_FAILED: string = "AUTO_CALC_RECEIPT_FAILED";
+
+  private _ROLE: Array<string> = ["customer", "shipper", "merchant", "admin"];
 
   constructor() {}
 
   public runAutoCalcReceipt(): void {
-    console.log(`[${this.TAG_LOG_SUCCESS}]: autoCalcReceipt run`);
+    console.log(`[${this._TAG_LOG_SUCCESS}]: autoCalcReceipt run`);
 
     this._TIMER_CALC_RECEIPT = new Date().getTime();
 
@@ -59,7 +66,7 @@ class AutoCalcReceipt {
   }
 
   public runAutoLockLatePayReceipt(): void {
-    console.log(`[${this.TAG_LOG_SUCCESS}]: AutoLockLatePayReceipt run`);
+    console.log(`[${this._TAG_LOG_SUCCESS}]: AutoLockLatePayReceipt run`);
 
     this._TIMER_AUTO_LOCK_ACC = new Date().getTime();
 
@@ -77,8 +84,10 @@ class AutoCalcReceipt {
 
   private lockAccount(): void {
     // Get all receipt not paid
-    // const _listReceiptNotPaid = await Receipt.find({ Status: this._STATUS_NOT_PAID});
-    const _listReceiptNotPaid: Array<{ CreatedAt: Date; Payer: string }> = [];
+    const _listReceiptNotPaid = await ReceiptModel.find({
+      Status: this._STATUS_NOT_PAID,
+    });
+    // const _listReceiptNotPaid: Array<{ CreatedAt: Date; Payer: string }> = [];
     _listReceiptNotPaid.forEach((receipt) => {
       const dayLeft =
         (new Date().getTime() - receipt.CreatedAt.getTime()) /
@@ -86,12 +95,12 @@ class AutoCalcReceipt {
       if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
         // Lock acc
         Restaurant.updateOne(
-          { _id: `${receipt.Payer}` },
+          { _id: `${receipt.Payer.Id}` },
           { Status: this._STATUS_LOCK_ACC }
         );
 
         Shipper.updateOne(
-          { _id: `${receipt.Payer}` },
+          { _id: `${receipt.Payer.Id}` },
           { Status: this._STATUS_LOCK_ACC }
         );
       }
@@ -99,7 +108,7 @@ class AutoCalcReceipt {
   }
 
   private calcReceipt(): void {
-    console.log(`[${this.TAG_LOG_SUCCESS}]: start run calc receipt`);
+    console.log(`[${this._TAG_LOG_SUCCESS}]: start run calc receipt`);
 
     const currDate = new Date(this._TIMER_CALC_RECEIPT);
     const day = currDate.getDate();
@@ -116,7 +125,7 @@ class AutoCalcReceipt {
     dateEnd: Date
   ): Promise<void> {
     console.log(
-      `[${this.TAG_LOG_SUCCESS}]: start run calc receipt for shipper`
+      `[${this._TAG_LOG_SUCCESS}]: start run calc receipt for shipper`
     );
     try {
       const _allShipper = await Shipper.find({});
@@ -133,11 +142,11 @@ class AutoCalcReceipt {
 
       await Promise.all(listPromise);
       console.log(
-        `[${this.TAG_LOG_SUCCESS}]: calc receipt for shipper success`
+        `[${this._TAG_LOG_SUCCESS}]: calc receipt for shipper success`
       );
     } catch (e) {
       console.log(
-        `[${this.TAG_LOG_FAILED}]: calc receipt for shipper failed.`,
+        `[${this._TAG_LOG_FAILED}]: calc receipt for shipper failed.`,
         e.message
       );
     }
@@ -148,7 +157,7 @@ class AutoCalcReceipt {
     dateEnd: Date
   ): Promise<void> {
     console.log(
-      `[${this.TAG_LOG_SUCCESS}]: start run calc receipt for Merchant`
+      `[${this._TAG_LOG_SUCCESS}]: start run calc receipt for Merchant`
     );
     try {
       const _allMerchant = await Restaurant.find({});
@@ -165,11 +174,11 @@ class AutoCalcReceipt {
 
       await Promise.all(listPromise);
       console.log(
-        `[${this.TAG_LOG_SUCCESS}]: calc receipt for merchant success`
+        `[${this._TAG_LOG_SUCCESS}]: calc receipt for merchant success`
       );
     } catch (e) {
       console.log(
-        `[${this.TAG_LOG_FAILED}]: calc receipt for merchant failed.`,
+        `[${this._TAG_LOG_FAILED}]: calc receipt for merchant failed.`,
         e.message
       );
     }
@@ -201,27 +210,32 @@ class AutoCalcReceipt {
 
     // Create receipt and notification
     const dataReceipt = {
-      Payer: shipperID,
+      Payer: {
+        Id: mongoose.Types.ObjectId(shipperID),
+        Role: this._ROLE.indexOf("shipper"),
+      },
       FeeTotal: _feeApp,
       PercentFee: this._PERCENT_FEE_SHIPPER,
       Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
-    // const newReceipt = new ReceiptModel(dataReceipt)
-    // newReceipt.save();
+    const newReceipt = new ReceiptModel(dataReceipt);
+    newReceipt.save();
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
       SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
-      Receiver: shipperID,
-      RoleReceiver: "shipper",
+      Receiver: {
+        Id: mongoose.Types.ObjectId(shipperID),
+        Role: this._ROLE.indexOf("shipper"),
+      },
     };
 
-    // const notification = new NotificationModel(dataNoti);
-    // notification.save();
+    const notification = new NotificationModel(dataNoti);
+    notification.save();
 
-    const notification = { _id: "123" };
+    // const notification = { _id: "123" };
 
     this.pushNotification(notification._id);
     console.log("FEE APP FOR SHIPPER:", _feeApp);
@@ -254,27 +268,32 @@ class AutoCalcReceipt {
 
     // Create receipt and notification
     const dataReceipt = {
-      Payer: merchantID,
+      Payer: {
+        Id: mongoose.Types.ObjectId(merchantID),
+        Role: this._ROLE.indexOf("merchant"),
+      },
       FeeTotal: _feeApp,
       PercentFee: this._PERCENT_FEE_MERCHANT,
       Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
-    // const newReceipt = new ReceiptModel(dataReceipt)
-    // newReceipt.save();
+    const newReceipt = new ReceiptModel(dataReceipt);
+    newReceipt.save();
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
       SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
-      Receiver: merchantID,
-      RoleReceiver: "merchant",
+      Receiver: {
+        Id: mongoose.Types.ObjectId(merchantID),
+        Role: this._ROLE.indexOf("merchant"),
+      },
     };
 
-    // const notification = new NotificationModel(dataNoti);
-    // notification.save();
+    const notification = new NotificationModel(dataNoti);
+    notification.save();
 
-    const notification = { _id: "123" };
+    // const notification = { _id: "123" };
 
     this.pushNotification(notification._id);
     console.log("FEE APP FOR MERCHANT:", _feeApp);
