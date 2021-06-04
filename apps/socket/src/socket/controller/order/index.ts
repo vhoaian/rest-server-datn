@@ -114,7 +114,7 @@ class OrderController {
 
       if (order.PaymentMethod === 0) {
         if (merchantIsPartner) {
-          console.log("SEND ORDER TO MERCHANT");
+          console.log("[ORDER]: SEND ORDER TO MERCHANT");
           this.changeStatusOrder(
             orderID,
             `${order.Restaurant}`,
@@ -227,6 +227,8 @@ class OrderController {
             shipperController.getSocket(shipperID).leave(orderID);
           });
           this.removeOrder(orderID);
+
+          console.log("[ORDER]: customer cancel order success.");
 
           // Update status order on database
           await Order.updateOne({ _id: orderID }, { Status: status });

@@ -172,9 +172,6 @@ class ShipperController {
       lng: lngMer,
     };
 
-    console.log(coorMerchant);
-    console.log(calcDistanceBetween2Coor(coorMerchant, { lat: 0, lng: 0 }));
-
     do {
       const orderInController = orderController.getOrderByID(order._id);
       if (!orderInController) return;
@@ -209,7 +206,10 @@ class ShipperController {
         // <>
         .slice(0, maxShipper);
 
-      console.log(listShipperSelected);
+      console.log("[ORDER]: send order to shipper.");
+      console.log(
+        `[ORDER]: number shipper server selected: ${listShipperSelected.length}`
+      );
 
       // Send order to Shipper
       listShipperSelected.forEach((shipper) => {
@@ -236,7 +236,7 @@ class ShipperController {
         continue;
       }
 
-      const orderBreak = orderController.getOrderByID(order.id);
+      const orderBreak = orderController.getOrderByID(`${order._id}`);
       if (
         !orderBreak ||
         orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER ||
@@ -249,6 +249,10 @@ class ShipperController {
         orderInController.listShipperSkipOrder.push(shipper.id);
         orderInController.listShipperAreBeingRequest = [];
       });
+
+      console.log(
+        "[ORDER]: order don't have any shipper, retry to find shipper."
+      );
     } while (true);
   }
 
@@ -291,6 +295,8 @@ class ShipperController {
 
     shipper.listOrderID.push(orderID);
 
+    console.log("[ORDER]: shipper confirm order success.");
+
     // Update status order
     orderController.changeStatusOrder(
       orderID,
@@ -308,7 +314,7 @@ class ShipperController {
   }
 
   skipOrder(orderID, socketID) {
-    console.log("SKIP ORDER");
+    console.log("[ORDER]: shipper skip order.");
     const shipper = this.getShipperBySocketID(socketID);
     if (!shipper) return;
 
@@ -322,6 +328,8 @@ class ShipperController {
     const indexOrderID = shipper.listOrderID.indexOf(orderID);
     shipper.listOrderID.splice(indexOrderID, 1);
 
+    console.log("[ORDER]: shipper cancel order.");
+
     // Update status order
     orderController.changeStatusOrder(
       orderID,
@@ -331,6 +339,8 @@ class ShipperController {
   }
 
   tookFood(orderID, shipperID) {
+    console.log("[ORDER]: shipper took food, during ship");
+
     // Update status order
     orderController.changeStatusOrder(
       orderID,
@@ -342,6 +352,8 @@ class ShipperController {
   deliveredOrder(orderID, shipperID) {
     const shipper = this.getShipper(shipperID);
     if (!shipper) return;
+
+    console.log("[ORDER]: shipper delivered order.");
 
     const indexOrder: number = shipper.listOrderID.indexOf(orderID);
     shipper.listOrderID.splice(indexOrder, 1);

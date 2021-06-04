@@ -6,7 +6,7 @@ const service = {
   async createOrder(
     orderID: string
   ): Promise<{ success: boolean; message: string; paymentInfo: any }> {
-    console.log("HOOK CREATE ORDER");
+    console.log("[ORDER]: HOOK CREATE ORDER");
 
     let paymentInfo: any = null;
     let success: boolean = false;
