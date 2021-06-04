@@ -165,13 +165,14 @@ export async function addOrder(req, res) {
       userOrder[i].Options = temp;
     }
 
-    calsubtotal += userOrder[i].Price * (userOrder[i].Quantity ?? 1);
+    let foodPrice = userOrder[i].Price;
     for (let k = 0; k < userOrder[i].Options.length; k++) {
       for (let l = 0; l < userOrder[i].Options[k].Items.length; l++) {
         const item = userOrder[i].Options[k].Items[l];
-        calsubtotal += (item.Quantity ?? 1) * item.Price;
+        foodPrice += (item.Quantity ?? 1) * item.Price;
       }
     }
+    calsubtotal += foodPrice * (userOrder[i].Quantity ?? 1);
   }
 
   if (subtotal != calsubtotal) {
