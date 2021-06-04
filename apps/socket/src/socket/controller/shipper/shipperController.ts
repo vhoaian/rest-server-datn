@@ -4,7 +4,7 @@ import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
-import { Order } from "@vohoaian/datn-models";
+import { ChatRoom, Order, Types } from "@vohoaian/datn-models";
 import { mapOptions } from "../order/utils";
 import chatController from "../chat";
 
@@ -321,7 +321,7 @@ class ShipperController {
     shipper.beingRequested = false;
   }
 
-  cancelOrder(orderID, shipperID) {
+  async cancelOrder(orderID, shipperID) {
     // Update shipper
     const shipper = this.getShipper(shipperID);
 
@@ -329,6 +329,21 @@ class ShipperController {
     shipper.listOrderID.splice(indexOrderID, 1);
 
     console.log("[ORDER]: shipper cancel order.");
+
+    const order = orderController.getOrderByID(orderID);
+
+    const customerID = order?.customerID || "";
+    const _room = await ChatRoom.findOne({
+      Shipper: Types.ObjectId(shipperID),
+      User: Types.ObjectId(customerID),
+    });
+
+    chatController.sendMessage(
+      // @ts-expect-error
+      `${_room._id}`,
+      "shipper",
+      "Đơn hàng đã bị hủy. Chúng tôi rất tiếc vì điều này."
+    );
 
     // Update status order
     orderController.changeStatusOrder(
@@ -338,8 +353,23 @@ class ShipperController {
     );
   }
 
-  tookFood(orderID, shipperID) {
+  async tookFood(orderID, shipperID) {
     console.log("[ORDER]: shipper took food, during ship");
+
+    const order = orderController.getOrderByID(orderID);
+
+    const customerID = order?.customerID || "";
+    const _room = await ChatRoom.findOne({
+      Shipper: Types.ObjectId(shipperID),
+      User: Types.ObjectId(customerID),
+    });
+
+    chatController.sendMessage(
+      // @ts-expect-error
+      `${_room._id}`,
+      "shipper",
+      "Shipper đã lấy đơn hàng của bạn. Vui lòng giữ liên lạc để shipper có thể giao hàng."
+    );
 
     // Update status order
     orderController.changeStatusOrder(
@@ -349,7 +379,7 @@ class ShipperController {
     );
   }
 
-  deliveredOrder(orderID, shipperID) {
+  async deliveredOrder(orderID, shipperID) {
     const shipper = this.getShipper(shipperID);
     if (!shipper) return;
 
@@ -357,6 +387,21 @@ class ShipperController {
 
     const indexOrder: number = shipper.listOrderID.indexOf(orderID);
     shipper.listOrderID.splice(indexOrder, 1);
+
+    const order = orderController.getOrderByID(orderID);
+
+    const customerID = order?.customerID || "";
+    const _room = await ChatRoom.findOne({
+      Shipper: Types.ObjectId(shipperID),
+      User: Types.ObjectId(customerID),
+    });
+
+    chatController.sendMessage(
+      // @ts-expect-error
+      `${_room._id}`,
+      "shipper",
+      "Yayy. Đơn hàng của bạn đã được giao thành công. Hẹn gặp bạn vào lần sau nhé. Chúc bạn ngon miệng!! ^^"
+    );
 
     // Update status order
     orderController.changeStatusOrder(
