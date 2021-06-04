@@ -47,7 +47,10 @@ class ShipperController {
   }
 
   getSocket(id): any {
-    return this._io.of("/").sockets.get(`${this.getShipper(id).socketID}`);
+    const shipper = this.getShipper(id);
+    if (!shipper) return null;
+
+    return this._io.of("/").sockets.get(`${shipper.socketID}`);
   }
 
   getShipper(id): any {
