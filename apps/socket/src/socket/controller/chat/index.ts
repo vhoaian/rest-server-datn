@@ -58,13 +58,13 @@ class ChatController {
           User: Types.ObjectId(customerID),
         });
         await _room.save();
-
-        const _autoMessage = `${_shipper?.FullName} đang trên đường giao hàng cho quý khách. Xin vui lòng giữ điện thoại để được cập nhật tình hình đơn hàng nếu có thay đổi. Cảm ơn quý khách.`;
-        this.sendMessage(`${_room._id}`, "shipper", _autoMessage);
       }
 
-      shipperController.getSocket(`${Shipper}`)?.join(`${_room._id}`);
-      customerController.getSocket(`${User}`)?.join(`${_room._id}`);
+      const _autoMessage = `${_shipper?.FullName} đang trên đường giao hàng cho quý khách. Xin vui lòng giữ điện thoại để được cập nhật tình hình đơn hàng nếu có thay đổi. Cảm ơn quý khách.`;
+      this.sendMessage(`${_room._id}`, "shipper", _autoMessage);
+
+      shipperController.getSocket(shipperID)?.join(`${_room._id}`);
+      customerController.getSocket(customerID)?.join(`${_room._id}`);
 
       return `${_room._id}`;
     } catch (e) {
@@ -116,7 +116,7 @@ class ChatController {
       _room.TotalChat = _room.TotalChat + 1;
       _room.save();
 
-      const info = [_room.Shipper, _room.User];
+      const info = [_room.User, _room.Shipper];
 
       this.getSocket(roomID).emit(
         TAG_EVENT.RESPONSE_CHAT,
@@ -125,7 +125,7 @@ class ChatController {
           message,
           sender: info[this._ROLE_SENDER.indexOf(sender)],
           receiver: info[1 - this._ROLE_SENDER.indexOf(sender)],
-          roleReceiver: sender,
+          roleSender: sender,
         })
       );
 
