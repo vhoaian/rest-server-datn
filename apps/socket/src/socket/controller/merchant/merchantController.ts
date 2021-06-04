@@ -123,6 +123,7 @@ class MerchantController {
       );
     }
 
+    console.log("[ORDER]: request merchant confirm order.");
     merchantSocket.emit(
       TAG_EVENT.RESPONSE_MERCHANT_CONFIRM_ORDER,
       normalizeResponse("Server request confirm order", {
@@ -135,6 +136,8 @@ class MerchantController {
   }
 
   confirmOrder(orderID, merchantID) {
+    console.log("[ORDER]: merchant confirm order success.");
+
     // Update status order
     return orderController.changeStatusOrder(
       orderID,
@@ -144,6 +147,8 @@ class MerchantController {
   }
 
   cancelOrder(orderID, merchantID): Promise<boolean> {
+    console.log("[ORDER]: merchant cancel order success.");
+
     return orderController.changeStatusOrder(
       orderID,
       merchantID,

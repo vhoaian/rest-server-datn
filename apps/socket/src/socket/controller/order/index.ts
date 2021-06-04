@@ -14,9 +14,20 @@ const ENUM = (function* () {
   while (true) yield index++;
 })();
 
+interface ORDER {
+  orderID: string | null;
+  shipperID: string | null;
+  customerID: string | null;
+  merchantID: string | null;
+  listShipperSkipOrder: Array<string>;
+  listShipperAreBeingRequest: Array<string>;
+  optionPayment: "cash" | "zalopay";
+  status: number;
+}
+
 class OrderController {
   public _io: any = null;
-  private _listOrder: Array<any> = [];
+  private _listOrder: Array<ORDER> = [];
 
   public ORDER_STATUS: any = {
     WAITING_PAYMENT: ENUM.next().value,
@@ -31,7 +42,7 @@ class OrderController {
     CANCEL_BY_SHIPPER: ENUM.next().value,
   };
 
-  private ORDER_DEFAULT: any = {
+  private ORDER_DEFAULT: ORDER = {
     orderID: null,
     shipperID: null,
     customerID: null,
@@ -61,7 +72,7 @@ class OrderController {
     merchantID,
     shipperID,
     paymentMethod
-  ): any {
+  ): ORDER {
     return {
       ...clone(this.ORDER_DEFAULT),
       orderID,
@@ -76,7 +87,7 @@ class OrderController {
     return this._io.to(orderID);
   }
 
-  getOrderByID = (orderID): any => {
+  getOrderByID = (orderID): ORDER | null => {
     return (
       this._listOrder.find((order) => order.orderID === `${orderID}`) || null
     );
@@ -103,7 +114,7 @@ class OrderController {
 
       if (order.PaymentMethod === 0) {
         if (merchantIsPartner) {
-          console.log("SEND ORDER TO MERCHANT");
+          console.log("[ORDER]: SEND ORDER TO MERCHANT");
           this.changeStatusOrder(
             orderID,
             `${order.Restaurant}`,
@@ -141,15 +152,15 @@ class OrderController {
     this._listOrder.splice(indexOrder, 1);
   }
 
-  getOrderByShipperID(shipperID): any {
+  getOrderByShipperID(shipperID): Array<ORDER> {
     return this._listOrder.filter((order) => order.shipperID === shipperID);
   }
 
-  getOrderByMerchantID(merchantID): any {
+  getOrderByMerchantID(merchantID): Array<ORDER> {
     return this._listOrder.filter((order) => order.merchantID === merchantID);
   }
 
-  getOrderByCustomerID(customerID): any {
+  getOrderByCustomerID(customerID): Array<ORDER> {
     return this._listOrder.filter((order) => order.customerID === customerID);
   }
 
@@ -159,7 +170,7 @@ class OrderController {
     status: number
   ): Promise<boolean> {
     // check order
-    const orderOnList = this.getOrderByID(orderID);
+    const orderOnList: any = this.getOrderByID(orderID);
     if (!orderOnList) {
       console.log(`[${TAG_LOG_ERROR}]: order does not exist.`);
       return false;
@@ -216,6 +227,8 @@ class OrderController {
             shipperController.getSocket(shipperID).leave(orderID);
           });
           this.removeOrder(orderID);
+
+          console.log("[ORDER]: customer cancel order success.");
 
           // Update status order on database
           await Order.updateOne({ _id: orderID }, { Status: status });

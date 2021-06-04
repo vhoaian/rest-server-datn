@@ -3,10 +3,11 @@ import socketIO from "socket.io";
 import _ from "underscore";
 import configApp from "../config";
 import configEventListener from "./controller";
+import chatController from "./controller/chat";
+import customerController from "./controller/customer/customerController";
+import merchantController from "./controller/merchant/merchantController";
 import orderController from "./controller/order";
 import shipperController from "./controller/shipper/shipperController";
-import merchantController from "./controller/merchant/merchantController";
-import customerController from "./controller/customer/customerController";
 import { TAG_LOG, TAG_LOG_ERROR } from "./TAG_EVENT";
 
 // Check authenticate
@@ -83,6 +84,7 @@ export const config = (server): void => {
   shipperController.setIO(_io);
   merchantController.setIO(_io);
   customerController.setIO(_io);
+  chatController.setIO(_io);
 
   _io.on("connection", setUpConnection);
 

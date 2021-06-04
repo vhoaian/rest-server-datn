@@ -1,6 +1,7 @@
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import { TAG_EVENT } from "../../TAG_EVENT";
 import shipperController from "./shipperController";
+import chatController from "../chat";
 
 // Config for shipper
 const shipperConfig = (io, socket) => {
@@ -47,6 +48,10 @@ const shipperConfig = (io, socket) => {
 
   socket.on("disconnect", () => {
     shipperController.removeShipper(socket.decode.id);
+  });
+
+  socket.on(TAG_EVENT.REQUEST_CHAT, ({ roomID, message }) => {
+    chatController.sendMessage(roomID, "shipper", message);
   });
 };
 
