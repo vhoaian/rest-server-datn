@@ -37,7 +37,7 @@ class AutoCalcReceipt {
   private _PERCENT_FEE_SHIPPER: number = 10; // unit %
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
 
-  private _STATUS_NOT_PAID: number = -1;
+  private _STATUS_NOT_PAID: number = 0;
   private _STATUS_PAID: number = 1;
   private _DAY_DELAY_PAY_RECEIPT: number = 14;
   private _STATUS_LOCK_ACC: number = -1;
@@ -63,6 +63,7 @@ class AutoCalcReceipt {
       // run calc receipt
       this.calcReceipt();
     }, this._TIME_SKIP);
+    this.calcReceipt();
   }
 
   public runAutoLockLatePayReceipt(): void {
@@ -189,9 +190,10 @@ class AutoCalcReceipt {
     dateStart: Date,
     dateEnd: Date
   ): Promise<void> {
+    console.log("shipperID:", shipperID);
     // Get all Order in Month
     const _allOrder = await Order.find({
-      Shipper: `${shipperID}`,
+      Shipper: mongoose.Types.ObjectId(shipperID),
       Status: {
         $nin: [
           ORDER_STATUS.CANCEL_BY_CUSTOMER,
@@ -199,12 +201,15 @@ class AutoCalcReceipt {
           ORDER_STATUS.CANCEL_BY_SHIPPER,
         ],
       },
-      DeliveredAt: { $gt: dateStart, $lt: dateEnd },
+      CreatedAt: { $gt: dateStart, $lt: dateEnd },
     });
+
+    console.log("_allOrder.length:", _allOrder.length);
+    console.log("shipperID:", shipperID);
 
     // Calc fee
     const _feeApp: number = _allOrder.reduce((totalFee, currOrder) => {
-      totalFee += currOrder.ShippingFee * this._PERCENT_FEE_SHIPPER;
+      totalFee += currOrder.ShippingFee * (this._PERCENT_FEE_SHIPPER / 100);
       return totalFee;
     }, 0);
 
@@ -215,7 +220,7 @@ class AutoCalcReceipt {
         Role: this._ROLE.indexOf("shipper"),
       },
       FeeTotal: _feeApp,
-      PercentFee: this._PERCENT_FEE_SHIPPER,
+      PercentFee: this._PERCENT_FEE_SHIPPER / 100,
       Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
       DateStart: dateStart,
       DateEnd: dateEnd,
@@ -225,7 +230,7 @@ class AutoCalcReceipt {
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
-      SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
+      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
       Receiver: {
         Id: mongoose.Types.ObjectId(shipperID),
         Role: this._ROLE.indexOf("shipper"),
@@ -233,7 +238,7 @@ class AutoCalcReceipt {
     };
 
     const notification = new NotificationModel(dataNoti);
-    notification.save();
+    await notification.save();
 
     // const notification = { _id: "123" };
 
@@ -248,7 +253,7 @@ class AutoCalcReceipt {
   ): Promise<void> {
     // Get all Order in Month
     const _allOrder = await Order.find({
-      Restaurant: `${merchantID}`,
+      Restaurant: mongoose.Types.ObjectId(merchantID),
       Status: {
         $nin: [
           ORDER_STATUS.CANCEL_BY_CUSTOMER,
@@ -256,13 +261,14 @@ class AutoCalcReceipt {
           ORDER_STATUS.CANCEL_BY_SHIPPER,
         ],
       },
-      DeliveredAt: { $gt: dateStart, $lt: dateEnd },
+      CreatedAt: { $gt: dateStart, $lt: dateEnd },
     });
 
     // Calc fee
     const _feeApp: number = _allOrder.reduce((totalFee, currOrder) => {
       totalFee +=
-        (currOrder.Total - currOrder.ShippingFee) * this._PERCENT_FEE_MERCHANT;
+        (currOrder.Total - currOrder.ShippingFee) *
+        (this._PERCENT_FEE_MERCHANT / 100);
       return totalFee;
     }, 0);
 
@@ -273,7 +279,7 @@ class AutoCalcReceipt {
         Role: this._ROLE.indexOf("merchant"),
       },
       FeeTotal: _feeApp,
-      PercentFee: this._PERCENT_FEE_MERCHANT,
+      PercentFee: this._PERCENT_FEE_MERCHANT / 100,
       Status: _feeApp > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
       DateStart: dateStart,
       DateEnd: dateEnd,
@@ -283,7 +289,7 @@ class AutoCalcReceipt {
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
-      SubTitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
+      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng số tiền bạn cần phải trả là ${_feeApp}đ`,
       Receiver: {
         Id: mongoose.Types.ObjectId(merchantID),
         Role: this._ROLE.indexOf("merchant"),
@@ -291,7 +297,7 @@ class AutoCalcReceipt {
     };
 
     const notification = new NotificationModel(dataNoti);
-    notification.save();
+    await notification.save();
 
     // const notification = { _id: "123" };
 
