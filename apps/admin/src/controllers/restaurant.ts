@@ -25,7 +25,7 @@ export async function getRestaurantManagementInfo(req, res) {
       districts = selectedCity[0].Districts;
 
       if (districtID !== 0) {
-        const selectedDistrict = districts.filter(
+        const selectedDistrict: any = districts.filter(
           (elm: any) => elm.Id === districtID
         );
         if (selectedDistrict.length === 0) {
