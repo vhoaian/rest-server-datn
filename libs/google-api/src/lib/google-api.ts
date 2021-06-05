@@ -79,7 +79,44 @@ class GGAPI {
     });
   }
 
-  private async generatePublicUrl(
+  public getFileIDFromURL(url: string | null): string | null {
+    if (!url) return null;
+
+    let fileId: string = "";
+    const NULL_STRING = "_^^__/**_NULL_STRING_**/__^^_";
+
+    const _TEMPLATE: Array<{
+      head: string;
+      tail: string;
+    }> = [
+      {
+        head: "https://drive.google.com/uc?id=",
+        tail: "&export=download",
+      },
+      {
+        head: "https://drive.google.com/file/d/",
+        tail: "/view?usp=",
+      },
+      {
+        head: "https://drive.google.com/open?id=",
+        tail: NULL_STRING,
+      },
+    ];
+
+    _TEMPLATE.forEach((template) => {
+      if (url.includes(template.head)) {
+        fileId = url.split(template.head)[1];
+      }
+
+      if (url.includes(template.tail)) {
+        fileId = fileId.split(template.tail)[0];
+      }
+    });
+
+    return !!fileId ? fileId : null;
+  }
+
+  public async generatePublicUrl(
     fileId: string | null
   ): Promise<{ webContentLink: string | null; webViewLink: string | null }> {
     try {
@@ -233,25 +270,8 @@ class GGAPI {
   }
 
   public async deleteFile(url: string | null): Promise<boolean> {
-    if (!url) return false;
-
-    let fileId: string | null = null;
-
-    const LINK1 = {
-      head: "https://drive.google.com/uc?id=",
-      tail: "&export=download",
-    };
-
-    const LINK2 = {
-      head: "https://drive.google.com/file/d/",
-      tail: "/view?usp=",
-    };
-
-    if (url.indexOf(LINK1.head) > -1) {
-      fileId = url.slice(LINK1.head.length, url.indexOf(LINK1.tail));
-    } else if (url.indexOf(LINK2.head) > -1) {
-      fileId = url.slice(LINK2.head.length, url.indexOf(LINK2.tail));
-    }
+    const fileId = this.getFileIDFromURL(url);
+    if (!fileId) return false;
 
     try {
       const response = await this.drive.files.delete({
@@ -265,6 +285,16 @@ class GGAPI {
       console.log(`${this._TAG_LOG_FAIL}: delete file fail, ${error.message}`);
       return false;
     }
+  }
+
+  public test() {
+    console.log("GG_API_TEST_MODE");
+
+    const url =
+      "https://drive.google.com/open?id=1bqkNYnvK5_EGFpJhMGXKKyaqM5thMG8r";
+
+    // const fileID = this.getFileIDFromURL(url);
+    // this.generatePublicUrl(fileID).then((d) => console.log(d));
   }
 }
 
