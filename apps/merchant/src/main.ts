@@ -11,6 +11,11 @@ import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 const app = express();
 
+// import ggAPI from "@rest-servers/google-api";
+// const origin = "312/20 Tôn Đản, Quận 4, Thành Phố HCM";
+// const destination = "Đại học khoa học tự nhiên quận 5";
+// ggAPI.calcDistance(origin, destination).then((d) => console.log(d));
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
