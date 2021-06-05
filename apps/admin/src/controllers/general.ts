@@ -1,6 +1,12 @@
 import { nomalizeResponse } from "../utils/normalize";
 import { Constants } from "../environments/base";
-import { Restaurant, User, Order, Shipper } from "@vohoaian/datn-models";
+import {
+  Restaurant,
+  User,
+  Order,
+  Shipper,
+  Receipt,
+} from "@vohoaian/datn-models";
 import {
   getStartAndEndOfWeek,
   getStartAndEndOfMonth,
@@ -21,18 +27,20 @@ export async function getGeneralStatistics(req, res) {
     /* */
     let present: any = [];
     let past: any = [];
+    const today = new Date();
     if (filter === "week") {
-      present = getStartAndEndOfWeek(new Date(), 0);
-      past = getStartAndEndOfWeek(new Date(), 1);
+      present = getStartAndEndOfWeek(today, 0);
+      past = getStartAndEndOfWeek(today, 1);
     } else if (filter === "month") {
-      present = getStartAndEndOfMonth(new Date(), 0);
-      past = getStartAndEndOfMonth(new Date(), 1);
+      present = getStartAndEndOfMonth(today, 0);
+      past = getStartAndEndOfMonth(today, 1);
     } else {
-      present = getStartAndEndOfYear(new Date(), 0);
-      past = getStartAndEndOfYear(new Date(), 1);
+      present = getStartAndEndOfYear(today, 0);
+      past = getStartAndEndOfYear(today, 1);
     }
 
     const orders = await Order.find({
+      //order was created in this week, month , year
       CreatedAt: { $gte: present[0], $lte: present[1] },
       Status: { $gte: 0 },
     })
@@ -40,12 +48,13 @@ export async function getGeneralStatistics(req, res) {
       .exec();
 
     const preOrders = await Order.find({
+      //order was created in this week, month, year
       CreatedAt: { $gte: past[0], $lte: past[1] },
       Status: { $gte: 0 },
     })
       .select("Total CreatedAt AdditionalFees")
       .exec();
-
+    // total order of last wek, moth, year
     let pastPayment = 0;
     preOrders.forEach((order) => {
       pastPayment += order.Total;
@@ -75,9 +84,8 @@ export async function getGeneralStatistics(req, res) {
       totalPayment += order.Total;
     });
 
-    //devoloper percent
+    //devolopement percent
     let numberPercent, paymentPercent;
-
     if (preOrders.length > 0) {
       numberPercent = Math.ceil((orders.length * 100) / preOrders.length) - 100;
     } else if (preOrders.length === 0) {
@@ -89,6 +97,32 @@ export async function getGeneralStatistics(req, res) {
     } else if (pastPayment === 0) {
       paymentPercent = 100;
     }
+    //get payment of restaurant & shipper
+    const receipts = await Receipt.find({
+      "Payer.Role": { $in: [1, 2] },
+      DateStart: {
+        $gte: new Date(today.getFullYear(), today.getMonth(), 0),
+      },
+    }).exec();
+
+    const shipperData = ["Tài xế", "10%", 0, 0];
+    const restaurantData = ["Nhà hàng", "10%", 0, 0];
+
+    receipts.forEach((receipt: any) => {
+      if (parseInt(receipt.Payer.Role) == 1) {
+        if (receipt.Status === 1) {
+          shipperData[2] += receipt.FeeTotal;
+        } else {
+          shipperData[3] += receipt.FeeTotal;
+        }
+      } else if (parseInt(receipt.Payer.Role) == 2) {
+        if (receipt.Status === 1) {
+          restaurantData[2] += receipt.FeeTotal;
+        } else {
+          restaurantData[3] += receipt.FeeTotal;
+        }
+      }
+    });
 
     res.send(
       nomalizeResponse(
@@ -103,6 +137,8 @@ export async function getGeneralStatistics(req, res) {
           paymentPercent,
           numberPercent,
           labels: statisticsTemp[filter].labels,
+          shipperData,
+          restaurantData,
         },
         0
       )

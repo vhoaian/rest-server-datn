@@ -63,7 +63,7 @@ class AutoCalcReceipt {
       // run calc receipt
       this.calcReceipt();
     }, this._TIME_SKIP);
-    this.calcReceipt();
+    // this.calcReceipt();
   }
 
   public runAutoLockLatePayReceipt(): void {
