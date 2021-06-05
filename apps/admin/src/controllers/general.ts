@@ -1,9 +1,16 @@
 import { nomalizeResponse } from "../utils/normalize";
 import { Constants } from "../environments/base";
 import { Restaurant, User, Order, Shipper } from "@vohoaian/datn-models";
-import { getStartAndEndOfWeek } from "../utils/startAndEndOfWeek";
+import {
+  getStartAndEndOfWeek,
+  getStartAndEndOfMonth,
+  getStartAndEndOfYear,
+} from "../utils/startAndEnd";
+import { statisticsTemp } from "../environments/dateTemplate";
 
 export async function getGeneralStatistics(req, res) {
+  const { filter } = req.query;
+  //console.log(filter);
   try {
     const total = await Promise.all([
       Restaurant.countDocuments({}).exec(),
@@ -12,56 +19,75 @@ export async function getGeneralStatistics(req, res) {
     ]);
     //some statistics to do
     /* */
-    const presentWeek = getStartAndEndOfWeek(Date.now(), 0);
-    const preWeek = getStartAndEndOfWeek(Date.now(), 1);
-    let option = {};
-    option = {
-      CreatedAt: { $gte: presentWeek[0], $lte: presentWeek[1] },
-      Status: 0,
-    };
-    let orders: any = await Order.find(option)
-      .select("Total CreatedAt AdditionalFees")
-      .exec();
-    const preOrders = await Order.find({
-      CreatedAt: { $gte: preWeek[0], $lte: preWeek[1] },
-      Status: 0,
+    let present: any = [];
+    let past: any = [];
+    if (filter === "week") {
+      present = getStartAndEndOfWeek(new Date(), 0);
+      past = getStartAndEndOfWeek(new Date(), 1);
+    } else if (filter === "month") {
+      present = getStartAndEndOfMonth(new Date(), 0);
+      past = getStartAndEndOfMonth(new Date(), 1);
+    } else {
+      present = getStartAndEndOfYear(new Date(), 0);
+      past = getStartAndEndOfYear(new Date(), 1);
+    }
+
+    const orders = await Order.find({
+      CreatedAt: { $gte: present[0], $lte: present[1] },
+      Status: { $gte: 0 },
     })
       .select("Total CreatedAt AdditionalFees")
       .exec();
 
-    let paymentOfPreWeek = 0;
+    const preOrders = await Order.find({
+      CreatedAt: { $gte: past[0], $lte: past[1] },
+      Status: { $gte: 0 },
+    })
+      .select("Total CreatedAt AdditionalFees")
+      .exec();
+
+    let pastPayment = 0;
     preOrders.forEach((order) => {
-      paymentOfPreWeek += order.Total;
+      pastPayment += order.Total;
     });
 
-    const numberOfOrderInWeek = new Array(7).fill(0);
-    const payOfOrderInWeek = new Array(7).fill(0);
+    const numberOfOrder = statisticsTemp[filter].presentArray;
+    const payOfOrder = statisticsTemp[filter].pastArray;
     let totalPayment = 0;
-    orders = orders.map((order: any) => {
-      const index =
-        order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
-      numberOfOrderInWeek[index]++;
-      payOfOrderInWeek[index] += order.Total;
+
+    //parse onrder in array of orders & payment
+    orders.forEach((order: any) => {
+      let index = 0;
+      if (filter === "week") {
+        index =
+          order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      } else if (filter === "month") {
+        index = Math.floor(order.CreatedAt.getDate() / 7);
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      } else {
+        index = order.CreatedAt.getMonth();
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      }
       totalPayment += order.Total;
     });
 
     //devoloper percent
     let numberPercent, paymentPercent;
 
-    if (orders.length > preOrders.length) {
-      numberPercent = 100 - Math.ceil((orders.length * 100) / preOrders.length);
-    } else {
-      numberPercent = -(
-        100 - Math.ceil((orders.length * 100) / preOrders.length)
-      );
+    if (preOrders.length > 0) {
+      numberPercent = Math.ceil((orders.length * 100) / preOrders.length) - 100;
+    } else if (preOrders.length === 0) {
+      numberPercent = 100;
     }
 
-    if (totalPayment > paymentOfPreWeek) {
-      paymentPercent = 100 - Math.ceil((totalPayment * 100) / paymentOfPreWeek);
-    } else {
-      paymentPercent = -(
-        100 - Math.ceil((totalPayment * 100) / paymentOfPreWeek)
-      );
+    if (pastPayment > 0) {
+      paymentPercent = Math.ceil((totalPayment * 100) / pastPayment) - 100;
+    } else if (pastPayment === 0) {
+      paymentPercent = 100;
     }
 
     res.send(
@@ -72,10 +98,11 @@ export async function getGeneralStatistics(req, res) {
           totalShippers: total[2],
           totalOrders: orders.length,
           totalPayment,
-          numberOfOrderInWeek,
-          payOfOrderInWeek,
+          numberOfOrder,
+          payOfOrder,
           paymentPercent,
           numberPercent,
+          labels: statisticsTemp[filter].labels,
         },
         0
       )

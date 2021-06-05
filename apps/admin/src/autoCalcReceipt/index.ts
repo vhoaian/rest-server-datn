@@ -82,7 +82,7 @@ class AutoCalcReceipt {
     }, this._TIME_SKIP);
   }
 
-  private lockAccount(): void {
+  private async lockAccount(): void {
     // Get all receipt not paid
     const _listReceiptNotPaid = await ReceiptModel.find({
       Status: this._STATUS_NOT_PAID,

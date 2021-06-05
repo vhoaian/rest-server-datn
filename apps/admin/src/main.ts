@@ -9,7 +9,7 @@ import autoCalcReceipt from "./autoCalcReceipt";
 autoCalcReceipt.runAutoCalcReceipt();
 autoCalcReceipt.runAutoLockLatePayReceipt();
 
-import restaurantRouter from "./routes/restaurant";
+import restaurantListRouter from "./routes/restaurantList";
 import userRouter from "./routes/user";
 import generalRouter from "./routes/general";
 import shipperRouter from "./routes/shipper";
@@ -24,7 +24,7 @@ app.use(passport.initialize());
 connect("PRODUCTION");
 
 app.use("/", generalRouter);
-app.use("/restaurants", restaurantRouter);
+app.use("/restaurants", restaurantListRouter);
 app.use("/users", userRouter);
 app.use("/shippers", shipperRouter);
 app.use("/report", reportRouter);
