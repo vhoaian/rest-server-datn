@@ -8,7 +8,7 @@ export function getToken(id) {
   };
   // create token JWT
   const token = sign(payload, environment.JWT.secretKey, {
-    expiresIn: "7h",
+    expiresIn: "7d",
   });
   return token;
 }
