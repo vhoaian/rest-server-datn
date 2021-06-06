@@ -1,4 +1,4 @@
-import { Order, Restaurant, Shipper } from "@vohoaian/datn-models";
+import { Manager, Order, Restaurant, Shipper } from "@vohoaian/datn-models";
 import axios from "axios";
 import config from "../environments/base";
 import {
@@ -6,6 +6,7 @@ import {
   Notification as NotificationModel,
 } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
+import mailController from "./mailController";
 
 // Receipt
 // |- id: ObjectID
@@ -32,7 +33,7 @@ const ORDER_STATUS = {
 class AutoCalcReceipt {
   private _TIMER_CALC_RECEIPT: number = 0;
   private _TIMER_AUTO_LOCK_ACC: number = 0;
-  private _TIME_SKIP: number = 1000 * 5; // unit sencond
+  private _TIME_SKIP: number = 1000 * 60 * 10; // unit milisencond
 
   private _PERCENT_FEE_SHIPPER: number = 10; // unit %
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
@@ -84,28 +85,69 @@ class AutoCalcReceipt {
   }
 
   private async lockAccount(): Promise<void> {
-    // Get all receipt not paid
-    const _listReceiptNotPaid = await ReceiptModel.find({
-      Status: this._STATUS_NOT_PAID,
-    });
-    // const _listReceiptNotPaid: Array<{ CreatedAt: Date; Payer: string }> = [];
-    _listReceiptNotPaid.forEach((receipt) => {
-      const dayLeft =
-        (new Date().getTime() - receipt.CreatedAt.getTime()) /
-        (24 * 60 * 60 * 1000);
-      if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
-        // Lock acc
-        Restaurant.updateOne(
-          { _id: `${receipt.Payer.Id}` },
-          { Status: this._STATUS_LOCK_ACC }
-        );
+    try {
+      // Get all receipt not paid
+      const _listReceiptNotPaid = await ReceiptModel.find({
+        Status: this._STATUS_NOT_PAID,
+      });
 
-        Shipper.updateOne(
-          { _id: `${receipt.Payer.Id}` },
-          { Status: this._STATUS_LOCK_ACC }
-        );
+      for (const receipt of _listReceiptNotPaid) {
+        const dayLeft =
+          (new Date().getTime() - receipt.CreatedAt.getTime()) /
+          (24 * 60 * 60 * 1000);
+
+        if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
+          // Lock acc
+          const role = this._ROLE[receipt.Payer.Role];
+          switch (role) {
+            case "shipper": {
+              const shipper = await Shipper.findOne({
+                _id: receipt.Payer.Id,
+                Status: 0,
+              });
+              if (!shipper) break;
+
+              shipper.Status = this._STATUS_LOCK_ACC;
+              await shipper.save();
+
+              const email = shipper?.Email;
+              if (email) {
+                await mailController.sendMailLockAccount(
+                  shipper.FullName,
+                  email
+                );
+              }
+              break;
+            }
+
+            case "merchant": {
+              const manager = await Manager.findOne({
+                "Roles.Restaurant": receipt.Payer.Id,
+                Status: 0,
+              });
+              if (!manager) break;
+
+              manager.Status = this._STATUS_LOCK_ACC;
+              await manager.save();
+
+              const email = manager.Email;
+              if (email) {
+                await mailController.sendMailLockAccount(
+                  manager.FullName,
+                  email
+                );
+              }
+              break;
+            }
+
+            default:
+              break;
+          }
+        }
       }
-    });
+    } catch (e) {
+      console.log(`[${this._TAG_LOG_FAILED}]: lock account fail, ${e.message}`);
+    }
   }
 
   private calcReceipt(): void {
@@ -254,6 +296,7 @@ class AutoCalcReceipt {
     // Get all Order in Month
     const _allOrder = await Order.find({
       Restaurant: mongoose.Types.ObjectId(merchantID),
+      Tool: true,
       Status: {
         $nin: [
           ORDER_STATUS.CANCEL_BY_CUSTOMER,

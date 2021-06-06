@@ -6,8 +6,8 @@ import { connect } from "@vohoaian/datn-models";
 const app = express();
 
 import autoCalcReceipt from "./autoCalcReceipt";
-// autoCalcReceipt.runAutoCalcReceipt();
-// autoCalcReceipt.runAutoLockLatePayReceipt();
+autoCalcReceipt.runAutoCalcReceipt();
+autoCalcReceipt.runAutoLockLatePayReceipt();
 
 import ggAPI from "@rest-servers/google-api";
 ggAPI.test();

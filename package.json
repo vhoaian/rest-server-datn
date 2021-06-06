@@ -31,6 +31,7 @@
   },
   "private": true,
   "dependencies": {
+    "@types/nodemailer": "^6.4.2",
     "@vohoaian/datn-models": "^1.2.7",
     "@vohoaian/datn-otp": "^1.0.0",
     "axios": "^0.21.1",
@@ -48,6 +49,7 @@
     "node-fetch": "^2.6.1",
     "node-geocoder": "^3.27.0",
     "node-rsa": "^1.1.1",
+    "nodemailer": "^6.6.1",
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
     "random-number": "^0.0.9",
