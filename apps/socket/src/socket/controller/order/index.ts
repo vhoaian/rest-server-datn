@@ -146,8 +146,8 @@ class OrderController {
     const { merchantID, shipperID } = this._listOrder[indexOrder];
 
     // leave all connect to room
-    if (merchantID) merchantController.getSocket(merchantID).leave(orderID);
-    if (shipperID) shipperController.getSocket(shipperID).leave(orderID);
+    merchantController.getSocket(merchantID)?.leave(orderID);
+    shipperController.getSocket(shipperID)?.leave(orderID);
 
     this._listOrder.splice(indexOrder, 1);
   }
@@ -269,18 +269,10 @@ class OrderController {
           break;
         case this.ORDER_STATUS.DURING_SHIP:
           break;
+
         case this.ORDER_STATUS.DELIVERED:
-          this.removeOrder(orderID);
-          break;
-
         case this.ORDER_STATUS.CANCEL_BY_CUSTOMER:
-          this.removeOrder(orderID);
-          break;
-
         case this.ORDER_STATUS.CANCEL_BY_MERCHANT:
-          this.removeOrder(orderID);
-          break;
-
         case this.ORDER_STATUS.CANCEL_BY_SHIPPER:
           this.removeOrder(orderID);
           break;

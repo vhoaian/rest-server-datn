@@ -117,16 +117,17 @@ class ShipperController {
     }, this.MAXIMUM_TIME_DESTRUCT);
   }
 
-  private handleShipperDisconnect(id) {
+  private async handleShipperDisconnect(id) {
     // Cancel all order
     const shipper = this.getShipper(id);
-    shipper.listOrderID.forEach((orderID) => {
-      orderController.changeStatusOrder(
+
+    for (const orderID of shipper.listOrderID) {
+      await orderController.changeStatusOrder(
         orderID,
         shipper.id,
         orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
       );
-    });
+    }
 
     // Delete shipper
     const index = this._listShipperOnline.findIndex(
