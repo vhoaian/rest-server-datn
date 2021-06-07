@@ -1,4 +1,4 @@
-import { Order } from "@vohoaian/datn-models";
+import { Order, ZaloTransaction } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
@@ -7,6 +7,7 @@ import customerController from "../customer/customerController";
 import merchantController from "../merchant/merchantController";
 import shipperController from "../shipper/shipperController";
 import clone from "../../../utils/clone";
+import zaloPay from "apps/socket/src/payment/ZaloPay";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -21,20 +22,21 @@ interface ORDER {
   merchantID: string | null;
   listShipperSkipOrder: Array<string>;
   listShipperAreBeingRequest: Array<string>;
-  optionPayment: "cash" | "zalopay";
+  paymentMethod: 0 | 1;
   status: number;
+  selfDestruct: any;
 }
 
 class OrderController {
   public _io: any = null;
   private _listOrder: Array<ORDER> = [];
+  private _MAX_TIME_DELAY_PAID = 1000 * (60 * 1 + 30);
 
   public ORDER_STATUS: any = {
     WAITING_PAYMENT: ENUM.next().value,
     WAITING: ENUM.next().value,
     MERCHANT_CONFIRM: ENUM.next().value,
     DURING_GET: ENUM.next().value,
-    // SHIPPER_ARRIVED: ENUM.next().value,
     DURING_SHIP: ENUM.next().value,
     DELIVERED: ENUM.next().value,
     CANCEL_BY_CUSTOMER: ENUM.next().value,
@@ -49,8 +51,9 @@ class OrderController {
     merchantID: null,
     listShipperSkipOrder: [],
     listShipperAreBeingRequest: [],
-    optionPayment: "cash", // [zalopay, cash]
+    paymentMethod: 0, // [1: zalopay, 0: cash]
     status: this.ORDER_STATUS.WAITING,
+    selfDestruct: null,
   };
 
   constructor() {
@@ -98,15 +101,15 @@ class OrderController {
       const orderDB: any = await Order.findOne({ _id: orderID });
       const order = orderDB.toObject();
 
-      this._listOrder.push(
-        this.createOrder(
-          orderID,
-          `${order.User}`,
-          `${order.Restaurant}`,
-          order.Shipper ? `${order.Shipper}` : null,
-          order.PaymentMethod
-        )
+      const newOrder = this.createOrder(
+        orderID,
+        `${order.User}`,
+        `${order.Restaurant}`,
+        order.Shipper ? `${order.Shipper}` : null,
+        order.PaymentMethod
       );
+
+      this._listOrder.push(newOrder);
       const socketCustomer = customerController.getSocket(order.User);
       if (socketCustomer) socketCustomer.join(orderID);
 
@@ -128,6 +131,17 @@ class OrderController {
           );
         }
       } else if (order.PaymentMethod === 1) {
+        // Set timeout cancle order after 15 minutes
+        newOrder.selfDestruct = setTimeout(() => {
+          this.changeStatusOrder(
+            orderID,
+            "system_admin",
+            this.ORDER_STATUS.CANCEL_BY_CUSTOMER
+          );
+          console.log(
+            "[ORDER]: auto delete order, user deplay paid order with ZaloPay"
+          );
+        }, this._MAX_TIME_DELAY_PAID);
       }
 
       return true;
@@ -135,6 +149,19 @@ class OrderController {
       console.log(`[${TAG_LOG_ERROR}_ADD_ORDER]: ${e.message}`);
       return false;
     }
+  }
+
+  clearSelfDestructOrder(orderID) {
+    const order = this.getOrderByID(orderID);
+    if (!order)
+      return console.log(
+        `[ORDER]: clear self destructuring fail, order not found.`
+      );
+
+    clearTimeout(order.selfDestruct);
+    order.selfDestruct = null;
+
+    console.log(`[ORDER]: clear self destructuring success.`);
   }
 
   removeOrder(orderID): void {
@@ -226,8 +253,26 @@ class OrderController {
             shipper.beingRequested = false;
             shipperController.getSocket(shipperID).leave(orderID);
           });
-          this.removeOrder(orderID);
 
+          // refund
+          if (this.getOrderByID(orderID)?.paymentMethod === 1) {
+            console.log("[ORDER]: refund.");
+            //
+
+            const zpTrans = await ZaloTransaction.findOne({
+              Order: mongoose.Types.ObjectId(orderID),
+            });
+
+            zaloPay
+              .Refund({
+                zp_trans_id: zpTrans?.TransID,
+                amount: zpTrans?.Amount,
+                description: `Refund for order ${orderID}`,
+              })
+              .then((d) => console.log(`[ORDER]: ${d}`));
+          }
+
+          this.removeOrder(orderID);
           console.log("[ORDER]: customer cancel order success.");
 
           // Update status order on database
@@ -271,9 +316,30 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.DELIVERED:
+          this.removeOrder(orderID);
+          break;
+
         case this.ORDER_STATUS.CANCEL_BY_CUSTOMER:
         case this.ORDER_STATUS.CANCEL_BY_MERCHANT:
         case this.ORDER_STATUS.CANCEL_BY_SHIPPER:
+          // refund
+          if (this.getOrderByID(orderID)?.paymentMethod === 1) {
+            console.log("[ORDER]: refund.");
+            //
+
+            const zpTrans = await ZaloTransaction.findOne({
+              Order: mongoose.Types.ObjectId(orderID),
+            });
+
+            zaloPay
+              .Refund({
+                zp_trans_id: zpTrans?.TransID,
+                amount: zpTrans?.Amount,
+                description: `Refund for order ${orderID}`,
+              })
+              .then((d) => console.log(`[ORDER]: ${d}`));
+          }
+
           this.removeOrder(orderID);
           break;
 

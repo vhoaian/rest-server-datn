@@ -34,9 +34,9 @@ class Mac {
 
   Refund(params): string {
     return this.Compute(
-      params.appid +
+      params.app_id +
         "|" +
-        params.zptransid +
+        params.zp_trans_id +
         "|" +
         params.amount +
         "|" +
