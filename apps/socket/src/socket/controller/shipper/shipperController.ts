@@ -4,9 +4,10 @@ import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
-import { ChatRoom, Order, Types } from "@vohoaian/datn-models";
+import { ChatRoom, Order, Shipper, Types } from "@vohoaian/datn-models";
 import { mapOptions } from "../order/utils";
 import chatController from "../chat";
+import customerController from "../customer/customerController";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -308,11 +309,23 @@ class ShipperController {
       orderController.ORDER_STATUS.DURING_GET
     );
 
+    const customerID = orderController.getOrderByID(orderID)?.customerID;
     chatController.openRoom(
       shipperID,
       // @ts-expect-error
-      orderController.getOrderByID(orderID)?.customerID
+      customerID
     );
+
+    // Update Info for customer
+    const infoShipper = await Shipper.findById(shipperID).select(
+      "Avatar FullName PhoneNumber"
+    );
+    customerController
+      .getSocket(customerID)
+      ?.emit(
+        TAG_EVENT.RESPONSE_UPDATE_SHIPPER,
+        normalizeResponse("update info shipper", { infoShipper, orderID })
+      );
 
     return true;
   }
