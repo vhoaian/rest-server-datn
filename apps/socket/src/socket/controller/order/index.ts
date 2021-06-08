@@ -57,7 +57,7 @@ class OrderController {
     listShipperSkipOrder: [],
     listShipperAreBeingRequest: [],
     paymentMethod: 0, // [1: zalopay, 0: cash]
-    status: this.ORDER_STATUS.WAITING,
+    status: this.ORDER_STATUS.WAITING_PAYMENT,
     selfDestruct: null,
   };
 
@@ -255,8 +255,10 @@ class OrderController {
 
           orderOnList.listShipperAreBeingRequest.forEach((shipperID) => {
             const shipper = shipperController.getShipper(shipperID);
-            shipper.beingRequested = false;
-            shipperController.getSocket(shipperID).leave(orderID);
+            if (shipper) {
+              shipper.beingRequested = false;
+              shipperController.getSocket(shipperID).leave(orderID);
+            }
           });
 
           // refund
@@ -333,8 +335,8 @@ class OrderController {
             const _merchant = await Restaurant.findById(_order.Restaurant);
             if (!_shipper || !_merchant) break;
 
-            _shipper.Wallet = _order.ShippingFee;
-            _merchant.Wallet = _order.Total - _order.ShippingFee;
+            _shipper.Wallet += _order.ShippingFee;
+            _merchant.Wallet += _order.Total - _order.ShippingFee;
             await Promise.all([_shipper?.save(), _merchant?.save()]);
           }
 
