@@ -31,7 +31,7 @@
   },
   "private": true,
   "dependencies": {
-    "@vohoaian/datn-models": "^1.2.9",
+    "@vohoaian/datn-models": "^1.2.10",
     "@vohoaian/datn-otp": "^1.0.0",
     "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",
