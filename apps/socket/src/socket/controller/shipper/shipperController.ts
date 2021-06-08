@@ -279,17 +279,29 @@ class ShipperController {
           if (shipper1Distance > shipper2Distance) return -1;
           if (shipper1Distance < shipper2Distance) return 1;
 
+          const {
+            skip: skipShipper1,
+            cancel: cancleShipper1,
+            delivered: deliveredShipper1,
+          } = shipper1.historyOrder;
+          const {
+            skip: skipShipper2,
+            cancel: cancleShipper2,
+            delivered: deliveredShipper2,
+          } = shipper2.historyOrder;
+
           // Sort by Point
           const shipper1Point =
-            shipper1.historyOrder.skip * this.POINT.skip +
-              shipper1.historyOrder.cancel * this.POINT.cancel +
-              shipper1.historyOrder.delivered * shipper1.rating ||
-            this.POINT.delevered;
+            (skipShipper1 * this.POINT.skip +
+              cancleShipper1 * this.POINT.cancel +
+              deliveredShipper1 * shipper1.rating || this.POINT.delevered) /
+            (skipShipper1 + cancleShipper1 + deliveredShipper1);
+
           const shipper2Point =
-            shipper2.historyOrder.skip * this.POINT.skip +
-              shipper2.historyOrder.cancel * this.POINT.cancel +
-              shipper2.historyOrder.delivered * shipper2.rating ||
-            this.POINT.delevered;
+            (skipShipper2 * this.POINT.skip +
+              cancleShipper2 * this.POINT.cancel +
+              deliveredShipper2 * shipper2.rating || this.POINT.delevered) /
+            (skipShipper2 + cancleShipper2 + deliveredShipper2);
 
           if (shipper1Point > shipper2Point) return 1;
           if (shipper1Point <= shipper2Point) return -1;
