@@ -64,7 +64,6 @@ class AutoCalcReceipt {
       // run calc receipt
       this.calcReceipt();
     }, this._TIME_SKIP);
-    // this.calcReceipt();
   }
 
   public runAutoLockLatePayReceipt(): void {
@@ -359,7 +358,9 @@ class AutoCalcReceipt {
           "Content-Type": "application/json",
         },
       });
-    } catch (e) {}
+    } catch (e) {
+      console.log(e.message);
+    }
   }
 
   private checkLeapYear(year: number): boolean {
