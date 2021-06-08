@@ -1,4 +1,9 @@
-import { Order, ZaloTransaction } from "@vohoaian/datn-models";
+import {
+  Order,
+  Restaurant,
+  Shipper,
+  ZaloTransaction,
+} from "@vohoaian/datn-models";
 import mongoose from "mongoose";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
@@ -315,9 +320,26 @@ class OrderController {
         case this.ORDER_STATUS.DURING_SHIP:
           break;
 
-        case this.ORDER_STATUS.DELIVERED:
+        case this.ORDER_STATUS.DELIVERED: {
+          // Share money for shipper & merchant
+          const _orderInList = this.getOrderByID(orderID);
           this.removeOrder(orderID);
+
+          if (_orderInList?.paymentMethod === 1) {
+            const _order = await Order.findById(orderID);
+            if (!_order) break;
+
+            const _shipper = await Shipper.findById(_order.Shipper);
+            const _merchant = await Restaurant.findById(_order.Restaurant);
+            if (!_shipper || !_merchant) break;
+
+            _shipper.Wallet = _order.ShippingFee;
+            _merchant.Wallet = _order.Total - _order.ShippingFee;
+            await Promise.all([_shipper?.save(), _merchant?.save()]);
+          }
+
           break;
+        }
 
         case this.ORDER_STATUS.CANCEL_BY_CUSTOMER:
         case this.ORDER_STATUS.CANCEL_BY_MERCHANT:
