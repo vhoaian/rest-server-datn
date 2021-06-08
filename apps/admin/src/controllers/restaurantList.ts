@@ -4,50 +4,46 @@ import { Constants } from "../environments/base";
 import geocoder from "../utils/geocoder";
 
 export async function getRestaurantManagementInfo(req, res) {
-  const { city: cityID, search, page, district: districtID } = req.query;
-  let districts = [];
-  const option: any = {};
-  let selectedCity: any = null;
+  //
+  const {
+    city: cityName,
+    search,
+    page,
+    district: districtName,
+    partner,
+  } = req.query;
+  console.log(req.query);
+  const option: any = { IsPartner: partner };
+
+  //search string for restaurant name
   if (search !== "") {
     const regex = new RegExp(`${search}.*`, "g");
     option.Name = regex;
   }
 
   try {
-    const cities = await City.find({}).exec();
+    //get cities and dsitrict in it
 
-    if (cityID !== 0) {
-      selectedCity = cities.filter((elm) => elm.Id === cityID);
-      if (selectedCity.length === 0) {
-        return res.send(nomalizeResponse(null, Constants.SERVER.INVALID_PARAM));
-      }
-      option["Address.City"] = selectedCity[0].Name;
-      districts = selectedCity[0].Districts;
-
-      if (districtID !== 0) {
-        const selectedDistrict = districts.filter(
-          (elm: any) => elm.Id === districtID
-        );
-        if (selectedDistrict.length === 0) {
-          return res.send(
-            nomalizeResponse(null, Constants.SERVER.INVALID_PARAM)
-          );
-        }
-        option["Address.District"] = selectedDistrict[0].Name;
+    if (cityName) {
+      //filter for city
+      option["Address.City"] = cityName;
+      //filter for district
+      if (districtName) {
+        option["Address.District"] = districtName;
       }
     }
-
+    //calc total restaurant fit with option serach
     const totalRestaurants = await Restaurant.countDocuments(option).exec();
 
-    let adminRestaurants: any = await Restaurant.find(option)
+    let restaurants: any = await Restaurant.find(option)
       .collation({ locale: "en_US", numericOrdering: true })
-      .select("Address Type Status Name ContractID CreatedAt Reviews")
+      .select("Address Type Status Name ContractID CreatedAt Reviews IsPartner")
       //.populate("Reviews")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
     const receiptFee: any = await Promise.all(
-      adminRestaurants.map((restaurant: any) => {
+      restaurants.map((restaurant: any) => {
         return Receipt.find({
           ["Payer.Id"]: restaurant._id,
           Role: 2,
@@ -55,7 +51,7 @@ export async function getRestaurantManagementInfo(req, res) {
       })
     );
 
-    adminRestaurants = adminRestaurants.map((restaurant: any, i) => {
+    restaurants = restaurants.map((restaurant: any, i) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       return {
         _id: restaurant._id,
@@ -66,6 +62,7 @@ export async function getRestaurantManagementInfo(req, res) {
         contractID: restaurant.ContractID,
         createdAt: restaurant.CreatedAt,
         reviews: restaurant.Reviews,
+        //isPartner: restaurant.IsPartner,
         serviceCharge:
           receiptFee[i].Status === Constants.PAID.UNRESOLVE
             ? "Nợ phí"
@@ -73,24 +70,10 @@ export async function getRestaurantManagementInfo(req, res) {
       };
     });
 
-    const seftRestaurants: any = [];
-    // const adminRestaurants: any = [];
-    //fix later
-    // restaurants.forEach((restaurant: any) => {
-    //   if (restaurant.type === 0 /*Constants.RESTAURANT.ADMIN_TYPE */) {
-    //     adminRestaurants.push(restaurant);
-    //   } else {
-    //     seftRestaurants.push(restaurant);
-    //   }
-    // });
-    //console.log(adminRestaurants);
     res.send(
       nomalizeResponse(
         {
-          cities,
-          districts,
-          adminRestaurants,
-          seftRestaurants,
+          restaurants,
           totalRestaurants,
         },
         0,

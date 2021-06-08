@@ -15,8 +15,9 @@ restaurantListRouter.get(
   "/",
   query("search").default("").isString(),
   query("page").default(1).isInt().toInt(),
-  query("city").default(0).isInt().toInt(),
-  query("district").default(0).isInt().toInt(),
+  query("partner").default(false).isBoolean(),
+  query("city").optional().isString(),
+  query("district").optional().isString(),
   validateInput,
   getRestaurantManagementInfo
 );
@@ -48,7 +49,7 @@ restaurantListRouter.use(
         if (!restaurant) return Promise.reject("Khong tim thay restaurant");
         req.data = {
           restaurant: withFilter(
-            "id Name Avatar Description Anouncement Address OpenHours Phone Geolocation Categories"
+            "id ContractID Name Avatar Description Anouncement Address OpenHours Phone Geolocation Categories"
           )(restaurant.toObject({ virtuals: true })),
         };
       });

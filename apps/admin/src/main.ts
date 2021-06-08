@@ -18,6 +18,7 @@ import generalRouter from "./routes/general";
 import shipperRouter from "./routes/shipper";
 import reportRouter from "./routes/report";
 import complaintRouter from "./routes/complaint";
+import cityRouter from "./routes/city";
 
 app.use(cors());
 app.use(express.json());
@@ -33,6 +34,7 @@ app.use("/users", userRouter);
 app.use("/shippers", shipperRouter);
 app.use("/report", reportRouter);
 app.use("/complaint", complaintRouter);
+app.use("/cities", cityRouter);
 
 app.use(function (req, res) {
   res.status(404).end();
