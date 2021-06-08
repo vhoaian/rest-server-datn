@@ -1,39 +1,40 @@
 import express from "express";
-import { query, body } from "express-validator";
+import { body } from "express-validator";
 const restaurantRouter = express.Router();
-import {
-  getRestaurantManagementInfo,
-  createNewRestanrant,
-} from "../controllers/restaurant";
 import { validateInput } from "../middlewares/services";
 import moment from "moment";
+import {
+  getRestaurantInfo,
+  deleteRestaurant,
+  updateRestaurantInfo,
+  updateRestaurantAddress,
+} from "../controllers/restaurant";
 
-restaurantRouter.get(
-  "/",
-  query("search").default("").isString(),
-  query("page").default(1).isInt().toInt(),
-  query("city").default(0).isInt().toInt(),
-  query("district").default(0).isInt().toInt(),
+restaurantRouter.get("/", getRestaurantInfo);
+restaurantRouter.delete("/", deleteRestaurant);
+restaurantRouter.put(
+  "/info",
+  body("name").notEmpty().isString(),
+  body("openAt")
+    .notEmpty()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .customSanitizer((value) => moment(value, "HH:mm").toDate()),
+  body("closeAt")
+    .notEmpty()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .customSanitizer((value) => moment(value, "HH:mm").toDate()),
+  body("anouncement").notEmpty().isString(),
   validateInput,
-  getRestaurantManagementInfo
+  updateRestaurantInfo
 );
 
-restaurantRouter.post(
-  "/",
-  body("name").notEmpty().isString(),
-  body("contractID").notEmpty().isString(),
-  body("openTime")
-    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .customSanitizer((value) => moment(value, "HH:mm").toDate()),
-  body("closeTime")
-    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .customSanitizer((value) => moment(value, "HH:mm").toDate()),
+restaurantRouter.put(
+  "/address",
   body("city").notEmpty().isString(),
   body("district").notEmpty().isString(),
   body("ward").notEmpty().isString(),
   body("address").notEmpty().isString(),
-  validateInput,
-  createNewRestanrant
+  updateRestaurantAddress
 );
 
 export default restaurantRouter;

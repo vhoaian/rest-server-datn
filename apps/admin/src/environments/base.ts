@@ -12,6 +12,7 @@ export const environment = {
   JWT: {
     secretKey: "final-project",
   },
+  URL_SOCKET_SERVER: "http://localhost:8010",
 };
 
 export const Constants = {
@@ -25,15 +26,25 @@ export const Constants = {
     INVALID_PARAM: 99,
     CREATE_RES_ERROR: 100,
     GET_RES_ERROR: 101,
+    DELETE_RES_ERROR: 102,
+    UPDATE_RES_ERROR: 104,
+    FIND_RES_ERROR: 103,
     GET_USER_ERROR: 110,
     BLOCK_USER_ERROR: 111,
     CAN_NOT_FIND_USER: 112,
     GET_SHIPPER_ERROR: 120,
+    GET_CITY_ERROR: 180,
     GET_GENERAL_ERROR: 190,
     GET_NOTICE_ERROR: 191,
+  },
+  PAID: {
+    RESOLVE: 1,
+    UNRESOLVE: -1,
   },
 };
 
 export enum ERROR_CODE {
   SUCCESS = 0,
 }
+
+export default environment;

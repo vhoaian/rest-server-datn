@@ -5,11 +5,20 @@ import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 const app = express();
 
-import restaurantRouter from "./routes/restaurant";
+import autoCalcReceipt from "./autoCalcReceipt";
+autoCalcReceipt.runAutoCalcReceipt();
+autoCalcReceipt.runAutoLockLatePayReceipt();
+
+import ggAPI from "@rest-servers/google-api";
+ggAPI.test();
+
+import restaurantListRouter from "./routes/restaurantList";
 import userRouter from "./routes/user";
 import generalRouter from "./routes/general";
 import shipperRouter from "./routes/shipper";
 import reportRouter from "./routes/report";
+import complaintRouter from "./routes/complaint";
+import cityRouter from "./routes/city";
 
 app.use(cors());
 app.use(express.json());
@@ -20,10 +29,12 @@ app.use(passport.initialize());
 connect("PRODUCTION");
 
 app.use("/", generalRouter);
-app.use("/restaurants", restaurantRouter);
+app.use("/restaurants", restaurantListRouter);
 app.use("/users", userRouter);
 app.use("/shippers", shipperRouter);
 app.use("/report", reportRouter);
+app.use("/complaint", complaintRouter);
+app.use("/cities", cityRouter);
 
 app.use(function (req, res) {
   res.status(404).end();

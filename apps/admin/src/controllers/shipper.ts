@@ -1,5 +1,5 @@
 import { nomalizeResponse } from "../utils/normalize";
-import { Shipper } from "@vohoaian/datn-models";
+import { Receipt, Shipper } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 
 export async function getShipperManagement(req, res) {
@@ -14,7 +14,7 @@ export async function getShipperManagement(req, res) {
     option.Phone = regex;
   }
   try {
-    const totalShippers = await Shipper.countDocuments(option).exec();
+    const totalShipper = await Shipper.countDocuments(option).exec();
 
     let shippers: any = await Shipper.find(option)
       .select("Phone Email Point Status CreatedAt")
@@ -25,8 +25,16 @@ export async function getShipperManagement(req, res) {
     shippers = shippers.sort((a, b) => {
       return b.Point - a.Point;
     });
+    const receiptFee: any = await Promise.all(
+      shippers.map((shipper: any) => {
+        return Receipt.find({
+          ["Payer.Id"]: shipper._id,
+          Role: 1,
+        }).exec();
+      })
+    );
 
-    shippers = shippers.map((user: any) => {
+    shippers = shippers.map((user: any, i) => {
       return {
         _id: user._id,
         phone: user.Phone,
@@ -34,12 +42,16 @@ export async function getShipperManagement(req, res) {
         point: user.Point,
         status: user.Status,
         createdAt: user.createdAt,
+        serviceCharge:
+          receiptFee[i].Status === Constants.PAID.UNRESOLVE
+            ? "Nợ phí"
+            : "Đã thanh toán",
       };
     });
 
     res.send(
-      nomalizeResponse({ totalShippers, shippers }, 0, {
-        totalPage: Math.ceil(totalShippers / Constants.PAGENATION.PER_PAGE),
+      nomalizeResponse({ totalShipper, shippers }, 0, {
+        totalPage: Math.ceil(totalShipper / Constants.PAGENATION.PER_PAGE),
         currentPage: page,
         perPage: Constants.PAGENATION.PER_PAGE,
       })
