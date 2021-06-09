@@ -48,6 +48,7 @@ class OrderController {
     CANCEL_BY_CUSTOMER: ENUM.next().value,
     CANCEL_BY_MERCHANT: ENUM.next().value,
     CANCEL_BY_SHIPPER: ENUM.next().value,
+    BOOM: ENUM.next().value,
   };
 
   private ORDER_DEFAULT: ORDER = {
