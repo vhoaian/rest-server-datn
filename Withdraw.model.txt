@@ -1,0 +1,6 @@
+Withdraw
+  |- id: ObjectID
+  |- User: { id: ObjectID, role: [manager, shipper]}
+  |- Amount: number
+  |- Status: [Pending, cancel, success]
+  |- CreatedAt: Date

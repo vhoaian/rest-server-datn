@@ -280,7 +280,7 @@ class AutoCalcReceipt {
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
-      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ`,
+      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
       Receiver: {
         Id: mongoose.Types.ObjectId(shipperID),
         Role: this._ROLE.indexOf("shipper"),
@@ -289,7 +289,22 @@ class AutoCalcReceipt {
 
     const notification = new NotificationModel(dataNoti);
 
-    await Promise.all([newReceipt.save(), notification.save(), shipper.save()]);
+    const sub = `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}.`;
+    const contentMail = `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này. Hệ thống sẽ tự động khóa tài khoản của bạn sau ${this._DAY_DELAY_PAY_RECEIPT} ngày nếu như bạn chưa đóng phi.`;
+    const sendMail = mailController.sendMailOption(
+      shipper.FullName,
+      shipper.Email,
+      sub,
+      contentMail,
+      "vn"
+    );
+
+    await Promise.all([
+      newReceipt.save(),
+      notification.save(),
+      shipper.save(),
+      sendMail,
+    ]);
 
     // const notification = { _id: "123" };
 
@@ -304,6 +319,9 @@ class AutoCalcReceipt {
   ): Promise<void> {
     const merchant = await Restaurant.findById(merchantID);
     if (!merchant) return;
+
+    const manager = await Manager.findOne({ "Roles.Restaurant": merchant._id });
+    if (!manager) return;
 
     // Get all Order in Month
     const _allOrder = await Order.find({
@@ -353,7 +371,7 @@ class AutoCalcReceipt {
 
     const dataNoti = {
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
-      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ`,
+      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
       Receiver: {
         Id: mongoose.Types.ObjectId(merchantID),
         Role: this._ROLE.indexOf("merchant"),
@@ -362,10 +380,20 @@ class AutoCalcReceipt {
 
     const notification = new NotificationModel(dataNoti);
 
+    const sub = `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}.`;
+    const contentMail = `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này. Hệ thống sẽ tự động khóa tài khoản của bạn sau ${this._DAY_DELAY_PAY_RECEIPT} ngày nếu như bạn chưa đóng phi.`;
+    const sendMail = mailController.sendMailOption(
+      manager.FullName,
+      manager.Email,
+      sub,
+      contentMail,
+      "vn"
+    );
     await Promise.all([
       newReceipt.save(),
       notification.save(),
       merchant.save(),
+      sendMail,
     ]);
 
     this.pushNotification(notification._id);
