@@ -25,6 +25,7 @@ interface ORDER {
   shipperID: string | null;
   customerID: string | null;
   merchantID: string | null;
+  isMerchant: boolean;
   listShipperSkipOrder: Array<string>;
   listShipperAreBeingRequest: Array<string>;
   paymentMethod: 0 | 1;
@@ -35,7 +36,7 @@ interface ORDER {
 class OrderController {
   public _io: any = null;
   private _listOrder: Array<ORDER> = [];
-  private _MAX_TIME_DELAY_PAID = 1000 * (60 * 1 + 30);
+  private _MAX_TIME_DELAY_PAID = 1000 * (60 * 15 + 30);
 
   public ORDER_STATUS: any = {
     WAITING_PAYMENT: ENUM.next().value,
@@ -54,6 +55,7 @@ class OrderController {
     shipperID: null,
     customerID: null,
     merchantID: null,
+    isMerchant: false,
     listShipperSkipOrder: [],
     listShipperAreBeingRequest: [],
     paymentMethod: 0, // [1: zalopay, 0: cash]
@@ -129,6 +131,7 @@ class OrderController {
             this.ORDER_STATUS.WAITING
           );
         } else {
+          newOrder.isMerchant = false;
           this.changeStatusOrder(
             orderID,
             `${order.User}`,
@@ -325,7 +328,6 @@ class OrderController {
         case this.ORDER_STATUS.DELIVERED: {
           // Share money for shipper & merchant
           const _orderInList = this.getOrderByID(orderID);
-          this.removeOrder(orderID);
 
           if (_orderInList?.paymentMethod === 1) {
             const _order = await Order.findById(orderID);
@@ -335,9 +337,16 @@ class OrderController {
             const _merchant = await Restaurant.findById(_order.Restaurant);
             if (!_shipper || !_merchant) break;
 
-            _shipper.Wallet += _order.ShippingFee;
-            _merchant.Wallet += _order.Total - _order.ShippingFee;
+            if (_order.Tool) {
+              _merchant.Wallet += _order.Total - _order.ShippingFee;
+              _shipper.Wallet += _order.ShippingFee;
+            } else {
+              _shipper.Wallet += _order.Total;
+            }
+
             await Promise.all([_shipper?.save(), _merchant?.save()]);
+
+            this.removeOrder(orderID);
           }
 
           break;
