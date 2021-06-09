@@ -1,9 +1,22 @@
 import { nomalizeResponse } from "../utils/normalize";
 import { Constants } from "../environments/base";
-import { Restaurant, User, Order, Shipper } from "@vohoaian/datn-models";
-import { getStartAndEndOfWeek } from "../utils/startAndEndOfWeek";
+import {
+  Restaurant,
+  User,
+  Order,
+  Shipper,
+  Receipt,
+} from "@vohoaian/datn-models";
+import {
+  getStartAndEndOfWeek,
+  getStartAndEndOfMonth,
+  getStartAndEndOfYear,
+} from "../utils/startAndEnd";
+import { statisticsTemp } from "../environments/dateTemplate";
 
 export async function getGeneralStatistics(req, res) {
+  const { filter } = req.query;
+  //console.log(filter);
   try {
     const total = await Promise.all([
       Restaurant.countDocuments({}).exec(),
@@ -12,54 +25,104 @@ export async function getGeneralStatistics(req, res) {
     ]);
     //some statistics to do
     /* */
-    const presentWeek = getStartAndEndOfWeek(Date.now(), 0);
-    const preWeek = getStartAndEndOfWeek(Date.now(), 1);
-    let option = {};
-    option = { CreatedAt: { $gte: preWeeks[0], $lte: preWeeks[1] }, Status: 0 };
-    let orders: any = await Order.find(option)
-      .select("Total CreatedAt AdditionalFees")
-      .exec();
-    const preOrders = await Order.find({
-      CreatedAt: { $gte: preWeek[0], $lte: preWeek[1] },
-      Status: 0,
+    let present: any = [];
+    let past: any = [];
+    const today = new Date();
+    if (filter === "week") {
+      present = getStartAndEndOfWeek(today, 0);
+      past = getStartAndEndOfWeek(today, 1);
+    } else if (filter === "month") {
+      present = getStartAndEndOfMonth(today, 0);
+      past = getStartAndEndOfMonth(today, 1);
+    } else {
+      present = getStartAndEndOfYear(today, 0);
+      past = getStartAndEndOfYear(today, 1);
+    }
+
+    const orders = await Order.find({
+      //order was created in this week, month , year
+      CreatedAt: { $gte: present[0], $lte: present[1] },
+      Status: { $gte: 0 },
     })
       .select("Total CreatedAt AdditionalFees")
       .exec();
 
-    let paymentOfPreWeek = 0;
+    const preOrders = await Order.find({
+      //order was created in this week, month, year
+      CreatedAt: { $gte: past[0], $lte: past[1] },
+      Status: { $gte: 0 },
+    })
+      .select("Total CreatedAt AdditionalFees")
+      .exec();
+    // total order of last wek, moth, year
+    let pastPayment = 0;
     preOrders.forEach((order) => {
-      paymentOfPreWeek += order.Total;
+      pastPayment += order.Total;
     });
 
-    const numberOfOrderInWeek = new Array(7).fill(0);
-    const payOfOrderInWeek = new Array(7).fill(0);
+    const numberOfOrder = statisticsTemp[filter].presentArray;
+    const payOfOrder = statisticsTemp[filter].pastArray;
     let totalPayment = 0;
-    orders = orders.map((order: any) => {
-      const index =
-        order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
-      numberOfOrderInWeek[index]++;
-      payOfOrderInWeek[index] += order.Total;
+
+    //parse onrder in array of orders & payment
+    orders.forEach((order: any) => {
+      let index = 0;
+      if (filter === "week") {
+        index =
+          order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      } else if (filter === "month") {
+        index = Math.floor(order.CreatedAt.getDate() / 7);
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      } else {
+        index = order.CreatedAt.getMonth();
+        numberOfOrder[index]++;
+        payOfOrder[index] += order.Total;
+      }
       totalPayment += order.Total;
     });
 
-    //devoloper percent
+    //devolopement percent
     let numberPercent, paymentPercent;
-
-    if (orders.length > preOrders.length) {
-      numberPercent = 100 - Math.ceil((orders.length * 100) / preOrders.length);
-    } else {
-      numberPercent = -(
-        100 - Math.ceil((orders.length * 100) / preOrders.length)
-      );
+    if (preOrders.length > 0) {
+      numberPercent = Math.ceil((orders.length * 100) / preOrders.length) - 100;
+    } else if (preOrders.length === 0) {
+      numberPercent = 100;
     }
 
-    if (totalPayment > paymentOfPreWeek) {
-      paymentPercent = 100 - Math.ceil((totalPayment * 100) / paymentOfPreWeek);
-    } else {
-      paymentPercent = -(
-        100 - Math.ceil((totalPayment * 100) / paymentOfPreWeek)
-      );
+    if (pastPayment > 0) {
+      paymentPercent = Math.ceil((totalPayment * 100) / pastPayment) - 100;
+    } else if (pastPayment === 0) {
+      paymentPercent = 100;
     }
+    //get payment of restaurant & shipper
+    const receipts = await Receipt.find({
+      "Payer.Role": { $in: [1, 2] },
+      DateStart: {
+        $gte: new Date(today.getFullYear(), today.getMonth(), 0),
+      },
+    }).exec();
+
+    const shipperData = ["Tài xế", "10%", 0, 0];
+    const restaurantData = ["Nhà hàng", "10%", 0, 0];
+
+    receipts.forEach((receipt: any) => {
+      if (parseInt(receipt.Payer.Role) == 1) {
+        if (receipt.Status === 1) {
+          shipperData[2] += receipt.FeeTotal;
+        } else {
+          shipperData[3] += receipt.FeeTotal;
+        }
+      } else if (parseInt(receipt.Payer.Role) == 2) {
+        if (receipt.Status === 1) {
+          restaurantData[2] += receipt.FeeTotal;
+        } else {
+          restaurantData[3] += receipt.FeeTotal;
+        }
+      }
+    });
 
     res.send(
       nomalizeResponse(
@@ -69,10 +132,13 @@ export async function getGeneralStatistics(req, res) {
           totalShippers: total[2],
           totalOrders: orders.length,
           totalPayment,
-          numberOfOrderInWeek,
-          payOfOrderInWeek,
+          numberOfOrder,
+          payOfOrder,
           paymentPercent,
           numberPercent,
+          labels: statisticsTemp[filter].labels,
+          shipperData,
+          restaurantData,
         },
         0
       )

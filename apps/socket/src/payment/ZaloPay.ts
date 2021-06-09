@@ -20,7 +20,7 @@ const rsa = new NodeRSA(publicKey, {
   encryptionScheme: "pkcs1",
 });
 
-let uid = Date.now();
+let uid = ~~(Date.now() / 1000);
 
 class ZaloPay {
   private publicURL: string;
@@ -123,30 +123,36 @@ class ZaloPay {
     return result;
   }
 
-  async Refund({ zptransid, amount, description }) {
+  async Refund({ zp_trans_id, amount, description }) {
     const refundReq: any = {
-      appid: config.appid,
-      zptransid,
+      app_id: config.appid,
+      zp_trans_id,
       amount,
       description,
       timestamp: Date.now(),
-      mrefundid: this.GenTransID(),
+      m_refund_id: this.GenTransID(),
     };
 
     refundReq.mac = Mac.Refund(refundReq);
 
-    const { data: result } = await axios.post(config.api.refund, null, {
-      params: refundReq,
-    });
+    console.log(refundReq);
 
-    result.mrefundid = refundReq.mrefundid;
+    const { data: result } = await axios.post(
+      "https://sb-openapi.zalopay.vn/v2/refund",
+      null,
+      {
+        params: refundReq,
+      }
+    );
+
+    result.m_refund_id = refundReq.m_refund_id;
     return result;
   }
 
-  async GetRefundStatus(mrefundid) {
+  async GetRefundStatus(m_refund_id) {
     const params: any = {
-      appid: config.appid,
-      mrefundid,
+      app_id: config.appid,
+      m_refund_id,
       timestamp: Date.now(),
     };
 
