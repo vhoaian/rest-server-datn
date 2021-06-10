@@ -12,7 +12,7 @@ export async function getRestaurantManagementInfo(req, res) {
     district: districtName,
     partner,
   } = req.query;
-  console.log(req.query);
+
   const option: any = { IsPartner: partner };
 
   //search string for restaurant name
@@ -62,7 +62,7 @@ export async function getRestaurantManagementInfo(req, res) {
         contractID: restaurant.ContractID,
         createdAt: restaurant.CreatedAt,
         reviews: restaurant.Reviews,
-        //isPartner: restaurant.IsPartner,
+        isPartner: restaurant.IsPartner,
         serviceCharge:
           receiptFee[i].Status === Constants.PAID.UNRESOLVE
             ? "Nợ phí"
@@ -87,7 +87,7 @@ export async function getRestaurantManagementInfo(req, res) {
       )
     );
   } catch (error) {
-    console.log(`[ERROR]: restaurant management: ${error}`);
+    console.log(`[ERROR]: restaurant management: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_RES_ERROR));
   }
 }
@@ -119,7 +119,7 @@ export async function createNewRestanrant(req, res) {
     latitude = result[0].latitude;
     longitude = result[0].longitude;
   } catch (error) {
-    console.log(`[ERROR] get location ${error}`);
+    console.log(`[ERROR] get location ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.CALL_API_ERROR));
   }
   try {
@@ -137,7 +137,7 @@ export async function createNewRestanrant(req, res) {
     console.log(restaurant);
     return res.send(nomalizeResponse(restaurant));
   } catch (error) {
-    console.log(`[ERROR] create res ${error}`);
+    console.log(`[ERROR] create res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.CREATE_RES_ERROR));
   }
 }

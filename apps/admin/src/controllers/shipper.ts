@@ -57,7 +57,7 @@ export async function getShipperManagement(req, res) {
       })
     );
   } catch (error) {
-    console.log(`[ERROR]: user management: ${error}`);
+    console.log(`[ERROR]: user management: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_SHIPPER_ERROR));
   }
 }

@@ -12,7 +12,7 @@ export async function deleteRestaurant(req, res) {
     ).exec();
     return res.send(nomalizeResponse(restaurant));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.DELETE_RES_ERROR));
   }
 }
@@ -23,7 +23,7 @@ export async function getRestaurantInfo(req, res) {
     const cities = await City.find({}).exec();
     res.send(nomalizeResponse({ cities, restaurant }));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.FIND_RES_ERROR));
   }
 }
@@ -46,7 +46,7 @@ export async function updateRestaurantInfo(req, res) {
 
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR));
   }
 }
@@ -68,7 +68,7 @@ export async function updateRestaurantAddress(req, res) {
     latitude = result[0].latitude;
     longitude = result[0].longitude;
   } catch (error) {
-    console.log(`[ERROR] get location ${error}`);
+    console.log(`[ERROR] get location ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.CALL_API_ERROR));
   }
   try {
@@ -84,7 +84,7 @@ export async function updateRestaurantAddress(req, res) {
 
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR));
   }
 }

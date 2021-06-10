@@ -1,5 +1,5 @@
 import express from "express";
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import complaintController from "../controllers/complaint";
 import { validateInput } from "../middlewares/services";
 const router = express.Router();
@@ -19,5 +19,10 @@ router.post(
   complaintController.hookUpdateComplaint
 );
 
-//
+router.get(
+  "/",
+  query("page").default(1).isInt().toInt(),
+  validateInput,
+  complaintController.getComplaintList
+);
 export default router;

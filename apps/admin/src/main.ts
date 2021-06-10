@@ -19,6 +19,7 @@ import shipperRouter from "./routes/shipper";
 import reportRouter from "./routes/report";
 import complaintRouter from "./routes/complaint";
 import cityRouter from "./routes/city";
+import authRouter from "./routes/auth";
 
 app.use(cors());
 app.use(express.json());
@@ -27,14 +28,18 @@ app.use(passport.initialize());
 // Connect to the database
 //connect("MYSELF", environment.MONGO_DB);
 connect("PRODUCTION");
+require("./middlewares");
 
-app.use("/", generalRouter);
-app.use("/restaurants", restaurantListRouter);
-app.use("/users", userRouter);
-app.use("/shippers", shipperRouter);
-app.use("/report", reportRouter);
-app.use("/complaint", complaintRouter);
-app.use("/cities", cityRouter);
+import { jwtAuthentication } from "./middlewares/services";
+
+app.use("/auth", authRouter);
+app.use("/restaurants", jwtAuthentication, restaurantListRouter);
+app.use("/users", jwtAuthentication, userRouter);
+app.use("/shippers", jwtAuthentication, shipperRouter);
+app.use("/report", jwtAuthentication, reportRouter);
+app.use("/complaint", jwtAuthentication, complaintRouter);
+app.use("/cities", jwtAuthentication, cityRouter);
+app.use("/", jwtAuthentication, generalRouter);
 
 app.use(function (req, res) {
   res.status(404).end();
@@ -42,6 +47,7 @@ app.use(function (req, res) {
 
 // error handler
 app.use(function (err, req, res, next) {
+  console.log(err.message);
   res.status(500).end();
 });
 
