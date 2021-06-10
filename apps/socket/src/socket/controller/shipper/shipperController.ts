@@ -5,7 +5,7 @@ import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
 import { ChatRoom, Order, Shipper, Types } from "@vohoaian/datn-models";
-import { mapOptions } from "../order/utils";
+import { mapOptions, normalOrder } from "../order/utils";
 import chatController from "../chat";
 import customerController from "../customer/customerController";
 import SHIPPER from "./interface";
@@ -226,11 +226,12 @@ class ShipperController {
     // Get order to return for merchant
     const orderDB: any = await Order.findOne({ _id: orderInList.orderID })
       .populate("User", "Avatar Email FullName Phone")
-      .populate("Restaurant", "Address Avatar IsPartner Phone Location")
+      .populate("Restaurant", "Address Avatar IsPartner Phone Location Name")
       .populate("Foods.Food", "Name Avatar OriginalPrice Options");
 
     const order: any = orderDB.toObject();
     mapOptions(order);
+    normalOrder(order);
 
     const [latMer = 0, lngMer = 0] = order.Restaurant.Location.coordinates;
     const coorMerchant = {
@@ -420,10 +421,10 @@ class ShipperController {
 
     // Update Info for customer
     const infoShipper = await Shipper.findById(shipperID).select(
-      "Avatar FullName PhoneNumber"
+      "Avatar FullName Phone"
     );
-    customerController
-      .getSocket(customerID)
+    orderController
+      .getSocket(orderID)
       ?.emit(
         TAG_EVENT.RESPONSE_UPDATE_SHIPPER,
         normalizeResponse("update info shipper", { infoShipper, orderID })
