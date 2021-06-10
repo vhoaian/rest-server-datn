@@ -4,7 +4,7 @@ import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
 import { Food, Order } from "@vohoaian/datn-models";
-import { mapOptions } from "../order/utils";
+import { mapOptions, normalOrder } from "../order/utils";
 
 class MerchantController {
   private _listMerchantOnline: Array<any> = [];
@@ -115,6 +115,7 @@ class MerchantController {
 
     const order: any = orderDB.toObject();
     mapOptions(order);
+    normalOrder(order);
 
     const merchantSocket = this.getSocket(merchantID);
     if (!merchantSocket) {

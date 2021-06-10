@@ -22,3 +22,18 @@ export const mapOptions = (order: any) => {
     currentOption.Options = _options;
   });
 };
+
+export const normalOrder = (order: any) => {
+  const Foods = order.Foods;
+
+  Foods.forEach((food) => {
+    food.Name = food.Food.Name;
+    food.Avatar = food.Food.Avatar;
+    food.id = food.Food._id;
+    food.Options = food.Options.reduce((prev, curr) => {
+      return `${prev ? prev + ", " : ""}${curr.Name}: ${curr.Items[0].Name}`;
+    }, "");
+
+    delete food.Food;
+  });
+};
