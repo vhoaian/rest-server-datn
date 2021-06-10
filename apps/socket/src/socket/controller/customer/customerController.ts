@@ -62,7 +62,25 @@ class CustomerController {
 
     socketCustomer.emit(
       TAG_EVENT.RESPONSE_CUSTOMER_RECONNECT,
-      normalizeResponse("Reconnect", { listOrder })
+      normalizeResponse("Reconnect", {
+        listOrder: listOrder.map(
+          ({
+            orderID,
+            shipperID,
+            customerID,
+            merchantID,
+            status,
+            paymentMethod,
+          }) => ({
+            id: orderID,
+            shipperID,
+            customerID,
+            merchantID,
+            status,
+            paymentMethod,
+          })
+        ),
+      })
     );
   }
 

@@ -4,9 +4,11 @@ import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
-import { ChatRoom, Order, Types } from "@vohoaian/datn-models";
+import { ChatRoom, Order, Shipper, Types } from "@vohoaian/datn-models";
 import { mapOptions } from "../order/utils";
 import chatController from "../chat";
+import customerController from "../customer/customerController";
+import SHIPPER from "./interface";
 
 const SHIPPER_DEFAULT = {
   id: null,
@@ -16,17 +18,30 @@ const SHIPPER_DEFAULT = {
   beingRequested: false,
   maximumOrder: 3,
   maximumDistance: 100, // unit: km
+  maximumAmount: 1000000, // unit VND
+  rating: 0,
+  historyOrder: {
+    skip: 0,
+    cancel: 0,
+    delivered: 0,
+  },
   selfDestruct: null,
 };
 
-const sleep = (time: number): Promise<void> =>
-  new Promise((r) => setTimeout(r, time));
+const sleep = (time: number) => new Promise((r) => setTimeout(r, time));
 
 class ShipperController {
   public _io: any = null;
+  private _listShipperOnline: Array<any> = [];
+
   private MAXIMUM_TIME_DESTRUCT: number = 10 * 1000;
   private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 10 * 1000;
-  private _listShipperOnline: Array<any> = [];
+
+  private POINT = {
+    skip: -1,
+    cancel: -2,
+    delevered: 4, // Default for new shipper hasn't any rating.
+  };
 
   constructor() {
     // [LOG]: Log list customer online every 5 seconds
@@ -38,8 +53,27 @@ class ShipperController {
     }
   }
 
-  private createShipper(id, socketID, coor): any {
-    return { ...clone(SHIPPER_DEFAULT), id, socketID, coor };
+  private createShipper(
+    id,
+    socketID,
+    coor,
+    maximumOrder,
+    maximumDistance,
+    maximumAmount,
+    historyOrder,
+    rating
+  ): SHIPPER {
+    return {
+      ...clone(SHIPPER_DEFAULT),
+      id,
+      socketID,
+      coor,
+      maximumOrder,
+      maximumDistance,
+      maximumAmount,
+      historyOrder,
+      rating,
+    };
   }
 
   setIO(io) {
@@ -53,11 +87,11 @@ class ShipperController {
     return this._io.of("/").sockets.get(`${shipper.socketID}`);
   }
 
-  getShipper(id): any {
+  getShipper(id): SHIPPER | null {
     return this._listShipperOnline.find((shipper) => shipper.id === id) || null;
   }
 
-  getShipperBySocketID(socketID): any {
+  getShipperBySocketID(socketID): SHIPPER | null {
     return (
       this._listShipperOnline.find(
         (shipper) => shipper.socketID === socketID
@@ -65,7 +99,7 @@ class ShipperController {
     );
   }
 
-  addShipper(id, socketID, coor) {
+  async addShipper(id, socketID, coor) {
     // auto reconnect
     const shipper: any = this.getShipper(id);
     if (shipper) {
@@ -75,7 +109,26 @@ class ShipperController {
       clearTimeout(shipper.selfDestruct);
       shipper.selfDestruct = null;
     } else {
-      this._listShipperOnline.push(this.createShipper(id, socketID, coor));
+      const _shipperOnDB = await Shipper.findById(id);
+      if (!_shipperOnDB) return;
+
+      const { Setting, History, Rating } = _shipperOnDB;
+      this._listShipperOnline.push(
+        this.createShipper(
+          id,
+          socketID,
+          coor,
+          Setting.MaxOrder,
+          Setting.MaxDistance,
+          Setting.MaxAmount,
+          {
+            skip: History.Skip,
+            cancel: History.Cancel,
+            delivered: History.Delivery,
+          },
+          Rating
+        )
+      );
     }
 
     // send all order if shipper has order before
@@ -117,16 +170,26 @@ class ShipperController {
     }, this.MAXIMUM_TIME_DESTRUCT);
   }
 
-  private handleShipperDisconnect(id) {
+  private async handleShipperDisconnect(id) {
     // Cancel all order
-    const shipper = this.getShipper(id);
-    shipper.listOrderID.forEach((orderID) => {
-      orderController.changeStatusOrder(
+    const shipper: SHIPPER | null = this.getShipper(id);
+    if (!shipper) return;
+
+    // Save status shipper
+    const { cancel, skip, delivered } = shipper.historyOrder;
+    await Shipper.findOneAndUpdate(
+      { _id: shipper.id },
+      { History: { Skip: skip, Cancel: cancel, Delivery: delivered } }
+    );
+
+    for (const orderID of shipper.listOrderID) {
+      await orderController.changeStatusOrder(
         orderID,
+        // @ts-expect-error
         shipper.id,
         orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
       );
-    });
+    }
 
     // Delete shipper
     const index = this._listShipperOnline.findIndex(
@@ -192,18 +255,57 @@ class ShipperController {
             )
         )
         // 4. Filter if distance is larger than shipper's expectation
-        .filter(
-          (shipper) =>
+        .filter((shipper) => {
+          console.log(shipper.coor);
+          console.log(coorMerchant);
+          console.log(calcDistanceBetween2Coor(coorMerchant, shipper.coor));
+          return (
             shipper.maximumDistance >=
             calcDistanceBetween2Coor(coorMerchant, shipper.coor)
-        )
+          );
+        })
         // 5. Sort to get nearest shippers
-        .sort((shipper1, shipper2) =>
-          calcDistanceBetween2Coor(coorMerchant, shipper1.coor) >
-          calcDistanceBetween2Coor(coorMerchant, shipper2.coor)
-            ? -1
-            : 1
-        )
+        .sort((shipper1: SHIPPER, shipper2: SHIPPER) => {
+          // Sort by distance
+          const shipper1Distance = calcDistanceBetween2Coor(
+            coorMerchant,
+            shipper1.coor
+          );
+          const shipper2Distance = calcDistanceBetween2Coor(
+            coorMerchant,
+            shipper2.coor
+          );
+
+          if (shipper1Distance > shipper2Distance) return -1;
+          if (shipper1Distance < shipper2Distance) return 1;
+
+          const {
+            skip: skipShipper1,
+            cancel: cancleShipper1,
+            delivered: deliveredShipper1,
+          } = shipper1.historyOrder;
+          const {
+            skip: skipShipper2,
+            cancel: cancleShipper2,
+            delivered: deliveredShipper2,
+          } = shipper2.historyOrder;
+
+          // Sort by Point
+          const shipper1Point =
+            (skipShipper1 * this.POINT.skip +
+              cancleShipper1 * this.POINT.cancel +
+              deliveredShipper1 * shipper1.rating || this.POINT.delevered) /
+            (skipShipper1 + cancleShipper1 + deliveredShipper1);
+
+          const shipper2Point =
+            (skipShipper2 * this.POINT.skip +
+              cancleShipper2 * this.POINT.cancel +
+              deliveredShipper2 * shipper2.rating || this.POINT.delevered) /
+            (skipShipper2 + cancleShipper2 + deliveredShipper2);
+
+          if (shipper1Point > shipper2Point) return 1;
+          if (shipper1Point <= shipper2Point) return -1;
+        })
         // <>
         // Add more rule to sort shipper
         // <>
@@ -218,6 +320,7 @@ class ShipperController {
       listShipperSelected.forEach((shipper) => {
         orderInController.listShipperAreBeingRequest.push(shipper.id);
 
+        // @ts-expect-error
         this.getShipper(shipper.id).beingRequested = true;
 
         const socketShipper = this.getSocket(shipper.id);
@@ -264,10 +367,11 @@ class ShipperController {
     if (!shipper) return;
 
     shipper.beingRequested = false;
+    shipper.historyOrder.skip++;
 
     const socketShipper = this.getSocket(shipperID);
 
-    socketShipper.leave(orderID);
+    socketShipper?.leave(orderID);
     socketShipper.emit(
       TAG_EVENT.RESPONSE_SHIPPER_SKIP_CONFIRM_ORDER,
       normalizeResponse(
@@ -307,11 +411,23 @@ class ShipperController {
       orderController.ORDER_STATUS.DURING_GET
     );
 
+    const customerID = orderController.getOrderByID(orderID)?.customerID;
     chatController.openRoom(
       shipperID,
       // @ts-expect-error
-      orderController.getOrderByID(orderID)?.customerID
+      customerID
     );
+
+    // Update Info for customer
+    const infoShipper = await Shipper.findById(shipperID).select(
+      "Avatar FullName PhoneNumber"
+    );
+    customerController
+      .getSocket(customerID)
+      ?.emit(
+        TAG_EVENT.RESPONSE_UPDATE_SHIPPER,
+        normalizeResponse("update info shipper", { infoShipper, orderID })
+      );
 
     return true;
   }
@@ -322,14 +438,17 @@ class ShipperController {
     if (!shipper) return;
 
     shipper.beingRequested = false;
+    shipper.historyOrder.skip++;
   }
 
   async cancelOrder(orderID, shipperID) {
     // Update shipper
     const shipper = this.getShipper(shipperID);
+    if (!shipper) return;
 
     const indexOrderID = shipper.listOrderID.indexOf(orderID);
     shipper.listOrderID.splice(indexOrderID, 1);
+    shipper.historyOrder.cancel++;
 
     console.log("[ORDER]: shipper cancel order.");
 
@@ -351,6 +470,7 @@ class ShipperController {
     // Update status order
     orderController.changeStatusOrder(
       orderID,
+      // @ts-expect-error
       shipper.id,
       orderController.ORDER_STATUS.CANCEL_BY_SHIPPER
     );
@@ -390,6 +510,7 @@ class ShipperController {
 
     const indexOrder: number = shipper.listOrderID.indexOf(orderID);
     shipper.listOrderID.splice(indexOrder, 1);
+    shipper.historyOrder.delivered++;
 
     const order = orderController.getOrderByID(orderID);
 
