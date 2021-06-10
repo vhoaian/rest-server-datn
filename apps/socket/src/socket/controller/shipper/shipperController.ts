@@ -406,7 +406,7 @@ class ShipperController {
     console.log("[ORDER]: shipper confirm order success.");
 
     // Update status order
-    orderController.changeStatusOrder(
+    await orderController.changeStatusOrder(
       orderID,
       shipperID,
       orderController.ORDER_STATUS.DURING_GET
