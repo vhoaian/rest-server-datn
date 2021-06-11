@@ -1,13 +1,13 @@
 import * as bcryptJs from "bcryptjs";
 
 export const environment = {
-  PORT: process.env.port || 8001,
+  PORT: process.env.PORT || 8001,
   GOOGLE: {
     gclientID: process.env.GOOGLE_CLIENT_ID,
     gsecret: process.env.GOOGLE_SECRET,
     gCallBackURL: "/auth/google/redirect",
     defaultPass: "google",
-    GEOCODE_API: "AIzaSyBfel2PZ2eQq5zuFGzL1Hmdx8zAJF15bwQ",
+    GEOCODE_API: "AIzaSyAFJZFUQOMyF3sKxY2Fs9_wouWC8AWLZYY", //"AIzaSyBfel2PZ2eQq5zuFGzL1Hmdx8zAJF15bwQ",
   },
   JWT: {
     secretKey: "final-project",
@@ -29,6 +29,8 @@ export const Constants = {
     DELETE_RES_ERROR: 102,
     UPDATE_RES_ERROR: 104,
     FIND_RES_ERROR: 103,
+    RES_EXISTS: 105,
+    UPDATE_PERMISION_ERROR: 106,
     GET_USER_ERROR: 110,
     BLOCK_USER_ERROR: 111,
     CAN_NOT_FIND_USER: 112,

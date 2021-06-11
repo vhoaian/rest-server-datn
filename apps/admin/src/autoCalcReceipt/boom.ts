@@ -10,5 +10,5 @@ const handleBoom = async (orderID: string) => {
 
   user.Status = -1;
   order.Status = STATUS_BOOM;
-  await Promise.all(user.save(), order.save());
+  await Promise.all([user.save(), order.save()]);
 };
