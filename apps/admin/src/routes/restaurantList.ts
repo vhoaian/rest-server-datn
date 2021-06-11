@@ -26,12 +26,16 @@ restaurantListRouter.post(
   "/",
   body("name").notEmpty().isString(),
   body("contractID").notEmpty().isString(),
-  body("openTime")
+  body("email").notEmpty().isEmail(),
+  body("password").notEmpty().isString(),
+  body("openAt")
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .customSanitizer((value) => moment(value, "HH:mm").toDate()),
-  body("closeTime")
+  body("closeAt")
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .customSanitizer((value) => moment(value, "HH:mm").toDate()),
+  body("cityID").notEmpty().isInt().toInt(),
+  body("districtID").notEmpty().isInt().toInt(),
   body("city").notEmpty().isString(),
   body("district").notEmpty().isString(),
   body("ward").notEmpty().isString(),
