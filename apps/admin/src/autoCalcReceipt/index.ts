@@ -6,17 +6,7 @@ import {
   Notification as NotificationModel,
 } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
-import mailController from "./mailController";
-
-// Receipt
-// |- id: ObjectID
-// |- Payer: ObjectID: [Restaurant, Shipper]
-// |- FeeTotal: number
-// |- PercentFee: number - Phần trăm phí áp dụng
-// |- Status: number [0: unpaid, 1: paid]
-// |- DateStart: Date
-// |- DateEnd: Date
-// |- CreatedAt: Date
+import mailController from "../mail/mailController";
 
 const ORDER_STATUS = {
   WAITING_PAYMENT: 0,

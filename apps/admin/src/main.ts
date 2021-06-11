@@ -20,6 +20,7 @@ import reportRouter from "./routes/report";
 import complaintRouter from "./routes/complaint";
 import cityRouter from "./routes/city";
 import authRouter from "./routes/auth";
+import withdrawRouter from "./routes/withdraw";
 
 app.use(cors());
 app.use(express.json());
@@ -39,6 +40,7 @@ app.use("/shippers", jwtAuthentication, shipperRouter);
 app.use("/report", jwtAuthentication, reportRouter);
 app.use("/complaint", jwtAuthentication, complaintRouter);
 app.use("/cities", jwtAuthentication, cityRouter);
+app.use("/withdraw", jwtAuthentication, withdrawRouter);
 app.use("/", jwtAuthentication, generalRouter);
 
 app.use(function (req, res) {

@@ -52,7 +52,7 @@ const getComplaintList = async (req, res) => {
       Status: 0,
     }).exec();
 
-    let complaints = await Complaint.find(option)
+    let complaints: any = await Complaint.find(option)
       .select("Images Reason FullName PhoneNumber Status Email OrderID")
       .populate("OrderID")
       .limit(Constants.PAGENATION.PER_PAGE)
