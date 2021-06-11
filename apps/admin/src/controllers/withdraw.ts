@@ -6,7 +6,7 @@ import { nomalizeResponse } from "../utils/normalize";
 export const getAllRequestWithdraw = async (req, res): Promise<void> => {
   try {
     const { page } = req.query;
-    const option: any = { Status: Constants.PAID.UNRESOLVE };
+    const option: any = { Status: { $lt: Constants.PAID.RESOLVE } };
 
     const totalComplaints = await Withdraw.countDocuments(option);
 
@@ -15,11 +15,12 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE);
 
     await Promise.all(
-      withdraws.reduce((listPromise, currWithdraw) => {
-        listPromise.push(mapInfoForWithdraw(currWithdraw));
-        return listPromise;
-      }, [])
+      withdraws.reduce(
+        (lsProms, curr) => lsProms.concat(mapInfoForWithdraw(curr)),
+        []
+      )
     );
+    console.log("getAllRequestWithdraw");
 
     res.send(
       nomalizeResponse({ listWithdraw: withdraws }, 0, {
@@ -91,6 +92,8 @@ export const cancelWithdraw = async (req, res): Promise<void> => {
  * @param withdraw
  */
 const mapInfoForWithdraw = async (withdraw): Promise<void> => {
+  console.log("mapInfoForWithdraw");
+
   try {
     switch (withdraw.User.Role) {
       case Constants.ROLE.SHIPPER: {
@@ -98,7 +101,9 @@ const mapInfoForWithdraw = async (withdraw): Promise<void> => {
           "FullName Phone"
         );
         if (!shipper) throw new Error("Shipper does not exist");
-        withdraw.UserInfo = shipper;
+
+        withdraw.User.Name = shipper.FullName;
+        withdraw.User.Phone = shipper.Phone;
         break;
       }
 
@@ -107,7 +112,9 @@ const mapInfoForWithdraw = async (withdraw): Promise<void> => {
           "Roles.Restaurant": withdraw.User.Id,
         }).select("FullName Phone");
         if (!manager) throw new Error("Manager does not exist");
-        withdraw.UserInfo = manager;
+
+        withdraw.User.Name = manager.FullName;
+        withdraw.User.Phone = manager.Phone;
         break;
       }
 
