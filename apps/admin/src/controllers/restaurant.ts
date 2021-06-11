@@ -2,6 +2,7 @@ import { City, Restaurant } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 import { nomalizeResponse } from "../utils/normalize";
 import geocoder from "../utils/geocoder";
+import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
 
 export async function deleteRestaurant(req, res) {
   const { id } = req.params;
@@ -88,3 +89,27 @@ export async function updateRestaurantAddress(req, res) {
     return res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR));
   }
 }
+
+export const payReceipt = async (req, res) => {
+  const { id } = req.body;
+  try {
+    const receipt = await ReceiptModel.findById(id);
+    if (!receipt) {
+      console.log(
+        `[RESTAURANT]: paid receipt ${id} fail, receipt does not exist.`
+      );
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
+      );
+    }
+
+    receipt.Status = Constants.PAID.RESOLVE;
+    await receipt.save();
+
+    console.log(`[RESTAURANT]: paid receipt ${id} success.`);
+    res.send(nomalizeResponse(null, 0));
+  } catch (e) {
+    console.log(`[RESTAURANT]: ${e.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR));
+  }
+};

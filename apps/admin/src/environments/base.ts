@@ -40,10 +40,20 @@ export const Constants = {
     GET_CITY_ERROR: 180,
     GET_GENERAL_ERROR: 190,
     GET_NOTICE_ERROR: 191,
+    CREATE_SHIPPER_ERROR: 192,
+    PAY_RECEIPT_ERROR: 193,
+    HANDLE_WITHDRAW_ERROR: 194,
+    GET_WITHDRAW_ERROR: 195,
   },
   PAID: {
     RESOLVE: 1,
     UNRESOLVE: -1,
+  },
+  ROLE: {
+    CUSTOMER: 0,
+    SHIPPER: 1,
+    RESTAURANT: 2,
+    ADMIN: 3,
   },
 };
 

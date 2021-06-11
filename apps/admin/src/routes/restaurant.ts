@@ -8,6 +8,7 @@ import {
   deleteRestaurant,
   updateRestaurantInfo,
   updateRestaurantAddress,
+  payReceipt,
 } from "../controllers/restaurant";
 
 restaurantRouter.get("/", getRestaurantInfo);
@@ -35,6 +36,13 @@ restaurantRouter.put(
   body("ward").notEmpty().isString(),
   body("address").notEmpty().isString(),
   updateRestaurantAddress
+);
+
+restaurantRouter.post(
+  "/pay-receipt",
+  body("id").notEmpty().isMongoId(),
+  validateInput,
+  payReceipt
 );
 
 export default restaurantRouter;

@@ -1,6 +1,7 @@
 import { nomalizeResponse } from "../utils/normalize";
 import { Receipt, Shipper } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
+import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
 
 export async function getShipperManagement(req, res) {
   const { page, email, phone } = req.query;
@@ -61,3 +62,65 @@ export async function getShipperManagement(req, res) {
     res.send(nomalizeResponse(null, Constants.SERVER.GET_SHIPPER_ERROR));
   }
 }
+
+export const createShipper = async (req, res): Promise<void> => {
+  const {
+    phone: Phone,
+    email: Email,
+    fullName: FullName,
+    gender: Gender,
+  } = req.body;
+
+  try {
+    const oldShipper = await Shipper.findOne({
+      $or: [
+        {
+          Phone,
+        },
+        {
+          Email,
+        },
+      ],
+    });
+
+    if (oldShipper) {
+      console.log(
+        `[SHIPPER]: create new shipper fail, phone or email already exist. Phone & Email shipper: ${oldShipper.Phone} - ${oldShipper.Email}`
+      );
+      res.send(nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR));
+    }
+
+    const newShipper = new Shipper({ Phone, Email, Gender, FullName });
+    await newShipper.save();
+
+    console.log("[SHIPPER]: Create new shipper success.");
+    res.send(nomalizeResponse(null, 0));
+  } catch (e) {
+    console.log(`[SHIPPER]: Create new shipper fail, ${e.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR));
+  }
+};
+
+export const payReceipt = async (req, res) => {
+  const { id } = req.body;
+  try {
+    const receipt = await ReceiptModel.findById(id);
+    if (!receipt) {
+      console.log(
+        `[SHIPPER]: paid receipt ${id} fail, receipt does not exist.`
+      );
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
+      );
+    }
+
+    receipt.Status = Constants.PAID.RESOLVE;
+    await receipt.save();
+
+    console.log(`[SHIPPER]: paid receipt ${id} success.`);
+    res.send(nomalizeResponse(null, 0));
+  } catch (e) {
+    console.log(`[SHIPPER]: ${e.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR));
+  }
+};
