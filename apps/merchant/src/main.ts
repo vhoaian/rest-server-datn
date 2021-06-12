@@ -5,7 +5,6 @@ import indexRouter from "./routes/index";
 import authRouter from "./routes/auth";
 import restaurantRouter from "./routes/restaurant";
 import managerRouter from "./routes/manager";
-// import orderRouter from "./routes/order";
 import imageRouter from "./routes/image";
 import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
@@ -29,7 +28,6 @@ app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/restaurants", restaurantRouter);
 app.use("/managers", managerRouter);
-// app.use("/orders", orderRouter);
 app.use("/images", imageRouter);
 
 app.use(function (req, res) {

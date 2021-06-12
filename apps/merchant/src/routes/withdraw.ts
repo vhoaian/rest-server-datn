@@ -1,27 +1,26 @@
 import express from "express";
 import { body, param, query } from "express-validator";
 import { validateInput, jwtAuthentication } from "../middlewares/services";
-import { getOrders, getOrder } from "../controllers/order";
+import { addWithdraw, getWithdraws } from "../controllers/withdraw";
 
 const router = express.Router();
 
-// Lấy danh sách đơn hàng
 router.get(
   "/",
-  query("status").optional().isInt().toArray(),
   query("page").default(1).isInt().toInt(),
   query("perpage").default(10).isInt({ max: 50 }).toInt(),
+  query("status").optional().isInt().toArray(),
   validateInput,
   jwtAuthentication,
-  getOrders
+  getWithdraws
 );
 
-router.get(
-  "/:id",
-  param("id").isMongoId(),
+router.post(
+  "/",
+  body("amount").isInt({ min: 1 }).toInt(),
   validateInput,
   jwtAuthentication,
-  getOrder
+  addWithdraw
 );
 
 export default router;
