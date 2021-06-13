@@ -3,7 +3,7 @@ interface COOR {
   lng: number;
 }
 
-export const calcDistanceBetween2Coor = (p1: COOR, p2: COOR) => {
+export const calcDistance = (p1: COOR, p2: COOR) => {
   const R = 3958.8; // Radius of the Earth in miles
   const rlat1 = p1.lat * (Math.PI / 180); // Convert degrees to radians
   const rlat2 = p2.lat * (Math.PI / 180); // Convert degrees to radians

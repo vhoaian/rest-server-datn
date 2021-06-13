@@ -1,6 +1,6 @@
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
-import { calcDistanceBetween2Coor } from "../../../utils/calcDistance";
+import { calcDistance } from "../../../utils/calcDistance";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
@@ -242,40 +242,24 @@ class ShipperController {
     do {
       const orderInController = orderController.getOrderByID(order._id);
       if (!orderInController) return;
+      const listShipperSkipOrder = orderInController.listShipperSkipOrder;
 
       const listShipperSelected = clone(this._listShipperOnline)
+        // Filter shipper offline
+        .filter((s) => s.selfDestruct !== null)
         // 1. Filter shipper full order
-        .filter((shipper) => shipper.listOrderID.length < shipper.maximumOrder)
+        .filter((s) => s.listOrderID.length < s.maximumOrder)
         // 2. Filter shipper being requested
-        .filter((shipper) => !shipper.beingRequested)
+        .filter((s) => !s.beingRequested)
         // 3. Filter shipper skip order
-        .filter(
-          (shipper) =>
-            !orderInController.listShipperSkipOrder.find(
-              (sprID) => sprID === shipper.id
-            )
-        )
+        .filter((s) => !listShipperSkipOrder.find((sID) => sID === s.id))
         // 4. Filter if distance is larger than shipper's expectation
-        .filter((shipper) => {
-          console.log(shipper.coor);
-          console.log(coorMerchant);
-          console.log(calcDistanceBetween2Coor(coorMerchant, shipper.coor));
-          return (
-            shipper.maximumDistance >=
-            calcDistanceBetween2Coor(coorMerchant, shipper.coor)
-          );
-        })
+        .filter((s) => s.maximumDistance >= calcDistance(coorMerchant, s.coor))
         // 5. Sort to get nearest shippers
         .sort((shipper1: SHIPPER, shipper2: SHIPPER) => {
           // Sort by distance
-          const shipper1Distance = calcDistanceBetween2Coor(
-            coorMerchant,
-            shipper1.coor
-          );
-          const shipper2Distance = calcDistanceBetween2Coor(
-            coorMerchant,
-            shipper2.coor
-          );
+          const shipper1Distance = calcDistance(coorMerchant, shipper1.coor);
+          const shipper2Distance = calcDistance(coorMerchant, shipper2.coor);
 
           if (shipper1Distance > shipper2Distance) return -1;
           if (shipper1Distance < shipper2Distance) return 1;
@@ -307,9 +291,6 @@ class ShipperController {
           if (shipper1Point > shipper2Point) return 1;
           if (shipper1Point <= shipper2Point) return -1;
         })
-        // <>
-        // Add more rule to sort shipper
-        // <>
         .slice(0, maxShipper);
 
       console.log("[ORDER]: send order to shipper.");
@@ -344,11 +325,9 @@ class ShipperController {
       }
 
       const orderBreak = orderController.getOrderByID(`${order._id}`);
-      if (
-        !orderBreak ||
-        orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER ||
-        orderBreak.shipperID
-      )
+
+      if (!orderBreak || orderBreak.shipperID) break;
+      if (orderBreak.status === orderController.ORDER_STATUS.CANCEL_BY_CUSTOMER)
         break;
 
       listShipperSelected.forEach((shipper) => {
