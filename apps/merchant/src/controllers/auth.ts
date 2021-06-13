@@ -2,15 +2,17 @@ import { Manager } from "@vohoaian/datn-models";
 import { removeOTP, requestOTP, verifyOTP } from "@vohoaian/datn-otp";
 import { nomalizeResponse } from "../utils/normalize";
 import { getToken } from "../utils/tokens";
+import * as bcryptJs from "bcryptjs";
+import * as ENV from "../environments/base";
 
 type OTPSentResponse = {
   errorCode: number;
-  data: null | { Manager: string };
+  data: null;
 };
 
 type OTPVerifiedResponse = {
   errorCode: number;
-  data: null | { token: string } | { Manager: string };
+  data: null | { token: string };
 };
 
 function withPhone(fn) {
@@ -66,3 +68,17 @@ export const verifyOTPForLogin = withPhone(async function (req, res) {
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
 });
+
+export const loginByEmail = async function (req, res) {
+  const { email, password } = req.body;
+  const hashed = bcryptJs.hashSync(password, ENV.environment.BCRYPT_SALT);
+  const u = await Manager.findOne({ Email: email, Password: hashed }).exec();
+  if (!u) {
+    return res.send(nomalizeResponse(null, 3)); // dang nhap khong thanh cong
+  }
+  const response: OTPVerifiedResponse = {
+    errorCode: 0,
+    data: { token: getToken(u.id) },
+  };
+  res.send(nomalizeResponse(response.data, response.errorCode));
+};

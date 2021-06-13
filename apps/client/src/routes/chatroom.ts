@@ -1,27 +1,27 @@
 import express from "express";
 import { body, param, query } from "express-validator";
 import { validateInput, jwtAuthentication } from "../middlewares/services";
-import { getOrders, getOrder } from "../controllers/order";
+import { getChatMessages, getChatRooms } from "../controllers/chatroom";
 
 const router = express.Router();
 
-// Lấy danh sách đơn hàng
 router.get(
   "/",
-  query("status").optional().isInt().toArray(),
   query("page").default(1).isInt().toInt(),
   query("perpage").default(10).isInt({ max: 50 }).toInt(),
   validateInput,
   jwtAuthentication,
-  getOrders
+  getChatRooms
 );
 
 router.get(
-  "/:id",
+  "/:id/messages",
   param("id").isMongoId(),
+  query("page").default(1).isInt().toInt(),
+  query("perpage").default(10).isInt({ max: 50 }).toInt(),
   validateInput,
   jwtAuthentication,
-  getOrder
+  getChatMessages
 );
 
 export default router;
