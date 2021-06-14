@@ -1,13 +1,19 @@
+import {
+  ChatRoom,
+  Order,
+  Shipper,
+  Types,
+  Notification as NotificationModel,
+} from "@vohoaian/datn-models";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { calcDistance } from "../../../utils/calcDistance";
-import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
-import orderController from "../order";
 import clone from "../../../utils/clone";
-import { ChatRoom, Order, Shipper, Types } from "@vohoaian/datn-models";
-import { mapOptions, normalOrder } from "../order/utils";
+import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import chatController from "../chat";
-import customerController from "../customer/customerController";
+import notificationController from "../notification";
+import orderController from "../order";
+import { mapOptions, normalOrder } from "../order/utils";
 import SHIPPER from "./interface";
 
 const SHIPPER_DEFAULT = {
@@ -34,8 +40,8 @@ class ShipperController {
   public _io: any = null;
   private _listShipperOnline: Array<any> = [];
 
-  private MAXIMUM_TIME_DESTRUCT: number = 10 * 1000;
-  private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 10 * 1000;
+  private MAXIMUM_TIME_DESTRUCT: number = 5 * 60 * 1000;
+  private MAXIMUM_TIME_DELAY_REQUEST_ORDER = 60 * 1000;
 
   private POINT = {
     skip: -1,
@@ -135,16 +141,26 @@ class ShipperController {
     const listOrder = orderController
       .getOrderByShipperID(id)
       .map((order) => ({ ...order, id: order.orderID }));
-    if (listOrder.length === 0) return;
 
     // join room
     const socketShipper = this.getSocket(id);
-    listOrder.forEach((odr) => socketShipper.join(odr.id));
 
-    socketShipper.emit(
-      TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
-      normalizeResponse("Reconnect", { listOrder })
-    );
+    if (listOrder.length > 0) {
+      listOrder.forEach((odr) => socketShipper.join(odr.id));
+      socketShipper.emit(
+        TAG_EVENT.RESPONSE_SHIPPER_RECONNECT,
+        normalizeResponse("Reconnect", { listOrder })
+      );
+    }
+
+    const listNotification = await NotificationModel.find({
+      Status: { $lt: 0 },
+      "Receiver.Id": Types.ObjectId(id),
+    }).select("Title Subtitle CreatedAt");
+
+    for (const noti of listNotification) {
+      await notificationController.pushNotification(noti._id);
+    }
   }
 
   removeShipper(id) {
@@ -246,7 +262,7 @@ class ShipperController {
 
       const listShipperSelected = clone(this._listShipperOnline)
         // Filter shipper offline
-        .filter((s) => s.selfDestruct !== null)
+        .filter((s) => s.selfDestruct === null)
         // 1. Filter shipper full order
         .filter((s) => s.listOrderID.length < s.maximumOrder)
         // 2. Filter shipper being requested
