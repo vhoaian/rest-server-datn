@@ -23,15 +23,64 @@ class MailController {
     });
   }
 
-  public async sendMailLockAccount(
+  public sendMailLockAccount(
     username: string,
-    mailAddress: string
+    mailAddress: string,
+    language?: "vn" | "en"
   ): Promise<boolean> {
+    const content =
+      language === "en"
+        ? templateMail.createMailLockAccount(username)
+        : templateMail.createMailLockAccountVN(username);
+
     const mail = {
       from: this._MAIL_ADDRESS,
       to: mailAddress,
       subject: `${this._TAG}: lock account`,
-      text: templateMail.createMailLockAccount(username),
+      text: content,
+    };
+
+    return this.sendMail(mail);
+  }
+
+  public sendMailLockAccountWithMessage(
+    username: string,
+    mailAddress: string,
+    message: string,
+    language?: "vn" | "en"
+  ): Promise<boolean> {
+    const content =
+      language === "en"
+        ? templateMail.createMailWithMess(username, message)
+        : templateMail.createMailWithMessVN(username, message);
+
+    const mail = {
+      from: this._MAIL_ADDRESS,
+      to: mailAddress,
+      subject: `${this._TAG}: lock account`,
+      text: content,
+    };
+
+    return this.sendMail(mail);
+  }
+
+  public sendMailOption(
+    username: string,
+    mailAddress: string,
+    subject: string,
+    message: string,
+    language?: "vn" | "en"
+  ) {
+    const content =
+      language === "en"
+        ? templateMail.createMailWithMess(username, message)
+        : templateMail.createMailWithMessVN(username, message);
+
+    const mail = {
+      from: this._MAIL_ADDRESS,
+      to: mailAddress,
+      subject: `${this._TAG}: ${subject}`,
+      text: content,
     };
 
     return this.sendMail(mail);

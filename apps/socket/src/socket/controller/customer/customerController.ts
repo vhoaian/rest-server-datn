@@ -2,6 +2,11 @@ import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
+import {
+  Notification as NotificationModel,
+  Types,
+} from "@vohoaian/datn-models";
+import notificationController from "../notification";
 
 const CUSTOMER_DEFAULT = {
   id: null,
@@ -39,7 +44,7 @@ class CustomerController {
     return this._io.of("/").sockets.get(`${customer.socketID}`);
   }
 
-  addCustomer(customerID, socketID) {
+  async addCustomer(customerID, socketID) {
     const customer: any = this.getCustomer(customerID);
     if (customer) {
       console.log("CUSTOMER RECONNECT");
@@ -54,34 +59,34 @@ class CustomerController {
     const listOrder = orderController
       .getOrderByCustomerID(customerID)
       .map((order) => ({ ...order, id: order.orderID }));
-    if (listOrder.length === 0) return;
+    if (listOrder.length > 0) {
+      // join room
+      const socketCustomer = this.getSocket(customerID);
+      listOrder.forEach((odr) => socketCustomer.join(odr.id));
 
-    // join room
-    const socketCustomer = this.getSocket(customerID);
-    listOrder.forEach((odr) => socketCustomer.join(odr.id));
+      socketCustomer.emit(
+        TAG_EVENT.RESPONSE_CUSTOMER_RECONNECT,
+        normalizeResponse("Reconnect", {
+          listOrder: listOrder.map((order) => ({
+            id: order.orderID,
+            shipperID: order.shipperID,
+            customerID: order.customerID,
+            merchantID: order.merchantID,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+          })),
+        })
+      );
+    }
 
-    socketCustomer.emit(
-      TAG_EVENT.RESPONSE_CUSTOMER_RECONNECT,
-      normalizeResponse("Reconnect", {
-        listOrder: listOrder.map(
-          ({
-            orderID,
-            shipperID,
-            customerID,
-            merchantID,
-            status,
-            paymentMethod,
-          }) => ({
-            id: orderID,
-            shipperID,
-            customerID,
-            merchantID,
-            status,
-            paymentMethod,
-          })
-        ),
-      })
-    );
+    const listNotification = await NotificationModel.find({
+      Status: { $lt: 0 },
+      "Receiver.Id": Types.ObjectId(customerID),
+    }).select("Title Subtitle CreatedAt");
+
+    for (const noti of listNotification) {
+      await notificationController.pushNotification(noti._id);
+    }
   }
 
   removeCustomer = (customerID) => {

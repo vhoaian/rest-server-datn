@@ -3,6 +3,7 @@ import {
   Restaurant,
   Shipper,
   ZaloTransaction,
+  Notification as NotificationModel,
 } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
@@ -13,6 +14,7 @@ import merchantController from "../merchant/merchantController";
 import shipperController from "../shipper/shipperController";
 import clone from "../../../utils/clone";
 import zaloPay from "apps/socket/src/payment/ZaloPay";
+import notificationController from "../notification";
 
 // Helper function to generate Number
 const ENUM = (function* () {
@@ -48,6 +50,7 @@ class OrderController {
     CANCEL_BY_CUSTOMER: ENUM.next().value,
     CANCEL_BY_MERCHANT: ENUM.next().value,
     CANCEL_BY_SHIPPER: ENUM.next().value,
+    BOOM: ENUM.next().value,
   };
 
   private ORDER_DEFAULT: ORDER = {
@@ -318,16 +321,79 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.MERCHANT_CONFIRM:
-          shipperController.sendOrderToShipper(orderOnList, 1);
+          {
+            shipperController.sendOrderToShipper(orderOnList, 1);
+            const newNotication = new NotificationModel({
+              Title: `Đơn hàng ${orderID} đã được xác nhận.`,
+              Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy giữ liên lạc để chúng tôi có thể giao hàng cho bạn một cách nhanh nhất!`,
+              Receiver: {
+                Id: order?.User,
+                Role: 0,
+              },
+              // @ts-expect-error
+              Thumbnail: order?.Restaurant?.Avatar,
+            });
+
+            await newNotication.save();
+            notificationController.pushNotification(`${newNotication._id}`);
+          }
           break;
         case this.ORDER_STATUS.DURING_GET:
           break;
         case this.ORDER_STATUS.DURING_SHIP:
+          {
+            const newNotication = new NotificationModel({
+              Title: `Đơn hàng ${orderID} đã được lấy thành công.`,
+              Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy giữ liên lạc để chúng tôi có thể giao hàng cho bạn một cách nhanh nhất!`,
+              Receiver: {
+                Id: order?.User,
+                Role: 0,
+              },
+              // @ts-expect-error
+              Thumbnail: order?.Restaurant?.Avatar,
+            });
+
+            await newNotication.save();
+            notificationController.pushNotification(`${newNotication._id}`);
+          }
           break;
 
         case this.ORDER_STATUS.DELIVERED: {
           // Share money for shipper & merchant
           const _orderInList = this.getOrderByID(orderID);
+
+          const newNoticationCustomer = new NotificationModel({
+            Title: `Đơn hàng ${orderID} được giao thành công.`,
+            Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy chia sẻ cảm nhận của bạn về đơn hàng để giúp những Khách hàng khác có thể tham khảo nhé!`,
+            Receiver: {
+              Id: order?.User,
+              Role: 0,
+            },
+            // @ts-expect-error
+            Thumbnail: order?.Restaurant?.Avatar,
+          });
+
+          const newNoticationMerchant = new NotificationModel({
+            Title: `Đơn hàng ${orderID} được giao thành công.`,
+            Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash.`,
+            Receiver: {
+              Id: order?.Restaurant,
+              Role: 2,
+            },
+            // @ts-expect-error
+            Thumbnail: order?.Restaurant?.Avatar,
+          });
+
+          await Promise.all([
+            newNoticationCustomer.save(),
+            newNoticationMerchant.save(),
+          ]);
+          notificationController.pushNotification(
+            `${newNoticationCustomer._id}`
+          );
+          notificationController.pushNotification(
+            `${newNoticationMerchant._id}`
+          );
 
           if (_orderInList?.paymentMethod === 1) {
             const _order = await Order.findById(orderID);

@@ -3,8 +3,14 @@ import config from "../../../config";
 import { TAG_EVENT, TAG_LOG_ERROR } from "../../TAG_EVENT";
 import orderController from "../order";
 import clone from "../../../utils/clone";
-import { Food, Order } from "@vohoaian/datn-models";
-import { mapOptions } from "../order/utils";
+import {
+  Food,
+  Order,
+  Notification as NotificationModel,
+  Types,
+} from "@vohoaian/datn-models";
+import { mapOptions, normalOrder } from "../order/utils";
+import notificationController from "../notification";
 
 class MerchantController {
   private _listMerchantOnline: Array<any> = [];
@@ -30,7 +36,7 @@ class MerchantController {
     this._io = io;
   }
 
-  addMerchant = (id, socketID) => {
+  async addMerchant(id, socketID) {
     const merchant = this.getMerchant(id);
     if (merchant) {
       console.log("MERCHANT RECONNECT");
@@ -49,17 +55,26 @@ class MerchantController {
     const listOrder = orderController
       .getOrderByMerchantID(id)
       .map((order) => ({ ...order, id: order.orderID }));
-    if (listOrder.length === 0) return;
+    if (listOrder.length !== 0) {
+      // join room
+      const socketMerchant = this.getSocket(id);
+      listOrder.forEach((odr) => socketMerchant.join(odr.id));
 
-    // join room
-    const socketMerchant = this.getSocket(id);
-    listOrder.forEach((odr) => socketMerchant.join(odr.id));
+      socketMerchant.emit(
+        TAG_EVENT.RESPONSE_MERCHANT_RECONNECT,
+        normalizeResponse("Reconnect", { listOrder })
+      );
+    }
 
-    socketMerchant.emit(
-      TAG_EVENT.RESPONSE_MERCHANT_RECONNECT,
-      normalizeResponse("Reconnect", { listOrder })
-    );
-  };
+    const listNotification = await NotificationModel.find({
+      Status: { $lt: 0 },
+      "Receiver.Id": Types.ObjectId(id),
+    }).select("Title Subtitle CreatedAt");
+
+    for (const noti of listNotification) {
+      await notificationController.pushNotification(noti._id);
+    }
+  }
 
   getMerchant(id): any {
     return (
@@ -115,6 +130,7 @@ class MerchantController {
 
     const order: any = orderDB.toObject();
     mapOptions(order);
+    normalOrder(order);
 
     const merchantSocket = this.getSocket(merchantID);
     if (!merchantSocket) {

@@ -1,18 +1,24 @@
-import { City, Restaurant } from "@vohoaian/datn-models";
+import ggAPI from "@rest-servers/google-api";
+import { City, Manager, Restaurant } from "@vohoaian/datn-models";
+import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
+import fs from "fs";
+import moment from "moment";
+import path from "path";
 import { Constants } from "../environments/base";
-import { nomalizeResponse } from "../utils/normalize";
 import geocoder from "../utils/geocoder";
+import { nomalizeResponse } from "../utils/normalize";
 
 export async function deleteRestaurant(req, res) {
-  const { id } = req.params;
+  const { restaurant } = req.data;
   try {
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      { _id: id },
+    const deletedRestaurant = await Restaurant.findByIdAndUpdate(
+      { _id: restaurant.id },
       { Status: -1 }
     ).exec();
-    return res.send(nomalizeResponse(restaurant));
+
+    return res.send(nomalizeResponse(deletedRestaurant));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.DELETE_RES_ERROR));
   }
 }
@@ -21,32 +27,47 @@ export async function getRestaurantInfo(req, res) {
   const { restaurant } = req.data;
   try {
     const cities = await City.find({}).exec();
-    res.send(nomalizeResponse({ cities, restaurant }));
+    const manager = await Manager.find({ "Roles.Restaurant": restaurant.id })
+      .select("FullName Email Phone")
+      .exec();
+    res.send(nomalizeResponse({ cities, restaurant, manager: manager[0] }));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.FIND_RES_ERROR));
   }
 }
 
 export async function updateRestaurantInfo(req, res) {
   const { name, openAt, closeAt, anouncement } = req.body;
-  const { restaurant } = req.data;
+  const uploadedFile = req.file;
+  console.log({ name, openAt, closeAt, anouncement, uploadedFile });
   try {
+    const filePath = path.join(process.cwd(), uploadedFile.path);
+    const FILE = {
+      name: uploadedFile.filename,
+      type: uploadedFile.mimetype,
+      path: filePath,
+    };
+    const { restaurant } = req.data;
+
+    const img = await ggAPI.uploadFile(FILE);
+
     const result = await Restaurant.findByIdAndUpdate(
-      { _id: restaurant._id },
+      { _id: restaurant.id },
       {
         Name: name,
-        CloseAt: closeAt,
-        OpenAt: openAt,
+        CloseAt: moment(closeAt, "HH:mm").toDate(),
+        OpenAt: moment(openAt, "HH:mm").toDate(),
         Anouncement: anouncement,
+        Avatar: img.webContentLink || "",
       },
       { new: true }
     ).exec();
     console.log(result);
-
+    fs.unlinkSync(filePath);
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] update info res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR));
   }
 }
@@ -68,23 +89,73 @@ export async function updateRestaurantAddress(req, res) {
     latitude = result[0].latitude;
     longitude = result[0].longitude;
   } catch (error) {
-    console.log(`[ERROR] get location ${error}`);
+    console.log(`[ERROR] get location ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.CALL_API_ERROR));
   }
   try {
     const result = await Restaurant.findByIdAndUpdate(
-      { _id: restaurant._id },
+      { _id: restaurant.id },
       {
         Location: { type: "Point", coordinates: [longitude, latitude] },
         Address: resAddress,
       },
       { new: true }
     ).exec();
-    console.log(result);
 
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
-    console.log(`[ERROR] delete res ${error}`);
+    console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR));
+  }
+}
+
+export const payReceipt = async (req, res) => {
+  const { id } = req.body;
+  try {
+    const receipt = await ReceiptModel.findById(id);
+    if (!receipt) {
+      console.log(
+        `[RESTAURANT]: paid receipt ${id} fail, receipt does not exist.`
+      );
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
+      );
+    }
+
+    receipt.Status = Constants.PAID.RESOLVE;
+    await receipt.save();
+
+    console.log(`[RESTAURANT]: paid receipt ${id} success.`);
+    res.send(nomalizeResponse(null, 0));
+  } catch (e) {
+    console.log(`[RESTAURANT]: ${e.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR));
+  }
+};
+
+export async function addPermissionForRestaurant(req, res) {
+  const { fullname, phone, email, managerID } = req.body;
+  const { restaurant } = req.data;
+
+  try {
+    const updatedRes = await Restaurant.findByIdAndUpdate(
+      { _id: restaurant.id },
+      { IsPartner: true }
+    ).exec();
+    const manager = await Manager.findByIdAndUpdate(
+      { _id: managerID },
+      {
+        FullName: fullname,
+        Phone: phone,
+        email: email,
+      }
+    );
+
+    res.send(nomalizeResponse(null, 0));
+  } catch (error) {
+    console.log(`[ERROR] permision res ${error.message}`);
+    return res.send(
+      nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR)
+    );
   }
 }

@@ -32,7 +32,7 @@
   "private": true,
   "dependencies": {
     "@types/nodemailer": "^6.4.2",
-    "@vohoaian/datn-models": "^1.3.2",
+    "@vohoaian/datn-models": "^1.3.3",
     "@vohoaian/datn-otp": "^1.0.1",
     "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",

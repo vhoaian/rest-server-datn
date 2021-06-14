@@ -10,6 +10,5 @@ generalRouter.get(
   validateInput,
   getGeneralStatistics
 );
-//generalRouter.get("/notification", getNotification);
 
 export default generalRouter;

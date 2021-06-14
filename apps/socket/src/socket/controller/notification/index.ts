@@ -31,16 +31,16 @@ class NotificationController {
           `[${this._TAG_LOG_FAIL}]: notification does not exits.`
         );
 
-      const { Receiver } = notify.toObject();
+      const { Receiver } = notify;
       switch (this._ROLE[Receiver.Role]) {
         case "customer":
-          this.pushNotiToCustomer(notify.toObject());
+          this.pushNotiToCustomer(notify);
           break;
         case "merchant":
-          this.pushNotiToMerchant(notify.toObject());
+          this.pushNotiToMerchant(notify);
           break;
         case "shipper":
-          this.pushNotiToShipper(notify.toObject());
+          this.pushNotiToShipper(notify);
           break;
 
         default:
@@ -52,8 +52,8 @@ class NotificationController {
     }
   }
 
-  private pushNotiToCustomer(notification: any): void {
-    const socket = customerController.getSocket(notification.Receiver.Id);
+  private async pushNotiToCustomer(notification: any): Promise<void> {
+    const socket = customerController.getSocket(`${notification.Receiver.Id}`);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: customer not online`);
 
@@ -61,11 +61,14 @@ class NotificationController {
       TAG_EVENT.RESPONSE_NOTIFICATION,
       normalizeResponse("notification", notification)
     );
+
+    notification.Status = 1;
+    await notification.save();
     console.log(`[${this._TAG_LOG}]: push notification success.`);
   }
 
-  private pushNotiToMerchant(notification: any): void {
-    const socket = merchantController.getSocket(notification.Receiver.Id);
+  private async pushNotiToMerchant(notification: any): Promise<void> {
+    const socket = merchantController.getSocket(`${notification.Receiver.Id}`);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: merchant not online`);
 
@@ -73,11 +76,14 @@ class NotificationController {
       TAG_EVENT.RESPONSE_NOTIFICATION,
       normalizeResponse("notification", notification)
     );
+
+    notification.Status = 1;
+    await notification.save();
     console.log(`[${this._TAG_LOG}]: push notification success.`);
   }
 
-  private pushNotiToShipper(notification: any): void {
-    const socket = shipperController.getSocket(notification.Receiver.Id);
+  private async pushNotiToShipper(notification: any): Promise<void> {
+    const socket = shipperController.getSocket(`${notification.Receiver.Id}`);
     if (!socket)
       return console.log(`[${this._TAG_LOG_FAIL}]: shipper not online`);
 
@@ -85,6 +91,9 @@ class NotificationController {
       TAG_EVENT.RESPONSE_NOTIFICATION,
       normalizeResponse("notification", notification)
     );
+
+    notification.Status = 1;
+    await notification.save();
     console.log(`[${this._TAG_LOG}]: push notification success.`);
   }
 }
