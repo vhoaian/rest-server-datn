@@ -41,7 +41,7 @@ workflows:
           filters:
             branches:
               only:
-                - socket-server
+                - main
 
       # - deploy:
       #     requires:
