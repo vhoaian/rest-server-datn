@@ -43,6 +43,6 @@ workflows:
               only:
                 - socket-server
 
-      - deploy:
-          requires:
-            - build-and-push
+      # - deploy:
+      #     requires:
+      #       - build-and-push
