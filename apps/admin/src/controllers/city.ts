@@ -12,7 +12,7 @@ export async function getCities(req, res) {
     }
     res.send(nomalizeResponse({ cities, districts }));
   } catch (error) {
-    console.log(`[ERROR]: get city ${error}`);
+    console.log(`[ERROR]: get city ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_CITY_ERROR));
   }
 }

@@ -144,7 +144,7 @@ export async function getGeneralStatistics(req, res) {
       )
     );
   } catch (error) {
-    console.log(`[ERROR] get general info: ${error}`);
+    console.log(`[ERROR] get general info: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_GENERAL_ERROR));
   }
 }

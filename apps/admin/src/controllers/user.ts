@@ -50,7 +50,7 @@ export async function getUserManagementInfo(req, res) {
       })
     );
   } catch (error) {
-    console.log(`[ERROR]: user management: ${error}`);
+    console.log(`[ERROR]: user management: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_USER_ERROR));
   }
 }
@@ -74,7 +74,7 @@ export async function blockUserById(req, res) {
 
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
-    console.log(`[ERROR]: block user: ${error}`);
+    console.log(`[ERROR]: block user: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.BLOCK_USER_ERROR));
   }
 }
