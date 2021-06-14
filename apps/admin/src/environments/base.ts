@@ -57,6 +57,10 @@ export const Constants = {
     RESTAURANT: 2,
     ADMIN: 3,
   },
+  STATUS_ACCOUNT: {
+    LOCK: -2,
+    UNLOCK: 1,
+  },
 };
 
 export enum ERROR_CODE {

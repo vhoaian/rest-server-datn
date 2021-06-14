@@ -1,6 +1,12 @@
-import { Manager, Order, Restaurant, Shipper } from "@vohoaian/datn-models";
+import {
+  Manager,
+  Order,
+  Restaurant,
+  Setting,
+  Shipper,
+} from "@vohoaian/datn-models";
 import axios from "axios";
-import config from "../environments/base";
+import config, { Constants } from "../environments/base";
 import {
   Receipt as ReceiptModel,
   Notification as NotificationModel,
@@ -22,53 +28,48 @@ const ORDER_STATUS = {
 
 class AutoCalcReceipt {
   private _TIMER_CALC_RECEIPT: number = 0;
-  private _TIMER_AUTO_LOCK_ACC: number = 0;
+  private _TIMER_LOCK_ACC: number = 0;
   private _TIME_SKIP: number = 1000 * 60 * 10; // unit milisencond
 
   private _PERCENT_FEE_SHIPPER: number = 10; // unit %
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
-
-  private _STATUS_NOT_PAID: number = 0;
-  private _STATUS_PAID: number = 1;
   private _DAY_DELAY_PAY_RECEIPT: number = 14;
-  private _STATUS_LOCK_ACC: number = -1;
 
   private _TAG_LOG_SUCCESS: string = "AUTO_CALC_RECEIPT";
   private _TAG_LOG_FAILED: string = "AUTO_CALC_RECEIPT_FAILED";
 
-  private _ROLE: Array<string> = ["customer", "shipper", "merchant", "admin"];
-
   constructor() {}
+
+  private async fetchLatestSetting() {
+    const setting = (await Setting.find({}))[0];
+    this._PERCENT_FEE_MERCHANT = setting.PercentFeeMerchant;
+    this._PERCENT_FEE_SHIPPER = setting.PercentFeeShipper;
+    this._DAY_DELAY_PAY_RECEIPT = setting.MAX_DAY_DELAY_PAY_RECEIPT;
+  }
 
   public runAutoCalcReceipt(): void {
     console.log(`[${this._TAG_LOG_SUCCESS}]: autoCalcReceipt run`);
-
     this._TIMER_CALC_RECEIPT = new Date().getTime();
 
-    setInterval(() => {
+    setInterval(async () => {
       this._TIMER_CALC_RECEIPT += this._TIME_SKIP;
-
       // Date test: "Mon May 31 2021 22:59:00 GMT+0700 (Indochina Time)"
       if (!this.checkEndDayEndMonth(new Date(this._TIMER_CALC_RECEIPT))) return;
-
-      // run calc receipt
+      await this.fetchLatestSetting();
       this.calcReceipt();
     }, this._TIME_SKIP);
   }
 
   public runAutoLockLatePayReceipt(): void {
     console.log(`[${this._TAG_LOG_SUCCESS}]: AutoLockLatePayReceipt run`);
+    this._TIMER_LOCK_ACC = new Date().getTime();
 
-    this._TIMER_AUTO_LOCK_ACC = new Date().getTime();
-
-    setInterval(() => {
-      this._TIMER_AUTO_LOCK_ACC += this._TIME_SKIP;
-
+    setInterval(async () => {
+      this._TIMER_LOCK_ACC += this._TIME_SKIP;
       // Date test: "Mon May 31 2021 22:59:00 GMT+0700 (Indochina Time)"
-      if (!this.checkEndDay(new Date(this._TIMER_AUTO_LOCK_ACC).getHours()))
-        return;
+      if (!this.checkEndDay(new Date(this._TIMER_LOCK_ACC).getHours())) return;
 
-      // run calc receipt
+      await this.fetchLatestSetting();
       this.lockAccount();
     }, this._TIME_SKIP);
   }
@@ -77,7 +78,7 @@ class AutoCalcReceipt {
     try {
       // Get all receipt not paid
       const _listReceiptNotPaid = await ReceiptModel.find({
-        Status: this._STATUS_NOT_PAID,
+        Status: Constants.PAID.UNRESOLVE,
       });
 
       for (const receipt of _listReceiptNotPaid) {
@@ -86,17 +87,15 @@ class AutoCalcReceipt {
           (24 * 60 * 60 * 1000);
 
         if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
-          // Lock acc
-          const role = this._ROLE[receipt.Payer.Role];
-          switch (role) {
-            case "shipper": {
+          switch (receipt.Payer.Role) {
+            case Constants.ROLE.SHIPPER: {
               const shipper = await Shipper.findOne({
                 _id: receipt.Payer.Id,
                 Status: 0,
               });
               if (!shipper) break;
 
-              shipper.Status = this._STATUS_LOCK_ACC;
+              shipper.Status = Constants.STATUS_ACCOUNT.LOCK;
               await shipper.save();
 
               const email = shipper?.Email;
@@ -109,14 +108,14 @@ class AutoCalcReceipt {
               break;
             }
 
-            case "merchant": {
+            case Constants.ROLE.RESTAURANT: {
               const manager = await Manager.findOne({
                 "Roles.Restaurant": receipt.Payer.Id,
                 Status: 0,
               });
               if (!manager) break;
 
-              manager.Status = this._STATUS_LOCK_ACC;
+              manager.Status = Constants.STATUS_ACCOUNT.LOCK;
               await manager.save();
 
               const email = manager.Email;
@@ -257,11 +256,12 @@ class AutoCalcReceipt {
     const dataReceipt = {
       Payer: {
         Id: mongoose.Types.ObjectId(shipperID),
-        Role: this._ROLE.indexOf("shipper"),
+        Role: Constants.ROLE.SHIPPER,
       },
       FeeTotal: _feeAppAfter,
       PercentFee: this._PERCENT_FEE_SHIPPER / 100,
-      Status: _feeAppAfter > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
+      Status:
+        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
@@ -273,7 +273,7 @@ class AutoCalcReceipt {
       Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
       Receiver: {
         Id: mongoose.Types.ObjectId(shipperID),
-        Role: this._ROLE.indexOf("shipper"),
+        Role: Constants.ROLE.SHIPPER,
       },
     };
 
@@ -349,11 +349,12 @@ class AutoCalcReceipt {
     const dataReceipt = {
       Payer: {
         Id: mongoose.Types.ObjectId(merchantID),
-        Role: this._ROLE.indexOf("merchant"),
+        Role: Constants.ROLE.RESTAURANT,
       },
       FeeTotal: _feeAppAfter,
       PercentFee: this._PERCENT_FEE_MERCHANT / 100,
-      Status: _feeAppAfter > 0 ? this._STATUS_NOT_PAID : this._STATUS_PAID,
+      Status:
+        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
@@ -364,7 +365,7 @@ class AutoCalcReceipt {
       Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
       Receiver: {
         Id: mongoose.Types.ObjectId(merchantID),
-        Role: this._ROLE.indexOf("merchant"),
+        Role: Constants.ROLE.RESTAURANT,
       },
     };
 
