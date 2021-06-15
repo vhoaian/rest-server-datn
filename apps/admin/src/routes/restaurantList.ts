@@ -40,6 +40,7 @@ restaurantListRouter.post(
   body("district").notEmpty().isString(),
   body("ward").notEmpty().isString(),
   body("address").notEmpty().isString(),
+  body("parkingFee").notEmpty().isInt().toInt(),
   validateInput,
   createNewRestanrant
 );

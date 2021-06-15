@@ -6,6 +6,7 @@ import {
   Order,
   Shipper,
   Receipt,
+  Setting,
 } from "@vohoaian/datn-models";
 import {
   getStartAndEndOfWeek,
@@ -104,9 +105,17 @@ export async function getGeneralStatistics(req, res) {
         $gte: new Date(today.getFullYear(), today.getMonth(), 0),
       },
     }).exec();
-
-    const shipperData = ["Tài xế", "10%", 0, 0];
-    const restaurantData = ["Nhà hàng", "10%", 0, 0];
+    //get fee percent setting
+    const feeSettings = await Setting.find({})
+      .select("PercentFeeShipper PercentFeeMerchant")
+      .exec();
+    const shipperData = ["Tài xế", feeSettings[0].PercentFeeShipper, 0, 0];
+    const restaurantData = [
+      "Nhà hàng",
+      feeSettings[0].PercentFeeMerchant,
+      0,
+      0,
+    ];
 
     receipts.forEach((receipt: any) => {
       if (parseInt(receipt.Payer.Role) == 1) {

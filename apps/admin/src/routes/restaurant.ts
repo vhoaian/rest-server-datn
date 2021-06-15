@@ -5,7 +5,7 @@ const restaurantRouter = express.Router();
 import { validateInput } from "../middlewares/services";
 
 const upload = multer({ dest: "uploads/" });
-import moment from "moment";
+
 import {
   getRestaurantInfo,
   deleteRestaurant,

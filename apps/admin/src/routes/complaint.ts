@@ -1,5 +1,5 @@
 import express from "express";
-import { body, query } from "express-validator";
+import { body, query, param } from "express-validator";
 import complaintController from "../controllers/complaint";
 import { validateInput } from "../middlewares/services";
 const router = express.Router();
@@ -25,4 +25,14 @@ router.get(
   validateInput,
   complaintController.getComplaintList
 );
+
+router.get(
+  "/:id",
+  param("id").notEmpty().isMongoId(),
+  validateInput,
+  complaintController.getDetailCompliant
+);
+
+router.put("/:id", complaintController.solveComplaint);
+
 export default router;

@@ -41,6 +41,7 @@ export const Constants = {
     EMAIL_INVAILD: 151,
     PASS_INVAILD: 152,
     GET_COMP_ERROR: 170,
+    SOLVE_COMP_ERROR: 171,
     GET_CITY_ERROR: 180,
     GET_GENERAL_ERROR: 190,
     GET_NOTICE_ERROR: 191,
@@ -58,6 +59,15 @@ export const Constants = {
     SHIPPER: 1,
     RESTAURANT: 2,
     ADMIN: 3,
+  },
+  STATUS: {
+    BLOCK: -2,
+    NORMAL: 0,
+    UNCHECK: -1,
+  },
+
+  RESTAURANT: {
+    STOP_SERVICE: -1,
   },
   STATUS_ACCOUNT: {
     LOCK: -2,

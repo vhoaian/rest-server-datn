@@ -24,7 +24,6 @@ export async function getRestaurantManagementInfo(req, res) {
 
   try {
     //get cities and dsitrict in it
-
     if (cityName) {
       //filter for city
       option["Address.City"] = cityName;
@@ -38,7 +37,7 @@ export async function getRestaurantManagementInfo(req, res) {
 
     let restaurants: any = await Restaurant.find(option)
       .collation({ locale: "en_US", numericOrdering: true })
-      .select("Address Type Status Name ContractID CreatedAt Reviews IsPartner")
+      .select("Address Type Status Name ContractID CreatedAt Rating IsPartner")
       //.populate("Reviews")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
@@ -58,11 +57,14 @@ export async function getRestaurantManagementInfo(req, res) {
         _id: restaurant._id,
         address,
         type: restaurant.Type,
-        status: restaurant.Status,
+        isService:
+          restaurant.Status === Constants.RESTAURANT.STOP_SERVICE
+            ? false
+            : true,
         name: restaurant.Name,
         contractID: restaurant.ContractID,
         createdAt: restaurant.CreatedAt,
-        reviews: restaurant.Reviews,
+        rating: restaurant.Rating || 0,
         isPartner: restaurant.IsPartner,
         serviceCharge:
           receiptFee[i].Status === Constants.PAID.UNRESOLVE
@@ -107,6 +109,7 @@ export async function createNewRestanrant(req, res) {
     district,
     ward,
     address,
+    pakingFee,
   } = req.body;
 
   const resAddress = {
@@ -151,6 +154,7 @@ export async function createNewRestanrant(req, res) {
       Phone: contractID,
       City: cityID,
       District: districtID,
+      PakingFee: pakingFee,
     });
     //create new fake manager
     const newRestaurant = await restaurant.save();
