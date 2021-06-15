@@ -13,6 +13,7 @@ import {
 } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
 import mailController from "../mail/mailController";
+import { pushNotification } from "../notification";
 
 const ORDER_STATUS = {
   WAITING_PAYMENT: 0,
@@ -298,7 +299,7 @@ class AutoCalcReceipt {
 
     // const notification = { _id: "123" };
 
-    this.pushNotification(notification._id);
+    pushNotification(notification._id);
     console.log("FEE APP FOR SHIPPER:", _feeAppAfter);
   }
 
@@ -387,24 +388,8 @@ class AutoCalcReceipt {
       sendMail,
     ]);
 
-    this.pushNotification(notification._id);
+    pushNotification(notification._id);
     console.log("FEE APP FOR MERCHANT:", _feeAppAfter);
-  }
-
-  private async pushNotification(notificationID: string): Promise<void> {
-    try {
-      const body = {
-        notificationID,
-      };
-
-      axios.post(`${config.URL_SOCKET_SERVER}/notification`, body, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      console.log(e.message);
-    }
   }
 
   private checkLeapYear(year: number): boolean {
