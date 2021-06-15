@@ -3,13 +3,10 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getNotifications(req, res) {
   const { page, perpage } = req.query;
-  const query: any = { "Receiver.Id": req.user.id };
+  const query: any = { "Receiver.Id": req.user.id, Status: { $gt: 0 } };
 
   const count = await Notification.countDocuments(query);
   const orders = await Notification.find(query)
-    // .select(
-    //   "-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt -Shipper -Restaurant"
-    // )
     .skip((page - 1) * perpage)
     .limit(perpage)
     .sort({ CreatedAt: -1 })

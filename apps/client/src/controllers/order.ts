@@ -10,7 +10,6 @@ import axios from "axios";
 import { environment } from "../environments/base";
 import ggAPI from "@rest-servers/google-api";
 
-// const DAFilter = withFilter('FullAddress Phone Geolocation id');
 export async function addOrder(req, res) {
   const {
     foods,
@@ -29,7 +28,7 @@ export async function addOrder(req, res) {
 
   const fids = foods.map((f) => f.id);
   const _foundFoods = (
-    await Food.find({ _id: { $in: fids } }).exec()
+    await Food.find({ _id: { $in: fids }, Status: { $gte: 0 } }).exec()
   ).map((x) => x.toObject());
   const foundFoods: any[] = [];
   for (let i = 0; i < fids.length; i++) {
@@ -50,8 +49,8 @@ export async function addOrder(req, res) {
       })
       .exec()
   )?.FoodCategory as any).Restaurant;
-
-  if (restaurant.Status < 0) return res.send(nomalizeResponse(null, 15)); // Nhà hàng không phục vụ
+  if (restaurant.Status < 0 || (await restaurant.isOpening()) === false)
+    return res.send(nomalizeResponse(null, 15)); // Nhà hàng không phục vụ
 
   let delivery: any = null;
   let addr = address;
@@ -277,7 +276,7 @@ export async function getOrders(req, res) {
 
   const count = await Order.countDocuments(query);
 
-  const orders = await Order.find({ User: req.user.id })
+  const orders = await Order.find(query)
     .populate("Restaurant", "Name Avatar")
     .select(
       "-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt -Shipper"

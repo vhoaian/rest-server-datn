@@ -12,9 +12,6 @@ export async function getRestaurantReviews(req, res) {
 
   const count = await RestaurantReview.countDocuments(query);
   const orders = await RestaurantReview.find(query)
-    // .select(
-    //   "-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt -Shipper -Restaurant"
-    // )
     .skip((page - 1) * perpage)
     .limit(perpage)
     .sort({ CreatedAt: -1 })

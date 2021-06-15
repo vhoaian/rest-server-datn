@@ -13,6 +13,7 @@ export async function getOrders(req, res) {
     )
     .skip((page - 1) * perpage)
     .limit(perpage)
+    .sort({ CreatedAt: -1 })
     .exec();
 
   res.send(

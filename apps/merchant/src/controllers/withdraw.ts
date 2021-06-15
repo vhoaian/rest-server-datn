@@ -3,7 +3,7 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getWithdraws(req, res) {
   const { page, perpage, status } = req.query;
-  const query: any = { Restaurant: req.data.restaurant };
+  const query: any = { "User.Id": req.data.restaurant };
   if (status?.length > 0) query.Status = { $in: status };
 
   const count = await Withdraw.countDocuments(query);
