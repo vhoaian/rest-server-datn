@@ -459,7 +459,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Đơn hàng đã bị hủy. Chúng tôi rất tiếc vì điều này."
     );
 
@@ -486,7 +486,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Shipper đã lấy đơn hàng của bạn. Vui lòng giữ liên lạc để shipper có thể giao hàng."
     );
 
@@ -519,7 +519,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Yayy. Đơn hàng của bạn đã được giao thành công. Hẹn gặp bạn vào lần sau nhé. Chúc bạn ngon miệng!! ^^"
     );
 
