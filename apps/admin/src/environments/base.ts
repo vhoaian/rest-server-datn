@@ -13,6 +13,8 @@ export const environment = {
     secretKey: "final-project",
   },
   URL_SOCKET_SERVER: "http://localhost:8010",
+  THUMB_WITHDRAW: "",
+  THUMB_NOTI_FEEAPP: "",
 };
 
 export const Constants = {
@@ -63,8 +65,13 @@ export const Constants = {
     NORMAL: 0,
     UNCHECK: -1,
   },
+
   RESTAURANT: {
     STOP_SERVICE: -1,
+  },
+  STATUS_ACCOUNT: {
+    LOCK: -2,
+    UNLOCK: 1,
   },
 };
 

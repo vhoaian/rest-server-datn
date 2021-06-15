@@ -1,6 +1,8 @@
 import { Manager, Restaurant, Shipper } from "@vohoaian/datn-models";
+import NotificationModel from "@vohoaian/datn-models/lib/models/Notification";
 import Withdraw from "@vohoaian/datn-models/lib/models/Withdraw";
-import { Constants } from "../environments/base";
+import environment, { Constants } from "../environments/base";
+import { pushNotification } from "../notification";
 import { nomalizeResponse } from "../utils/normalize";
 
 export const getAllRequestWithdraw = async (req, res): Promise<void> => {
@@ -20,7 +22,6 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
         []
       )
     );
-    console.log("getAllRequestWithdraw");
 
     res.send(
       nomalizeResponse({ listWithdraw: withdraws }, 0, {
@@ -37,10 +38,9 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
 
 export const handleWithdraw = async (req, res): Promise<void> => {
   const { id } = req.body;
+  const withdraw = await Withdraw.findById(id);
 
   try {
-    const withdraw = await Withdraw.findById(id);
-
     if (!withdraw) throw new Error("Withdraw does not exist");
     if (withdraw.Status === 1) throw new Error("Withdrawal processed");
 
@@ -58,9 +58,30 @@ export const handleWithdraw = async (req, res): Promise<void> => {
     await user.save();
     await withdraw.save();
 
+    const newNoti = new NotificationModel({
+      Title: "Yêu cầu rút tiền xử lý thành công.",
+      Subtitle:
+        "Yêu cầu rút tiền của bạn đã được xử lý thành công. Cám ơn bạn đã sử dụng FlashFood.",
+      Receiver: withdraw.User,
+      Thumbnail: environment.THUMB_WITHDRAW,
+    });
+    await newNoti.save();
+    pushNotification(`${newNoti._id}`);
+
     console.log("[WITHDRAW]: Handle withdraw success.");
     res.send(nomalizeResponse(null, 0));
   } catch (e) {
+    if (withdraw) {
+      const newNoti = new NotificationModel({
+        Title: "Yêu cầu rút tiền xử lý thất bại.",
+        Subtitle: "Yêu cầu rút tiền của bạn đã được xử lý thất bại.",
+        Receiver: withdraw.User,
+        Thumbnail: environment.THUMB_WITHDRAW,
+      });
+      await newNoti.save();
+      pushNotification(`${newNoti._id}`);
+    }
+
     console.log(`[WITHDRAW]: handle withdraw fail, ${e.message}.`);
     res.send(nomalizeResponse(null, Constants.SERVER.HANDLE_WITHDRAW_ERROR));
   }
@@ -76,6 +97,17 @@ export const cancelWithdraw = async (req, res): Promise<void> => {
 
     withdraw.Status = -1;
     await withdraw.save();
+
+    if (withdraw) {
+      const newNoti = new NotificationModel({
+        Title: "Yêu cầu rút tiền xử lý thất bại.",
+        Subtitle: "Yêu cầu rút tiền của bạn đã được xử lý thất bại.",
+        Receiver: withdraw.User,
+        Thumbnail: environment.THUMB_WITHDRAW,
+      });
+      await newNoti.save();
+      pushNotification(`${newNoti._id}`);
+    }
 
     console.log("[WITHDRAW]: Handle cancel withdraw success.");
     res.send(nomalizeResponse(null, 0));
