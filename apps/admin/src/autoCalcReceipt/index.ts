@@ -6,7 +6,7 @@ import {
   Shipper,
 } from "@vohoaian/datn-models";
 import axios from "axios";
-import config, { Constants } from "../environments/base";
+import config, { Constants, environment } from "../environments/base";
 import {
   Receipt as ReceiptModel,
   Notification as NotificationModel,
@@ -276,6 +276,7 @@ class AutoCalcReceipt {
         Id: mongoose.Types.ObjectId(shipperID),
         Role: Constants.ROLE.SHIPPER,
       },
+      Thumbnail: environment.THUMB_NOTI_FEEAPP,
     };
 
     const notification = new NotificationModel(dataNoti);
@@ -368,6 +369,7 @@ class AutoCalcReceipt {
         Id: mongoose.Types.ObjectId(merchantID),
         Role: Constants.ROLE.RESTAURANT,
       },
+      Thumbnail: environment.THUMB_NOTI_FEEAPP,
     };
 
     const notification = new NotificationModel(dataNoti);
