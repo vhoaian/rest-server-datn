@@ -9,6 +9,7 @@
     "start:admin": "nx serve admin",
     "start:socket": "nx serve socket",
     "start:merchant": "nx serve merchant",
+    "start:shipper": "nx serve shipper",
     "build": "nx build",
     "test": "nx test",
     "lint": "nx workspace-lint && nx lint",
