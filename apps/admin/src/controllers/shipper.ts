@@ -19,7 +19,7 @@ export async function getShipperManagement(req, res) {
     const totalShipper = await Shipper.countDocuments(option).exec();
 
     let shippers: any = await Shipper.find(option)
-      .select("Phone Email Point Status CreatedAt")
+      .select("Phone Email Rating Status CreatedAt FullName")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
@@ -29,25 +29,26 @@ export async function getShipperManagement(req, res) {
     });
     const receiptFee: any = await Promise.all(
       shippers.map((shipper: any) => {
-        return Receipt.find({
-          ["Payer.Id"]: shipper._id,
-          Role: 1,
+        return Receipt.findOne({
+          "Payer.Id": shipper._id,
+          "Payer.Role": 1,
         }).exec();
       })
     );
 
     shippers = shippers.map((user: any, i) => {
+      const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
+      const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
       return {
         _id: user._id,
+        fullname: user.FullName,
         phone: user.Phone,
         email: user.Email,
-        point: user.Point,
+        rating: user.Rating,
         status: user.Status,
-        createdAt: user.createdAt,
-        serviceCharge:
-          receiptFee[i].Status === Constants.PAID.UNRESOLVE
-            ? "Nợ phí"
-            : "Đã thanh toán",
+        createdAt: user.CreatedAt,
+        serviceCharge,
+        receiptID,
       };
     });
 
@@ -88,7 +89,9 @@ export const createShipper = async (req, res): Promise<void> => {
       console.log(
         `[SHIPPER]: create new shipper fail, phone or email already exist. Phone & Email shipper: ${oldShipper.Phone} - ${oldShipper.Email}`
       );
-      res.send(nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR));
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR)
+      );
     }
 
     const newShipper = new Shipper({ Phone, Email, Gender, FullName });

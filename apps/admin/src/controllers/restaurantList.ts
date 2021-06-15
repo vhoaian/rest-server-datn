@@ -45,14 +45,16 @@ export async function getRestaurantManagementInfo(req, res) {
     const receiptFee: any = await Promise.all(
       restaurants.map((restaurant: any) => {
         return Receipt.find({
-          ["Payer.Id"]: restaurant._id,
-          Role: 2,
+          "Payer.Id": restaurant._id,
+          "Payer.Role": 1,
         }).exec();
       })
     );
 
     restaurants = restaurants.map((restaurant: any, i) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
+      const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
+      const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
       return {
         _id: restaurant._id,
         address,
@@ -66,10 +68,8 @@ export async function getRestaurantManagementInfo(req, res) {
         createdAt: restaurant.CreatedAt,
         rating: restaurant.Rating || 0,
         isPartner: restaurant.IsPartner,
-        serviceCharge:
-          receiptFee[i].Status === Constants.PAID.UNRESOLVE
-            ? "Nợ phí"
-            : "Đã thanh toán",
+        serviceCharge,
+        receiptID,
       };
     });
 

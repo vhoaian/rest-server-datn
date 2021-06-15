@@ -119,15 +119,13 @@ export async function getGeneralStatistics(req, res) {
 
     receipts.forEach((receipt: any) => {
       if (parseInt(receipt.Payer.Role) == 1) {
-        if (receipt.Status === 1) {
-          shipperData[2] += receipt.FeeTotal;
-        } else {
+        shipperData[2] += receipt.FeeTotal;
+        if (receipt.Status !== 1) {
           shipperData[3] += receipt.FeeTotal;
         }
       } else if (parseInt(receipt.Payer.Role) == 2) {
-        if (receipt.Status === 1) {
-          restaurantData[2] += receipt.FeeTotal;
-        } else {
+        restaurantData[2] += receipt.FeeTotal;
+        if (receipt.Status !== 1) {
           restaurantData[3] += receipt.FeeTotal;
         }
       }

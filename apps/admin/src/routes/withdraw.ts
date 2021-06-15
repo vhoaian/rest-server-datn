@@ -1,5 +1,5 @@
 import express from "express";
-import { jwtAuthentication, validateInput } from "../middlewares/services";
+import { validateInput } from "../middlewares/services";
 const withdrawRouter = express.Router();
 import {
   cancelWithdraw,
@@ -7,8 +7,6 @@ import {
   getAllRequestWithdraw,
 } from "../controllers/withdraw";
 import { body, query } from "express-validator";
-
-withdrawRouter.use(jwtAuthentication);
 
 withdrawRouter.get(
   "/",
@@ -19,14 +17,14 @@ withdrawRouter.get(
 
 withdrawRouter.post(
   "/",
-  body("id").notEmpty().isMongoId,
+  body("id").notEmpty().isMongoId(),
   validateInput,
   handleWithdraw
 );
 
 withdrawRouter.post(
-  "/calcel",
-  body("id").notEmpty().isMongoId,
+  "/cancel",
+  body("id").notEmpty().isMongoId(),
   validateInput,
   cancelWithdraw
 );
