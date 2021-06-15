@@ -233,7 +233,7 @@ class ShipperController {
         .getSocket(orderID)
         .emit(
           TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
-          normalizeResponse("Update Coor Shipper", coor)
+          normalizeResponse("Update Coor Shipper", { orderID, coor })
         );
     });
   }
