@@ -15,6 +15,14 @@ export async function deleteRestaurant(req, res) {
       { _id: restaurant.id },
       { Status: -1 }
     ).exec();
+    //block manager of restaurant
+    if (deletedRestaurant && deletedRestaurant.IsPartner) {
+      const manager = Manager.findOneAndUpdate(
+        { "Roles.Restaurant": deletedRestaurant._id },
+        { Status: Constants.STATUS.BLOCK }
+      ).exec();
+      console.log(manager);
+    }
 
     return res.send(nomalizeResponse(deletedRestaurant));
   } catch (error) {
@@ -39,18 +47,21 @@ export async function getRestaurantInfo(req, res) {
 
 export async function updateRestaurantInfo(req, res) {
   const { name, openAt, closeAt, anouncement } = req.body;
-  const uploadedFile = req.file;
-  console.log({ name, openAt, closeAt, anouncement, uploadedFile });
-  try {
-    const filePath = path.join(process.cwd(), uploadedFile.path);
-    const FILE = {
-      name: uploadedFile.filename,
-      type: uploadedFile.mimetype,
-      path: filePath,
-    };
-    const { restaurant } = req.data;
+  const { restaurant } = req.data;
 
-    const img = await ggAPI.uploadFile(FILE);
+  const uploadedFile = req.file;
+  let img: any = {};
+  let filePath = "";
+  try {
+    if (uploadedFile) {
+      filePath = path.join(process.cwd(), uploadedFile.path);
+      const FILE = {
+        name: uploadedFile.filename,
+        type: uploadedFile.mimetype,
+        path: filePath,
+      };
+      img = await ggAPI.uploadFile(FILE);
+    }
 
     const result = await Restaurant.findByIdAndUpdate(
       { _id: restaurant.id },
@@ -59,12 +70,12 @@ export async function updateRestaurantInfo(req, res) {
         CloseAt: moment(closeAt, "HH:mm").toDate(),
         OpenAt: moment(openAt, "HH:mm").toDate(),
         Anouncement: anouncement,
-        Avatar: img.webContentLink || "",
+        Avatar: img.webContentLink || restaurant.Avatar,
       },
       { new: true }
     ).exec();
-    console.log(result);
-    fs.unlinkSync(filePath);
+
+    if (filePath !== "") fs.unlinkSync(filePath);
     res.send(nomalizeResponse(result, 0));
   } catch (error) {
     console.log(`[ERROR] update info res ${error.message}`);

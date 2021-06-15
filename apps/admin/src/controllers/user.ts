@@ -1,6 +1,7 @@
 import { User } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 import { nomalizeResponse } from "../utils/normalize";
+import mailController from "../mail/mailController";
 
 export async function getUserManagementInfo(req, res) {
   const { page, email, phone } = req.query;
@@ -55,19 +56,33 @@ export async function getUserManagementInfo(req, res) {
   }
 }
 
+//Status: [-2: Khóa tài khoản, -1: chưa xác thực, 0: bình thường]
+
 export async function blockUserById(req, res) {
-  const { id } = req.body;
+  const { id, reason } = req.body;
   const { user } = req.data;
   try {
-    const update = { Status: 0 };
+    const update = { Status: Constants.STATUS.NORMAL };
 
-    if (user.Status === -1) {
+    if (user.Status === Constants.STATUS.UNCHECK) {
       return res.send(
         nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_USER)
       );
     }
-    user.Status === 0 ? (update.Status = -2) : update.Status === 0;
-
+    user.Status === Constants.STATUS.NORMAL
+      ? (update.Status = Constants.STATUS.BLOCK)
+      : update.Status === Constants.STATUS.NORMAL;
+    if (
+      update.Status === Constants.STATUS.BLOCK &&
+      typeof user.Email !== "undefined"
+    ) {
+      await mailController.sendMailLockAccountWithMessage(
+        user.FullName,
+        user.Email,
+        `Tài khoản bạn tạm thời bị khóa với lý do: ${reason}`,
+        "vn"
+      );
+    }
     const result = await User.findByIdAndUpdate({ _id: id }, update, {
       new: true,
     }).exec();
