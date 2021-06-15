@@ -28,6 +28,7 @@ userRouter.put(
         });
     }),
   body("id").notEmpty().isMongoId(),
+  body("reason").optional().isString(),
   validateInput,
   blockUserById
 );
