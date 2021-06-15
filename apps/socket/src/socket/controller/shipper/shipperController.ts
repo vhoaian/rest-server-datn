@@ -249,7 +249,7 @@ class ShipperController {
     mapOptions(order);
     normalOrder(order);
 
-    const [latMer = 0, lngMer = 0] = order.Restaurant.Location.coordinates;
+    const [lngMer = 0, latMer = 0] = order.Restaurant.Location.coordinates;
     const coorMerchant = {
       lat: latMer,
       lng: lngMer,
