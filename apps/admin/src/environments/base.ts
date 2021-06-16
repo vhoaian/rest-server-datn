@@ -83,6 +83,7 @@ export const Constants = {
     CANCEL_BY_CUSTOMER: 6,
     CANCEL_BY_MERCHANT: 7,
     CANCEL_BY_SHIPPER: 8,
+    BOOM: 9,
   },
 };
 
