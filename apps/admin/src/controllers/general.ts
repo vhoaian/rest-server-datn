@@ -14,6 +14,7 @@ import {
   getStartAndEndOfYear,
 } from "../utils/startAndEnd";
 import { statisticsTemp } from "../environments/dateTemplate";
+import { RESERVED_EVENTS } from "socket.io/dist/socket";
 
 export async function getGeneralStatistics(req, res) {
   const { filter } = req.query;
@@ -29,15 +30,19 @@ export async function getGeneralStatistics(req, res) {
     let present: any = [];
     let past: any = [];
     const today = new Date();
-    if (filter === "week") {
-      present = getStartAndEndOfWeek(today, 0);
-      past = getStartAndEndOfWeek(today, 1);
-    } else if (filter === "month") {
-      present = getStartAndEndOfMonth(today, 0);
-      past = getStartAndEndOfMonth(today, 1);
-    } else {
-      present = getStartAndEndOfYear(today, 0);
-      past = getStartAndEndOfYear(today, 1);
+    switch (filter) {
+      case "week":
+        present = getStartAndEndOfWeek(today, 0);
+        past = getStartAndEndOfWeek(today, 1);
+        break;
+      case "month":
+        present = getStartAndEndOfMonth(today, 0);
+        past = getStartAndEndOfMonth(today, 1);
+        break;
+      case "year":
+        present = getStartAndEndOfYear(today, 0);
+        past = getStartAndEndOfYear(today, 1);
+        break;
     }
 
     const orders = await Order.find({
@@ -68,19 +73,23 @@ export async function getGeneralStatistics(req, res) {
     //parse onrder in array of orders & payment
     orders.forEach((order: any) => {
       let index = 0;
-      if (filter === "week") {
-        index =
-          order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
-        numberOfOrder[index]++;
-        payOfOrder[index] += order.Total;
-      } else if (filter === "month") {
-        index = Math.floor(order.CreatedAt.getDate() / 7);
-        numberOfOrder[index]++;
-        payOfOrder[index] += order.Total;
-      } else {
-        index = order.CreatedAt.getMonth();
-        numberOfOrder[index]++;
-        payOfOrder[index] += order.Total;
+      switch (filter) {
+        case "week":
+          index =
+            order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
+          numberOfOrder[index]++;
+          payOfOrder[index] += order.Total;
+          break;
+        case "month":
+          index = Math.floor(order.CreatedAt.getDate() / 7);
+          numberOfOrder[index]++;
+          payOfOrder[index] += order.Total;
+          break;
+        case "year":
+          index = order.CreatedAt.getMonth();
+          numberOfOrder[index]++;
+          payOfOrder[index] += order.Total;
+          break;
       }
       totalPayment += order.Total;
     });
@@ -107,26 +116,33 @@ export async function getGeneralStatistics(req, res) {
     }).exec();
     //get fee percent setting
     const feeSettings = await Setting.find({})
-      .select("PercentFeeShipper PercentFeeMerchant")
+      .select("PercentFeeShipper PercentFeeMerchant MAX_DAY_DELAY_PAY_RECEIPT")
       .exec();
-    const shipperData = ["Tài xế", feeSettings[0].PercentFeeShipper, 0, 0];
+    const shipperData = [
+      "Tài xế",
+      feeSettings[0].PercentFeeShipper,
+      feeSettings[0].MAX_DAY_DELAY_PAY_RECEIPT,
+      0,
+      0,
+    ];
     const restaurantData = [
       "Nhà hàng",
       feeSettings[0].PercentFeeMerchant,
+      feeSettings[0].MAX_DAY_DELAY_PAY_RECEIPT,
       0,
       0,
     ];
 
     receipts.forEach((receipt: any) => {
       if (parseInt(receipt.Payer.Role) == 1) {
-        shipperData[2] += receipt.FeeTotal;
+        shipperData[3] += receipt.FeeTotal;
         if (receipt.Status !== 1) {
-          shipperData[3] += receipt.FeeTotal;
+          shipperData[4] += receipt.FeeTotal;
         }
       } else if (parseInt(receipt.Payer.Role) == 2) {
-        restaurantData[2] += receipt.FeeTotal;
+        restaurantData[3] += receipt.FeeTotal;
         if (receipt.Status !== 1) {
-          restaurantData[3] += receipt.FeeTotal;
+          restaurantData[4] += receipt.FeeTotal;
         }
       }
     });
@@ -153,5 +169,47 @@ export async function getGeneralStatistics(req, res) {
   } catch (error) {
     console.log(`[ERROR] get general info: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.GET_GENERAL_ERROR));
+  }
+}
+
+export async function getSetting(req, res) {
+  try {
+    const setting = await Setting.find({})
+      .select("PercentFeeShipper PercentFeeMerchant MAX_DAY_DELAY_PAY_RECEIPT")
+      .exec();
+    if (!setting) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.GET_SETTING_ERROR)
+      );
+    }
+    res.send(nomalizeResponse(setting[0]));
+  } catch (error) {
+    console.error(`[ERROR]: get setting error ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.GET_SETTING_ERROR));
+  }
+}
+
+export async function updateSetting(req, res) {
+  const {
+    shipperPercent: PercentFeeShipper,
+    merchantPercent: PercentFeeMerchant,
+    delayDay: MAX_DAY_DELAY_PAY_RECEIPT,
+    id,
+  } = req.body;
+  try {
+    const updatedSetting = await Setting.findByIdAndUpdate(id, {
+      MAX_DAY_DELAY_PAY_RECEIPT,
+      PercentFeeMerchant,
+      PercentFeeShipper,
+    }).exec();
+    if (!updatedSetting) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.UPDATE_SETTING_ERROR)
+      );
+    }
+    res.send(nomalizeResponse(null));
+  } catch (error) {
+    console.error(`[ERROR]: get setting error ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_SETTING_ERROR));
   }
 }

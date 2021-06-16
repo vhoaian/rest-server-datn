@@ -33,6 +33,7 @@ export const Constants = {
     FIND_RES_ERROR: 103,
     RES_EXISTS: 105,
     UPDATE_PERMISION_ERROR: 106,
+    RECALL_PERMISION_ERROR: 107,
     GET_USER_ERROR: 110,
     BLOCK_USER_ERROR: 111,
     CAN_NOT_FIND_USER: 112,
@@ -43,6 +44,8 @@ export const Constants = {
     GET_COMP_ERROR: 170,
     SOLVE_COMP_ERROR: 171,
     GET_CITY_ERROR: 180,
+    GET_SETTING_ERROR: 181,
+    UPDATE_SETTING_ERROR: 182,
     GET_GENERAL_ERROR: 190,
     GET_NOTICE_ERROR: 191,
     CREATE_SHIPPER_ERROR: 160,
@@ -73,6 +76,7 @@ export const Constants = {
     LOCK: -2,
     UNLOCK: 1,
   },
+  PASS_LENGTH: 8,
 };
 
 export enum ERROR_CODE {

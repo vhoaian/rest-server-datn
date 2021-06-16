@@ -44,9 +44,9 @@ export async function getRestaurantManagementInfo(req, res) {
       .exec();
     const receiptFee: any = await Promise.all(
       restaurants.map((restaurant: any) => {
-        return Receipt.find({
+        return Receipt.findOne({
           "Payer.Id": restaurant._id,
-          "Payer.Role": 1,
+          "Payer.Role": 2,
         }).exec();
       })
     );
@@ -54,6 +54,7 @@ export async function getRestaurantManagementInfo(req, res) {
     restaurants = restaurants.map((restaurant: any, i) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
+      const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
       const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
       return {
         _id: restaurant._id,
@@ -69,6 +70,7 @@ export async function getRestaurantManagementInfo(req, res) {
         rating: restaurant.Rating || 0,
         isPartner: restaurant.IsPartner,
         serviceCharge,
+        serviceFee,
         receiptID,
       };
     });

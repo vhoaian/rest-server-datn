@@ -35,10 +35,11 @@ export async function getShipperManagement(req, res) {
         }).exec();
       })
     );
-
+    console.log(receiptFee[0]);
     shippers = shippers.map((user: any, i) => {
       const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
       const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
+      const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
       return {
         _id: user._id,
         fullname: user.FullName,
@@ -48,6 +49,7 @@ export async function getShipperManagement(req, res) {
         status: user.Status,
         createdAt: user.CreatedAt,
         serviceCharge,
+        serviceFee,
         receiptID,
       };
     });
