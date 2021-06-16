@@ -35,7 +35,8 @@ router.use(
     return Restaurant.findById(value)
       .exec()
       .then((restaurant) => {
-        if (!restaurant) return Promise.reject("Khong tim thay restaurant");
+        if (!restaurant || restaurant.Status == -2)
+          return Promise.reject("Khong tim thay restaurant");
         req.data = { restaurant };
       });
   }),
@@ -49,13 +50,15 @@ router.use(
     return Restaurant.findById(value)
       .exec()
       .then((restaurant) => {
-        if (!restaurant) return Promise.reject("Khong tim thay restaurant");
+        if (!restaurant || restaurant.Status == -2)
+          return Promise.reject("Khong tim thay restaurant");
         req.data = { restaurant };
       });
   }),
   validateInput,
   restaurantreviewRouter
 );
+
 router.get(
   "/:restaurant/foods",
   param("restaurant").isMongoId(),

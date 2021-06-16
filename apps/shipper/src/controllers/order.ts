@@ -3,7 +3,7 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getOrders(req, res) {
   const { page, perpage, status } = req.query;
-  const query: any = { Restaurant: req.data.restaurant };
+  const query: any = { Shipper: req.user.id };
   if (status?.length > 0) query.Status = { $in: status };
 
   const count = await Order.countDocuments(query);
@@ -38,11 +38,13 @@ export async function getOrders(req, res) {
 export async function getOrder(req, res) {
   const { id } = req.params;
   const order = await Order.findOne({
-    Restaurant: req.data.restaurant,
+    Shipper: req.user.id,
     _id: id,
   })
     .populate("Foods.Food", "Name Avatar Options")
-    .select("-Distance -Coor -Tool -User -UpdatedAt -Restaurant")
+    .populate("User", "FullName Avatar")
+    .populate("Restaurant", "Name Avatar")
+    .select("-UpdatedAt")
     .exec();
 
   if (!order) return res.send(nomalizeResponse(null, 2));

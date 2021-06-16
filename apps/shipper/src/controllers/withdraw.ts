@@ -1,16 +1,13 @@
-import { Restaurant, Withdraw } from "@vohoaian/datn-models";
+import { Shipper, Withdraw } from "@vohoaian/datn-models";
 import { nomalizeResponse } from "../utils/normalize";
 
 export async function getWithdraws(req, res) {
   const { page, perpage, status } = req.query;
-  const query: any = { "User.Id": req.data.restaurant };
+  const query: any = { "User.Id": req.user.id };
   if (status?.length > 0) query.Status = { $in: status };
 
   const count = await Withdraw.countDocuments(query);
   const orders = await Withdraw.find(query)
-    // .select(
-    //   "-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt -Shipper -Restaurant"
-    // )
     .skip((page - 1) * perpage)
     .limit(perpage)
     .sort({ CreatedAt: -1 })
@@ -37,20 +34,20 @@ export async function getWithdraws(req, res) {
 
 export async function addWithdraw(req, res) {
   const { amount } = req.body;
-  const restaurant = await Restaurant.findById(req.data.restaurant);
-  if (!((restaurant?.Wallet as number) >= amount))
+  const shipper = await Shipper.findById(req.user.id);
+  if (!((shipper?.Wallet as number) >= amount))
     return res.send(nomalizeResponse(null, 3)); // khong du tien trong tai khoan
   const newWithdraw = await Withdraw.create({
     User: {
       Id: req.user.id,
-      Role: 2,
+      Role: 1,
     },
     Amount: amount,
   });
 
   // cap nhat so du
-  (restaurant as any).Wallet = (restaurant?.Wallet as number) - amount;
-  restaurant?.save();
+  (shipper as any).Wallet = (shipper?.Wallet as number) - amount;
+  shipper?.save();
 
   const response = newWithdraw.toObject();
   response.id = response._id;

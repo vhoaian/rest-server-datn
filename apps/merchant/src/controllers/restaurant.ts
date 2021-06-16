@@ -36,6 +36,7 @@ export async function getFoodsOfRestaurant(req, res) {
       .populate({
         path: "Foods",
         select: "-Type -Status",
+        match: { Status: { $gt: -2 } },
         options: { sort: { Order: 1 } },
       })
       .select("-Status -Restaurant")

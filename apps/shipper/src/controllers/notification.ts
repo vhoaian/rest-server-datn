@@ -3,7 +3,7 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export async function getNotifications(req, res) {
   const { page, perpage } = req.query;
-  const query: any = { "Receiver.Id": req.data.restaurant, Status: { $gt: 0 } };
+  const query: any = { "Receiver.Id": req.user.id };
 
   const count = await Notification.countDocuments(query);
   const orders = await Notification.find(query)

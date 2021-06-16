@@ -2,46 +2,20 @@ import {
   FoodCategory,
   Restaurant,
   SecondaryRestaurant,
-} from '@vohoaian/datn-models';
-import { validationResult } from 'express-validator';
-import { nomalizeResponse } from '../utils/normalize';
-import { withFilter } from '../utils/objects';
-import Mongoose from 'mongoose';
-
-// TODO: nhận vị trí và địa chỉ
-// export async function createRestaurant(req, res) {
-//   try {
-//     const restaurant = new Restaurant({
-//       Name: req.body.name,
-//       ContractID: req.body.contractID,
-//       // Address: req.body.address,
-//       OpenAt: req.body.openAt,
-//       CloseAt: req.body.closeAt,
-//       // Location: ?
-//       // Type: 0,
-//       Description: req.body.description,
-//       Avatar: req.body.avatar,
-//       Anouncement: req.body.anouncement,
-//       ParkingFee: req.body.parkingFee,
-//       Status: req.body.status,
-//     });
-
-//     await restaurant.save();
-//     res.send(nomalizeResponse(restaurant));
-//   } catch (error) {
-//     res.send(nomalizeResponse(null, 10));
-//   }
-// }
+} from "@vohoaian/datn-models";
+import { nomalizeResponse } from "../utils/normalize";
+import { withFilter } from "../utils/objects";
+import Mongoose from "mongoose";
 
 function findNearRestaurants(latitude, longitude): Promise<RestaurantQuery[]> {
   return SecondaryRestaurant.aggregate([
     {
       $geoNear: {
         near: {
-          type: 'Point',
+          type: "Point",
           coordinates: [longitude, latitude],
         },
-        distanceField: 'Distance',
+        distanceField: "Distance",
         maxDistance: 50000,
       },
     },
@@ -115,12 +89,12 @@ export async function getRestaurants(req, res) {
   let resolvedRestaurants = [] as any;
 
   const filter: { City?: number; District?: any; Categories?: any } = {};
-  if (typeof city == 'number') filter.City = city;
-  if (typeof types == 'object')
+  if (typeof city == "number") filter.City = city;
+  if (typeof types == "object")
     filter.Categories = {
       $in: types,
     };
-  if (typeof districts == 'object')
+  if (typeof districts == "object")
     filter.District = {
       $in: districts,
     };
@@ -188,7 +162,7 @@ export async function getRestaurants(req, res) {
       const o = r.toObject({ virtuals: true });
       o.IsOpening = await r.isOpening();
       return withFilter(
-        'Name FullAddress OpenHours id Avatar IsOpening Distance Categories'
+        "Name FullAddress OpenHours id Avatar IsOpening Distance Categories"
       )(o);
     })
   );
@@ -230,11 +204,16 @@ export async function getFoodsOfRestaurant(req, res) {
       Restaurant: req.params.restaurant,
     })
       .populate({
-        path: 'Foods',
-        select: '-Type -Status',
+        path: "Foods",
+        select: "-Type -Status",
+        match: {
+          Status: {
+            $gte: 0,
+          },
+        },
         options: { sort: { Order: 1 } },
       })
-      .select('-Status -Restaurant')
+      .select("-Status -Restaurant")
       .sort({
         Order: 1,
       })
