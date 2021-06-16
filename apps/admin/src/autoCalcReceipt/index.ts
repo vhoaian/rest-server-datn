@@ -181,6 +181,28 @@ class AutoCalcReceipt {
         ? this._PERCENT_FEE_SHIPPER
         : this._PERCENT_FEE_MERCHANT;
 
+    // Create receipt and notification
+    const dataReceipt = {
+      Payer: {
+        Id: user._id,
+        Role: role,
+      },
+      FeeTotal: 0,
+      PercentFee: percentFee / 100,
+      Status:
+        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
+      DateStart: dateStart,
+      DateEnd: dateEnd,
+    };
+
+    const oldReceipt = await ReceiptModel.findOne({
+      "Payer.Id": user._id,
+      Status: Constants.PAID.UNRESOLVE,
+    });
+
+    const oldFee = oldReceipt?.FeeTotal || 0;
+    const receipt = oldReceipt ? oldReceipt : new ReceiptModel(dataReceipt);
+
     // Calc fee
     const _feeAppBefore =
       role === Constants.ROLE.SHIPPER
@@ -191,7 +213,7 @@ class AutoCalcReceipt {
             return fee + (order.Total - order.ShippingFee) * (percentFee / 100);
           }, 0);
 
-    let _feeAppAfter = user.Wallet - _feeAppBefore;
+    let _feeAppAfter = user.Wallet - _feeAppBefore - oldFee;
 
     if (_feeAppAfter >= 0) {
       user.Wallet -= _feeAppBefore;
@@ -201,21 +223,7 @@ class AutoCalcReceipt {
       _feeAppAfter *= -1;
     }
 
-    // Create receipt and notification
-    const dataReceipt = {
-      Payer: {
-        Id: user._id,
-        Role: role,
-      },
-      FeeTotal: _feeAppAfter,
-      PercentFee: percentFee / 100,
-      Status:
-        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
-      DateStart: dateStart,
-      DateEnd: dateEnd,
-    };
-
-    const newReceipt = new ReceiptModel(dataReceipt);
+    receipt.FeeTotal = _feeAppAfter;
 
     const notification = new NotificationModel({
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
@@ -236,7 +244,7 @@ class AutoCalcReceipt {
     );
 
     await Promise.all([
-      newReceipt.save(),
+      receipt.save(),
       notification.save(),
       user.save(),
       sendMail,
