@@ -73,6 +73,17 @@ export const Constants = {
     LOCK: -2,
     UNLOCK: 1,
   },
+  ORDER_STATUS: {
+    WAITING_PAYMENT: 0,
+    WAITING: 1,
+    MERCHANT_CONFIRM: 2,
+    DURING_GET: 3,
+    DURING_SHIP: 4,
+    DELIVERED: 5,
+    CANCEL_BY_CUSTOMER: 6,
+    CANCEL_BY_MERCHANT: 7,
+    CANCEL_BY_SHIPPER: 8,
+  },
 };
 
 export enum ERROR_CODE {
