@@ -1,100 +1,94 @@
-// Notification
-// |- id: ObjectID
-// |- Title: string
-// |- SubTitle: string
-// |- Receiver: ObjectID
-// |- RoleReceiver: ["customer", "merchant", "shipper"]
-// |- Thumbnail: string | null - url image thumbnail noti
-// |- CreatedAt: Date
-
+import {
+  Notification as NotificationModel,
+  Shipper,
+  Types,
+} from "@vohoaian/datn-models";
+import { INotificationDocument } from "@vohoaian/datn-models/lib/models/Notification";
 import { normalizeResponse } from "apps/socket/src/utils/normalizeResponse";
 import { TAG_EVENT } from "../../TAG_EVENT";
 import customerController from "../customer/customerController";
 import merchantController from "../merchant/merchantController";
 import shipperController from "../shipper/shipperController";
-import { Notification as NotificationModel } from "@vohoaian/datn-models";
 
 class NotificationController {
   private _TAG_LOG: string = "NOTIFICATION";
   private _TAG_LOG_FAIL: string = "NOTIFICATION_FAIL";
+  private _NOTI_SEND_SUCCESS = 1;
 
   private _ROLE: Array<string> = ["customer", "shipper", "merchant", "admin"];
 
   constructor() {}
 
-  public async pushNotification(notificationID: string): Promise<void> {
-    try {
-      const notify = await NotificationModel.findOne({ _id: notificationID });
+  public async fetchAndPushNotification(userID: string) {
+    const listNotification = await NotificationModel.find({
+      Status: { $lt: 0 },
+      "Receiver.Id": Types.ObjectId(userID),
+    });
 
-      if (!notify)
-        return console.log(
-          `[${this._TAG_LOG_FAIL}]: notification does not exits.`
-        );
-
-      const { Receiver } = notify;
-      switch (this._ROLE[Receiver.Role]) {
-        case "customer":
-          this.pushNotiToCustomer(notify);
-          break;
-        case "merchant":
-          this.pushNotiToMerchant(notify);
-          break;
-        case "shipper":
-          this.pushNotiToShipper(notify);
-          break;
-
-        default:
-          console.log(`[${this._TAG_LOG_FAIL}]: Role invalid.`);
-          break;
-      }
-    } catch (e) {
-      console.log(`[${this._TAG_LOG_FAIL}]: ${e.message}.`);
+    for (const noti of listNotification) {
+      await this.pushNotification(noti);
     }
   }
 
-  private async pushNotiToCustomer(notification: any): Promise<void> {
-    const socket = customerController.getSocket(`${notification.Receiver.Id}`);
-    if (!socket)
-      return console.log(`[${this._TAG_LOG_FAIL}]: customer not online`);
+  public async pushNotification(
+    notification: INotificationDocument
+  ): Promise<void> {
+    try {
+      if (!notification) throw new Error("Notification does not exits");
 
-    socket.emit(
-      TAG_EVENT.RESPONSE_NOTIFICATION,
-      normalizeResponse("notification", notification)
-    );
+      const { Receiver } = notification;
+      let socket: any = null;
 
-    notification.Status = 1;
-    await notification.save();
-    console.log(`[${this._TAG_LOG}]: push notification success.`);
+      switch (this._ROLE[Receiver.Role]) {
+        case "customer":
+          socket = customerController.getSocket(`${Receiver.Id}`);
+          break;
+        case "merchant":
+          socket = merchantController.getSocket(`${Receiver.Id}`);
+          break;
+        case "shipper":
+          socket = shipperController.getSocket(`${Receiver.Id}`);
+          break;
+
+        default:
+          throw new Error("Role invalid");
+          break;
+      }
+
+      if (socket === null) throw new Error("User not online");
+
+      socket.emit(
+        TAG_EVENT.RESPONSE_NOTIFICATION,
+        normalizeResponse("notification", notification)
+      );
+
+      notification.Status = this._NOTI_SEND_SUCCESS;
+      await notification.save();
+
+      this.log(`Push notification success`);
+    } catch (e) {
+      this.logFail(`Push notification fail, ${e.message}`);
+    }
   }
 
-  private async pushNotiToMerchant(notification: any): Promise<void> {
-    const socket = merchantController.getSocket(`${notification.Receiver.Id}`);
-    if (!socket)
-      return console.log(`[${this._TAG_LOG_FAIL}]: merchant not online`);
+  public async pushNotificationByID(notificationID: string): Promise<void> {
+    try {
+      const notify = await NotificationModel.findById(notificationID);
 
-    socket.emit(
-      TAG_EVENT.RESPONSE_NOTIFICATION,
-      normalizeResponse("notification", notification)
-    );
+      if (!notify) throw new Error("Notification does not exits");
 
-    notification.Status = 1;
-    await notification.save();
-    console.log(`[${this._TAG_LOG}]: push notification success.`);
+      await this.pushNotification(notify);
+    } catch (e) {
+      this.logFail(`Push notification fail, ${e.message}`);
+    }
   }
 
-  private async pushNotiToShipper(notification: any): Promise<void> {
-    const socket = shipperController.getSocket(`${notification.Receiver.Id}`);
-    if (!socket)
-      return console.log(`[${this._TAG_LOG_FAIL}]: shipper not online`);
+  private log(message: string): void {
+    console.log(`[${this._TAG_LOG}]: ${message}`);
+  }
 
-    socket.emit(
-      TAG_EVENT.RESPONSE_NOTIFICATION,
-      normalizeResponse("notification", notification)
-    );
-
-    notification.Status = 1;
-    await notification.save();
-    console.log(`[${this._TAG_LOG}]: push notification success.`);
+  private logFail(message: string): void {
+    console.log(`[${this._TAG_LOG_FAIL}]: ${message}`);
   }
 }
 

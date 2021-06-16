@@ -79,14 +79,7 @@ class CustomerController {
       );
     }
 
-    const listNotification = await NotificationModel.find({
-      Status: { $lt: 0 },
-      "Receiver.Id": Types.ObjectId(customerID),
-    }).select("Title Subtitle CreatedAt");
-
-    for (const noti of listNotification) {
-      await notificationController.pushNotification(noti._id);
-    }
+    notificationController.fetchAndPushNotification(customerID);
   }
 
   removeCustomer = (customerID) => {

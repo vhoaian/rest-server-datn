@@ -172,7 +172,7 @@ class GGAPI {
         this.credentials.API_KEY,
         "AIzaSyBL5NFRIKsim5nZLWf34oVPVw-0Bl_qv-8",
       ];
-      const API_KEY = LIST_API_KEY[1];
+      const API_KEY = LIST_API_KEY[0];
 
       const query = unescape(
         encodeURIComponent(

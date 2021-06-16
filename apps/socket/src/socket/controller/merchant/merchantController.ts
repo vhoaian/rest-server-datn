@@ -66,14 +66,7 @@ class MerchantController {
       );
     }
 
-    const listNotification = await NotificationModel.find({
-      Status: { $lt: 0 },
-      "Receiver.Id": Types.ObjectId(id),
-    }).select("Title Subtitle CreatedAt");
-
-    for (const noti of listNotification) {
-      await notificationController.pushNotification(noti._id);
-    }
+    notificationController.fetchAndPushNotification(id);
   }
 
   getMerchant(id): any {
