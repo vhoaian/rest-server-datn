@@ -78,7 +78,7 @@ export const Constants = {
   },
   STATUS_ACCOUNT: {
     LOCK: -2,
-    UNLOCK: 1,
+    UNLOCK: 0,
   },
   PASS_LENGTH: 8,
   ORDER_STATUS: {

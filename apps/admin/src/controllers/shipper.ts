@@ -178,7 +178,7 @@ export async function updateBoomOrderByID(req, res) {
 
   try {
     //check of this order is delivered bys this shipper
-    if (!order.Shipper.equals(id)) {
+    if (order.Shipper && !order.Shipper.equals(id)) {
       return res.send(
         nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
       );
@@ -193,7 +193,9 @@ export async function updateBoomOrderByID(req, res) {
         nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
       );
     }
-
+    const shipper = await Shipper.findById(id).exec();
+    shipper?.History.Skip += 1;
+    await shipper.save();
     res.send(nomalizeResponse(null));
   } catch (error) {
     console.error(`[ERROR]: boom order shipper: ${error.message}`);

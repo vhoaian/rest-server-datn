@@ -49,7 +49,7 @@ export async function getRestaurantInfo(req, res) {
     )
       .select("FullName Email Phone")
       .exec();
-    console.log({ newPassword });
+
     res.send(nomalizeResponse({ cities, restaurant, manager, newPassword }));
   } catch (error) {
     console.log(`[ERROR] delete res ${error.message}`);
