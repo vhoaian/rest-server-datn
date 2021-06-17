@@ -30,7 +30,7 @@ class AutoCalcReceipt {
   }
 
   private async fetchLatestSetting() {
-    const setting = (await Setting.find({}))[0];
+    const setting = await Setting.findOne({});
     this._PERCENT_FEE_MERCHANT = setting.PercentFeeMerchant;
     this._PERCENT_FEE_SHIPPER = setting.PercentFeeShipper;
     this._DAY_DELAY_PAY_RECEIPT = setting.MAX_DAY_DELAY_PAY_RECEIPT;
@@ -64,6 +64,7 @@ class AutoCalcReceipt {
   }
 
   private async lockAccount(): Promise<void> {
+    console.log("LOCK ACCOUNT");
     try {
       // Get all receipt not paid
       const _listReceiptNotPaid = await ReceiptModel.find({
@@ -76,15 +77,15 @@ class AutoCalcReceipt {
           (24 * 60 * 60 * 1000);
 
         if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
-          const user =
+          const user: any =
             receipt.Payer.Role === Constants.ROLE.SHIPPER
               ? await Shipper.findOne({
                   _id: receipt.Payer.Id,
-                  Status: 0,
+                  Status: Constants.STATUS_ACCOUNT.UNLOCK,
                 })
               : await Manager.findOne({
                   "Roles.Restaurant": receipt.Payer.Id,
-                  Status: 0,
+                  Status: Constants.STATUS_ACCOUNT.UNLOCK,
                 });
 
           if (user) {
@@ -94,6 +95,15 @@ class AutoCalcReceipt {
             const email = user?.Email;
             if (email) {
               await mailController.sendMailLockAccount(user.FullName, email);
+            }
+
+            if (receipt.Payer.Role === Constants.ROLE.RESTAURANT) {
+              const restaurantID = user.Roles[0].Restaurant;
+              const restaurant = await Restaurant.findById(restaurantID);
+              if (restaurant) {
+                restaurant.Status = Constants.RESTAURANT.STOP_SERVICE;
+                restaurant.save();
+              }
             }
           }
         }
@@ -132,7 +142,6 @@ class AutoCalcReceipt {
       await Promise.all(listPromise);
       this.log("calc receipt for shipper success");
     } catch (e) {
-      console.log(`[${this._TAG_LOG_FAILED}]: `, e.message);
       this.logFail(`calc receipt for shipper failed, ${e.message}`);
     }
   }
@@ -189,8 +198,7 @@ class AutoCalcReceipt {
       },
       FeeTotal: 0,
       PercentFee: percentFee / 100,
-      Status:
-        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
+      Status: Constants.PAID.UNRESOLVE,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
@@ -224,6 +232,8 @@ class AutoCalcReceipt {
     }
 
     receipt.FeeTotal = _feeAppAfter;
+    receipt.Status =
+      _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE;
 
     const notification = new NotificationModel({
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,

@@ -109,17 +109,16 @@ export const payReceipt = async (req, res) => {
   const { id } = req.body;
   try {
     const receipt = await ReceiptModel.findById(id);
-    if (!receipt) {
-      console.log(
-        `[SHIPPER]: paid receipt ${id} fail, receipt does not exist.`
-      );
-      return res.send(
-        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
-      );
-    }
+    if (!receipt)
+      throw new Error(`paid receipt ${id} fail, receipt does not exist`);
+
+    const shipper = await Shipper.findById(receipt.Payer.Id);
+    if (!shipper)
+      throw new Error(`paid receipt ${id} fail, shipper does not exist`);
 
     receipt.Status = Constants.PAID.RESOLVE;
-    await receipt.save();
+    shipper.Status = Constants.STATUS_ACCOUNT.UNLOCK;
+    await Promise.all([receipt.save(), shipper.save()]);
 
     console.log(`[SHIPPER]: paid receipt ${id} success.`);
     res.send(nomalizeResponse(null, 0));
