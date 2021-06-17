@@ -14,7 +14,41 @@ import {
   getStartAndEndOfYear,
 } from "../utils/startAndEnd";
 import { statisticsTemp } from "../environments/dateTemplate";
-import { RESERVED_EVENTS } from "socket.io/dist/socket";
+
+function classifyOrderbyStatus(number, orders, filter) {
+  const boomOrder = new Array(number).fill(0);
+  const cancelOrder = new Array(number).fill(0);
+  const deliveryOrder = new Array(number).fill(0);
+
+  const cancelStatus = [
+    Constants.ORDER_STATUS.CANCEL_BY_CUSTOMER,
+    Constants.ORDER_STATUS.CANCEL_BY_MERCHANT,
+    Constants.ORDER_STATUS.CANCEL_BY_SHIPPER,
+  ];
+
+  orders.forEach((order: any) => {
+    let index = 0;
+    switch (filter) {
+      case "week":
+        index =
+          order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
+        break;
+      case "month":
+        index = Math.floor(order.CreatedAt.getDate() / 7);
+
+        break;
+      case "year":
+        index = order.CreatedAt.getMonth();
+
+        break;
+    }
+    if (order.Status === Constants.ORDER_STATUS.BOOM) boomOrder[index]++;
+    else if (cancelStatus.includes(order.Status)) cancelOrder[index]++;
+    else if (order.Status === Constants.ORDER_STATUS.DELIVERED)
+      deliveryOrder[index]++;
+  });
+  return [deliveryOrder, cancelOrder, boomOrder];
+}
 
 export async function getGeneralStatistics(req, res) {
   const { filter } = req.query;
@@ -50,7 +84,7 @@ export async function getGeneralStatistics(req, res) {
       CreatedAt: { $gte: present[0], $lte: present[1] },
       Status: { $gte: 0 },
     })
-      .select("Total CreatedAt AdditionalFees")
+      .select("Total CreatedAt SubTotal ShippingFee Status")
       .exec();
 
     const preOrders = await Order.find({
@@ -58,12 +92,13 @@ export async function getGeneralStatistics(req, res) {
       CreatedAt: { $gte: past[0], $lte: past[1] },
       Status: { $gte: 0 },
     })
-      .select("Total CreatedAt AdditionalFees")
+      .select("Total SubTotal ShippingFee Status CreatedAt")
       .exec();
     // total order of last wek, moth, year
     let pastPayment = 0;
     preOrders.forEach((order) => {
-      pastPayment += order.Total;
+      pastPayment =
+        pastPayment + order.Total + order.ShippingFee + (order.Subtotal || 0);
     });
 
     const numberOfOrder = statisticsTemp[filter].presentArray;
@@ -78,21 +113,31 @@ export async function getGeneralStatistics(req, res) {
           index =
             order.CreatedAt.getDay() === 0 ? 6 : order.CreatedAt.getDay() - 1;
           numberOfOrder[index]++;
-          payOfOrder[index] += order.Total;
+          payOfOrder[index] +=
+            order.Total + order.ShippingFee + (order.Subtotal || 0);
           break;
         case "month":
           index = Math.floor(order.CreatedAt.getDate() / 7);
           numberOfOrder[index]++;
-          payOfOrder[index] += order.Total;
+          payOfOrder[index] +=
+            order.Total + order.ShippingFee + (order.Subtotal || 0);
           break;
         case "year":
           index = order.CreatedAt.getMonth();
           numberOfOrder[index]++;
-          payOfOrder[index] += order.Total;
+          payOfOrder[index] +=
+            order.Total + order.ShippingFee + (order.Subtotal || 0);
           break;
       }
-      totalPayment += order.Total;
+      totalPayment =
+        totalPayment + order.Total + order.ShippingFee + (order.Subtotal || 0);
     });
+    //parse order status
+    const orderStatus = classifyOrderbyStatus(
+      statisticsTemp[filter].number,
+      orders,
+      filter
+    );
 
     //devolopement percent
     let numberPercent, paymentPercent;
@@ -159,6 +204,7 @@ export async function getGeneralStatistics(req, res) {
           payOfOrder,
           paymentPercent,
           numberPercent,
+          orderStatus,
           labels: statisticsTemp[filter].labels,
           shipperData,
           restaurantData,

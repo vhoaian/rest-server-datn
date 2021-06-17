@@ -173,12 +173,19 @@ export async function blockShipperById(req, res) {
 }
 
 export async function updateBoomOrderByID(req, res) {
-  const { orderID } = req.body;
-  const { shipper } = req.data;
-  console.log({ orderID, shipper });
+  const { id } = req.params;
+  const { order } = req.data;
+
   try {
+    //check of this order is delivered bys this shipper
+    if (!order.Shipper.equals(id)) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
+      );
+    }
+    //updae status of Order
     const updatedOrder = await Order.findByIdAndUpdate(
-      { _id: orderID },
+      { _id: order._id },
       { Status: Constants.ORDER_STATUS.BOOM }
     ).exec();
     if (!updatedOrder) {

@@ -7,12 +7,11 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export const getAllRequestWithdraw = async (req, res): Promise<void> => {
   try {
-    const { page } = req.query;
+    const { page, phone } = req.query;
     const option: any = { Status: { $lt: Constants.PAID.RESOLVE } };
-
     const totalComplaints = await Withdraw.countDocuments(option);
 
-    const withdraws: any = await Withdraw.find(option)
+    let withdraws: any = await Withdraw.find(option)
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE);
 
@@ -22,9 +21,17 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
         []
       )
     );
+    let listWithdraw = [];
+    if (phone !== "") {
+      listWithdraw = withdraws.filter((elm) =>
+        elm.User.Phone.startsWith(phone)
+      );
+    } else {
+      listWithdraw = withdraws;
+    }
 
     res.send(
-      nomalizeResponse({ listWithdraw: withdraws }, 0, {
+      nomalizeResponse({ listWithdraw }, 0, {
         currentPage: page,
         totalPage: Math.ceil(totalComplaints / Constants.PAGENATION.PER_PAGE),
         perPage: Constants.PAGENATION.PER_PAGE,
@@ -51,10 +58,12 @@ export const handleWithdraw = async (req, res): Promise<void> => {
 
     if (!user) throw new Error("User does not exist");
     if (user.Wallet < withdraw.Amount)
-      throw new Error("Tài khoản điện tử hiện tại không đủ");
+      throw new Error(
+        `Tài khoản điện tử hiện tại:${user.Wallet} không đủ để rút`
+      );
 
     user.Wallet -= withdraw.Amount;
-    withdraw.Status = 1;
+    withdraw.Status = Constants.PAID.RESOLVE;
 
     await user.save();
     await withdraw.save();
@@ -99,7 +108,7 @@ export const cancelWithdraw = async (req, res): Promise<void> => {
     if (!withdraw) throw new Error("Withdraw does not exist");
     if (withdraw.Status === 1) throw new Error("Withdrawal processed");
 
-    withdraw.Status = -1;
+    withdraw.Status = Constants.PAID.CANCEL;
     await withdraw.save();
 
     if (withdraw) {

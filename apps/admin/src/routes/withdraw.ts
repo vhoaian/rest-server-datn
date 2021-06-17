@@ -11,6 +11,7 @@ import { body, query } from "express-validator";
 withdrawRouter.get(
   "/",
   query("page").default(1).isInt().toInt(),
+  query("phone").default("").isString(),
   validateInput,
   getAllRequestWithdraw
 );

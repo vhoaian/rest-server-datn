@@ -9,7 +9,7 @@ import {
   blockShipperById,
   updateBoomOrderByID,
 } from "../controllers/shipper";
-import { Shipper } from "@vohoaian/datn-models";
+import { Order, Shipper } from "@vohoaian/datn-models";
 
 shipperRouter.get(
   "/",
@@ -58,19 +58,19 @@ shipperRouter.put(
 
 shipperRouter.post(
   "/:id/boom",
-  param("id")
+  param("id").notEmpty().isMongoId(),
+
+  body("orderID")
     .notEmpty()
     .isMongoId()
     .custom((value, { req }) => {
-      return Shipper.findById(value)
-        .select("History")
+      return Order.findById(value)
         .exec()
-        .then((shipper) => {
-          if (!shipper) return Promise.reject("Khong tim thay tai xe");
-          req.data = { shipper };
+        .then((order) => {
+          if (!order) return Promise.reject("Không tìm thấy đơn hàng");
+          req.data = { order };
         });
     }),
-  body("orderID").notEmpty().isMongoId(),
   validateInput,
   updateBoomOrderByID
 );
