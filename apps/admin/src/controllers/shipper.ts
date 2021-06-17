@@ -1,5 +1,5 @@
 import { nomalizeResponse } from "../utils/normalize";
-import { Receipt, Shipper } from "@vohoaian/datn-models";
+import { Order, Receipt, Shipper } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
 import mailController from "../mail/mailController";
@@ -19,7 +19,9 @@ export async function getShipperManagement(req, res) {
     const totalShipper = await Shipper.countDocuments(option).exec();
 
     let shippers: any = await Shipper.find(option)
-      .select("Phone Email Rating Status CreatedAt FullName")
+      .select(
+        "Phone Email Rating Status CreatedAt FullName Avatar History Gender Wallet"
+      )
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
@@ -35,16 +37,20 @@ export async function getShipperManagement(req, res) {
         }).exec();
       })
     );
-    console.log(receiptFee[0]);
+
     shippers = shippers.map((user: any, i) => {
       const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
       const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
       const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
       return {
         _id: user._id,
-        fullname: user.FullName,
         phone: user.Phone,
         email: user.Email,
+        fullname: user.FullName,
+        gender: user.Gender,
+        wallet: user.Wallet,
+        avatar: user.Avatar,
+        history: user.History,
         rating: user.Rating,
         status: user.Status,
         createdAt: user.CreatedAt,
@@ -164,5 +170,27 @@ export async function blockShipperById(req, res) {
   } catch (error) {
     console.log(`[ERROR]: block shipper: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.BLOCK_USER_ERROR));
+  }
+}
+
+export async function updateBoomOrderByID(req, res) {
+  const { orderID } = req.body;
+  const { shipper } = req.data;
+  console.log({ orderID, shipper });
+  try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      { _id: orderID },
+      { Status: Constants.ORDER_STATUS.BOOM }
+    ).exec();
+    if (!updatedOrder) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
+      );
+    }
+
+    res.send(nomalizeResponse(null));
+  } catch (error) {
+    console.error(`[ERROR]: boom order shipper: ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_ORDER_ERROR));
   }
 }

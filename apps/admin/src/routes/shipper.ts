@@ -7,6 +7,7 @@ import {
   createShipper,
   payReceipt,
   blockShipperById,
+  updateBoomOrderByID,
 } from "../controllers/shipper";
 import { Shipper } from "@vohoaian/datn-models";
 
@@ -53,5 +54,24 @@ shipperRouter.put(
   body("reason").optional().isString(),
   validateInput,
   blockShipperById
+);
+
+shipperRouter.post(
+  "/:id/boom",
+  param("id")
+    .notEmpty()
+    .isMongoId()
+    .custom((value, { req }) => {
+      return Shipper.findById(value)
+        .select("History")
+        .exec()
+        .then((shipper) => {
+          if (!shipper) return Promise.reject("Khong tim thay tai xe");
+          req.data = { shipper };
+        });
+    }),
+  body("orderID").notEmpty().isMongoId(),
+  validateInput,
+  updateBoomOrderByID
 );
 export default shipperRouter;

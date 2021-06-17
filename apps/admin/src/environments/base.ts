@@ -38,6 +38,8 @@ export const Constants = {
     BLOCK_USER_ERROR: 111,
     CAN_NOT_FIND_USER: 112,
     GET_SHIPPER_ERROR: 120,
+    UPDATE_ORDER_ERROR: 121,
+    CAN_NOT_FIND_ORDER: 122,
     LOGIN_ERROR: 150,
     EMAIL_INVAILD: 151,
     PASS_INVAILD: 152,
@@ -77,6 +79,18 @@ export const Constants = {
     UNLOCK: 1,
   },
   PASS_LENGTH: 8,
+  ORDER_STATUS: {
+    WAITING_PAYMENT: 0,
+    WAITING: 1,
+    MERCHANT_CONFIRM: 2,
+    DURING_GET: 3,
+    DURING_SHIP: 4,
+    DELIVERED: 5,
+    CANCEL_BY_CUSTOMER: 6,
+    CANCEL_BY_MERCHANT: 7,
+    CANCEL_BY_SHIPPER: 8,
+    BOOM: 9,
+  },
 };
 
 export enum ERROR_CODE {
