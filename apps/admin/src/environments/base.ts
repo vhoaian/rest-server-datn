@@ -73,6 +73,7 @@ export const Constants = {
 
   RESTAURANT: {
     STOP_SERVICE: -1,
+    OPEN_SERVICE: 1,
   },
   STATUS_ACCOUNT: {
     LOCK: -2,

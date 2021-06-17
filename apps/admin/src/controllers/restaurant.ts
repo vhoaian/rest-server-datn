@@ -136,17 +136,22 @@ export const payReceipt = async (req, res) => {
   const { id } = req.body;
   try {
     const receipt = await ReceiptModel.findById(id);
-    if (!receipt) {
-      console.log(
-        `[RESTAURANT]: paid receipt ${id} fail, receipt does not exist.`
-      );
-      return res.send(
-        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
-      );
-    }
+    if (!receipt)
+      throw new Error(`paid receipt ${id} fail, receipt does not exist`);
+
+    const restaurant = await Restaurant.findById(receipt.Payer.Id);
+    const manager = await Manager.findOne({ "Roles.Id": receipt.Payer.Id });
+
+    if (!restaurant)
+      throw new Error(`paid receipt ${id} fail, restaurant does not exist`);
+    if (!manager)
+      throw new Error(`paid receipt ${id} fail, manager does not exist`);
 
     receipt.Status = Constants.PAID.RESOLVE;
-    await receipt.save();
+    manager.Status = Constants.STATUS_ACCOUNT.UNLOCK;
+    restaurant.Status = Constants.RESTAURANT.OPEN_SERVICE;
+
+    await Promise.all([receipt.save(), manager.save(), restaurant.save()]);
 
     console.log(`[RESTAURANT]: paid receipt ${id} success.`);
     res.send(nomalizeResponse(null, 0));
