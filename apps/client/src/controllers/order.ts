@@ -367,9 +367,11 @@ export async function getShippingFee(req, res) {
 
   const data = await ggAPI.calcDistance(origin, dest);
 
-  res.send({
-    ...data,
-    fee: await calculateShippingFee(data.distance / 1000),
-    estimatedTTD: calculateTimeToDeliveryInMinute(data.duration),
-  });
+  res.send(
+    nomalizeResponse({
+      ...data,
+      fee: await calculateShippingFee(data.distance / 1000),
+      estimatedTTD: calculateTimeToDeliveryInMinute(data.duration),
+    })
+  );
 }

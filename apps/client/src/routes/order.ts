@@ -13,7 +13,9 @@ import {
 } from "../controllers/order";
 import {
   addRestaurantReview,
+  addRestaurantReviewNoImages,
   addShipperReview,
+  addShipperReviewNoImages,
   getRestaurantReviewsv2,
   getShipperReviews,
 } from "../controllers/restaurantreview";
@@ -72,6 +74,16 @@ router.post(
 );
 
 router.post(
+  "/:id/restaurantreviews/raw",
+  param("id").isMongoId(),
+  body("content").isString(),
+  body("point").isInt({ min: 1, max: 5 }),
+  validateInput,
+  jwtAuthentication,
+  addRestaurantReviewNoImages
+);
+
+router.post(
   "/:id/restaurantreviews",
   param("id").isMongoId(),
   upload.array("images"),
@@ -80,6 +92,16 @@ router.post(
   validateInput,
   jwtAuthentication,
   addRestaurantReview
+);
+
+router.post(
+  "/:id/shipperreviews/raw",
+  param("id").isMongoId(),
+  body("content").isString(),
+  body("point").isInt({ min: 1, max: 5 }),
+  validateInput,
+  jwtAuthentication,
+  addShipperReviewNoImages
 );
 
 router.post(

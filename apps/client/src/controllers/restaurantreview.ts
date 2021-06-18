@@ -105,6 +105,33 @@ export async function addRestaurantReview(req, res) {
   res.send(response);
 }
 
+export async function addRestaurantReviewNoImages(req, res) {
+  const { point, content } = req.body;
+  const { id } = req.params;
+  const order = await Order.findOne({
+    User: req.user.id,
+    _id: id,
+  });
+  if (!order) return res.send(nomalizeResponse(null, 2)); // order khong ton tai
+
+  const oldReview = await RestaurantReview.findOne({ Order: id });
+  if (oldReview) return res.send(nomalizeResponse(null, 3)); // Da review roi
+
+  const newReview = new RestaurantReview({
+    User: req.user.id,
+    Restaurant: order.Restaurant,
+    Order: order.id,
+    Content: content,
+    Point: point,
+  });
+
+  const response = (await newReview.save()).toObject();
+  // TODO; tinh diem
+  response.id = response._id;
+  delete response._id;
+  res.send(response);
+}
+
 export async function addShipperReview(req, res) {
   const { point, content } = req.body;
   const { id } = req.params;
@@ -157,6 +184,35 @@ export async function addShipperReview(req, res) {
   filePaths.forEach((filePath) => fs.unlinkSync(filePath));
 
   newReview.Images = images.map((image) => image.Url);
+
+  const response = (await newReview.save()).toObject();
+  // TODO; tinh diem
+  response.id = response._id;
+  delete response._id;
+  res.send(response);
+}
+
+export async function addShipperReviewNoImages(req, res) {
+  const { point, content } = req.body;
+  const { id } = req.params;
+  const order = await Order.findOne({
+    User: req.user.id,
+    _id: id,
+  });
+  if (!order) return res.send(nomalizeResponse(null, 2)); // order khong ton tai
+
+  if (!order.Shipper) return res.send(nomalizeResponse(null, 4)); // shipper khong ton tai
+
+  const oldReview = await ShipperReview.findOne({ Order: id });
+  if (oldReview) return res.send(nomalizeResponse(null, 3)); // Da review roi
+
+  const newReview = new ShipperReview({
+    User: req.user.id,
+    Shipper: order.Shipper,
+    Order: order.id,
+    Content: content,
+    Point: point,
+  });
 
   const response = (await newReview.save()).toObject();
   // TODO; tinh diem
