@@ -3,6 +3,7 @@ import { body, query, param } from "express-validator";
 import complaintController from "../controllers/complaint";
 import { validateInput } from "../middlewares/services";
 const router = express.Router();
+import { jwtAuthentication } from "../middlewares/services";
 
 router.post(
   "/",
@@ -23,6 +24,7 @@ router.get(
   "/",
   query("page").default(1).isInt().toInt(),
   validateInput,
+  jwtAuthentication,
   complaintController.getComplaintList
 );
 
@@ -30,9 +32,10 @@ router.get(
   "/:id",
   param("id").notEmpty().isMongoId(),
   validateInput,
+  jwtAuthentication,
   complaintController.getDetailCompliant
 );
 
-router.put("/:id", complaintController.solveComplaint);
+router.put("/:id", jwtAuthentication, complaintController.solveComplaint);
 
 export default router;

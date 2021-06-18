@@ -36,7 +36,7 @@ app.use("/auth", authRouter);
 app.use("/restaurants", jwtAuthentication, restaurantListRouter);
 app.use("/users", jwtAuthentication, userRouter);
 app.use("/shippers", jwtAuthentication, shipperRouter);
-app.use("/complaint", jwtAuthentication, complaintRouter);
+app.use("/complaint", complaintRouter);
 app.use("/cities", jwtAuthentication, cityRouter);
 app.use("/withdraw", jwtAuthentication, withdrawRouter);
 app.use("/", jwtAuthentication, generalRouter);
