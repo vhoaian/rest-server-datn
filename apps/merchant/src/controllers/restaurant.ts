@@ -22,7 +22,7 @@ export async function getRestaurant(req, res) {
   res.send(
     nomalizeResponse(
       withFilter(
-        "id Status IsPartner Categories Name ContractID Avatar Anouncement Phone OpenHours FullAddress Geolocation id"
+        "id Status IsPartner Categories Name ContractID Avatar Anouncement Phone OpenHours FullAddress Geolocation id Wallet"
       )(found.toObject({ virtuals: true }))
     )
   );
@@ -36,6 +36,7 @@ export async function getFoodsOfRestaurant(req, res) {
       .populate({
         path: "Foods",
         select: "-Type -Status",
+        match: { Status: { $gt: -2 } },
         options: { sort: { Order: 1 } },
       })
       .select("-Status -Restaurant")

@@ -1,17 +1,15 @@
 import {
-  City,
   DeliveryAddress,
   Food,
   Order,
-  User,
+  Restaurant,
+  Setting,
 } from "@vohoaian/datn-models";
 import { nomalizeResponse } from "../utils/normalize";
-import { withFilter } from "../utils/objects";
 import axios from "axios";
 import { environment } from "../environments/base";
-import { type } from "node:os";
+import ggAPI from "@rest-servers/google-api";
 
-// const DAFilter = withFilter('FullAddress Phone Geolocation id');
 export async function addOrder(req, res) {
   const {
     foods,
@@ -30,7 +28,7 @@ export async function addOrder(req, res) {
 
   const fids = foods.map((f) => f.id);
   const _foundFoods = (
-    await Food.find({ _id: { $in: fids } }).exec()
+    await Food.find({ _id: { $in: fids }, Status: { $gte: 0 } }).exec()
   ).map((x) => x.toObject());
   const foundFoods: any[] = [];
   for (let i = 0; i < fids.length; i++) {
@@ -51,6 +49,8 @@ export async function addOrder(req, res) {
       })
       .exec()
   )?.FoodCategory as any).Restaurant;
+  if (restaurant.Status < 0 || (await restaurant.isOpening()) === false)
+    return res.send(nomalizeResponse(null, 15)); // Nhà hàng không phục vụ
 
   let delivery: any = null;
   let addr = address;
@@ -179,7 +179,10 @@ export async function addOrder(req, res) {
     return res.send(nomalizeResponse(null, 14)); // Tổng tiền sai
   }
 
-  const calshippingfee = await calculateShippingFee();
+  const mapInfo = await ggAPI.calcDistance(restaurant.FullAddress, addr);
+  const calshippingfee = await calculateShippingFee(mapInfo.distance / 1000);
+  if (typeof calshippingfee != "number")
+    return res.send(nomalizeResponse(null, 16)); // Vượt quá giới hạn kc giao hàng
   if (calshippingfee != shippingfee) {
     return res.send(nomalizeResponse(null, 13)); // Phí ship sai
   }
@@ -211,6 +214,9 @@ export async function addOrder(req, res) {
   });
 
   const newOrderResponse = newOrder.toObject();
+  (newOrderResponse as any).Avatar = restaurant.Avatar;
+  (newOrderResponse as any).Name = restaurant.Name;
+  (newOrderResponse as any).FullAddress = restaurant.FullAddress;
   newOrderResponse.Foods.forEach((f, i) => {
     (f as any).Name = foundFoods[i].Name;
     (f as any).Avatar = foundFoods[i].Avatar;
@@ -254,13 +260,30 @@ export async function addOrder(req, res) {
     nomalizeResponse({
       ...response,
       paymentInfo: responseData.paymentInfo,
+      shippingInfo: {
+        ...mapInfo,
+        fee: calshippingfee,
+        estimatedTTD: calculateTimeToDeliveryInMinute(mapInfo.duration),
+      },
     })
   );
 }
 
 export async function getOrders(req, res) {
-  const orders = await Order.find({ User: req.user.id })
-    .select("-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt")
+  const { page, perpage, status } = req.query;
+  const query: any = { User: req.user.id };
+  if (status?.length > 0) query.Status = { $in: status };
+
+  const count = await Order.countDocuments(query);
+
+  const orders = await Order.find(query)
+    .populate("Restaurant", "Name Avatar")
+    .select(
+      "-PromoCodes -Distance -Coor -Tool -User -Foods -UpdatedAt -Shipper"
+    )
+    .skip((page - 1) * perpage)
+    .limit(perpage)
+    .sort({ CreatedAt: -1 })
     .exec();
 
   res.send(
@@ -270,7 +293,14 @@ export async function getOrders(req, res) {
         t.id = t._id;
         delete t._id;
         return t;
-      })
+      }),
+      0,
+      {
+        totalPage: Math.ceil(count / perpage),
+        currentPage: page,
+        perPage: perpage,
+        total: count,
+      }
     )
   );
 }
@@ -281,23 +311,67 @@ export async function getOrder(req, res) {
     User: req.user.id,
     _id: id,
   })
-    .select("-Distance -Coor -Tool -User -UpdatedAt")
+    .populate("Foods.Food", "Name Avatar Options")
+    .populate("Restaurant", "Name Avatar")
+    .populate("Shipper", "FullName Avatar")
+    .select("-Coor -Tool -User")
     .exec();
 
   if (!order) return res.send(nomalizeResponse(null, 2));
 
   const response = order.toObject();
+  for (let i = 0; i < response.Foods.length; i++) {
+    const food = response.Foods[i];
+    for (let j = 0; j < food.Options.length; j++) {
+      const option = food.Options[j];
+      const foundOption = (food.Food as any).Options.find(
+        (o) => o.id == option.id
+      );
+      (option as any).Name = foundOption?.Name;
+      for (let k = 0; k < option.Items.length; k++) {
+        const item = option.Items[k];
+        (item as any).Name = foundOption?.Items.find(
+          (i) => i.id == item.id
+        )?.Name;
+      }
+    }
+    delete (food.Food as any).Options;
+    (food.Food as any).id = (food.Food as any)._id;
+    delete (food.Food as any)._id;
+  }
   response.id = response._id;
   delete response._id;
 
-  res.send(nomalizeResponse(order));
+  res.send(nomalizeResponse(response));
 }
 
-export async function calculateShippingFee() {
-  return 10000;
+export async function calculateShippingFee(distKm: number) {
+  return (await Setting.getShippingFee(distKm))?.Fee;
+}
+
+export function calculateTimeToDeliveryInMinute(timeInSec: number) {
+  return 15 + Math.ceil(timeInSec / 60);
 }
 
 export async function getShippingFee(req, res) {
-  const { alongitude, alatitude, deliveryaddress, restaurant } = req.body;
-  res.send(nomalizeResponse(await calculateShippingFee()));
+  const { destination, deliveryaddress, restaurant } = req.query;
+  let dest = destination;
+  const rest = await Restaurant.findById(restaurant);
+  if (!rest) return res.send(nomalizeResponse(null, 2));
+  const origin = rest.FullAddress as string;
+  if (deliveryaddress) {
+    const d = await DeliveryAddress.findById(deliveryaddress);
+    if (!d) return res.send(nomalizeResponse(null, 3));
+    dest = d.FullAddress;
+  }
+
+  const data = await ggAPI.calcDistance(origin, dest);
+
+  res.send(
+    nomalizeResponse({
+      ...data,
+      fee: await calculateShippingFee(data.distance / 1000),
+      estimatedTTD: calculateTimeToDeliveryInMinute(data.duration),
+    })
+  );
 }

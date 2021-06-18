@@ -1,4 +1,4 @@
-import { Manager, Restaurant } from "@vohoaian/datn-models";
+import { Manager } from "@vohoaian/datn-models";
 import express from "express";
 import { body, param, query } from "express-validator";
 
@@ -9,6 +9,9 @@ import {
 } from "../controllers/restaurant";
 import { jwtAuthentication, validateInput } from "../middlewares/services";
 import foodCategoryRouter from "./foodCategory";
+import orderRouter from "./order";
+import notificationRouter from "./notification";
+import withdrawRouter from "./withdraw";
 
 const router = express.Router();
 
@@ -37,8 +40,18 @@ router.get(
   getFoodsOfRestaurant
 );
 
+// router.get(
+//   "/:restaurant/statistics",
+//   param("restaurant").isMongoId(),
+//   validateInput,
+//   getFoodsOfRestaurant
+// );
+
 router.get("/:restaurant", getRestaurant);
 
 router.use("/:restaurant/foodcategories", foodCategoryRouter);
+router.use("/:restaurant/orders", orderRouter);
+router.use("/:restaurant/notifications", notificationRouter);
+router.use("/:restaurant/withdraws", withdrawRouter);
 
 export default router;

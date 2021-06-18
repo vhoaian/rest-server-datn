@@ -1,6 +1,8 @@
 {
   "version": 2,
-  "cli": { "defaultCollection": "@nrwl/express" },
+  "cli": {
+    "defaultCollection": "@nrwl/express"
+  },
   "defaultProject": "client",
   "projects": {
     "client": {
@@ -32,11 +34,15 @@
         },
         "serve": {
           "executor": "@nrwl/node:execute",
-          "options": { "buildTarget": "client:build" }
+          "options": {
+            "buildTarget": "client:build"
+          }
         },
         "lint": {
           "executor": "@nrwl/linter:eslint",
-          "options": { "lintFilePatterns": ["apps/client/**/*.ts"] }
+          "options": {
+            "lintFilePatterns": ["apps/client/**/*.ts"]
+          }
         },
         "test": {
           "executor": "@nrwl/jest:jest",
@@ -78,11 +84,15 @@
         },
         "serve": {
           "executor": "@nrwl/node:execute",
-          "options": { "buildTarget": "admin:build" }
+          "options": {
+            "buildTarget": "admin:build"
+          }
         },
         "lint": {
           "executor": "@nrwl/linter:eslint",
-          "options": { "lintFilePatterns": ["apps/admin/**/*.ts"] }
+          "options": {
+            "lintFilePatterns": ["apps/admin/**/*.ts"]
+          }
         },
         "test": {
           "executor": "@nrwl/jest:jest",
@@ -124,11 +134,15 @@
         },
         "serve": {
           "executor": "@nrwl/node:execute",
-          "options": { "buildTarget": "socket:build" }
+          "options": {
+            "buildTarget": "socket:build"
+          }
         },
         "lint": {
           "executor": "@nrwl/linter:eslint",
-          "options": { "lintFilePatterns": ["apps/socket/**/*.ts"] }
+          "options": {
+            "lintFilePatterns": ["apps/socket/**/*.ts"]
+          }
         },
         "test": {
           "executor": "@nrwl/jest:jest",
@@ -170,11 +184,15 @@
         },
         "serve": {
           "executor": "@nrwl/node:execute",
-          "options": { "buildTarget": "merchant:build" }
+          "options": {
+            "buildTarget": "merchant:build"
+          }
         },
         "lint": {
           "executor": "@nrwl/linter:eslint",
-          "options": { "lintFilePatterns": ["apps/merchant/**/*.ts"] }
+          "options": {
+            "lintFilePatterns": ["apps/merchant/**/*.ts"]
+          }
         },
         "test": {
           "executor": "@nrwl/jest:jest",
@@ -193,13 +211,65 @@
       "targets": {
         "lint": {
           "executor": "@nrwl/linter:eslint",
-          "options": { "lintFilePatterns": ["libs/google-api/**/*.ts"] }
+          "options": {
+            "lintFilePatterns": ["libs/google-api/**/*.ts"]
+          }
         },
         "test": {
           "executor": "@nrwl/jest:jest",
           "outputs": ["coverage/libs/google-api"],
           "options": {
             "jestConfig": "libs/google-api/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "shipper": {
+      "root": "apps/shipper",
+      "sourceRoot": "apps\\shipper\\src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/shipper",
+            "main": "apps/shipper/src/main.ts",
+            "tsConfig": "apps/shipper/tsconfig.app.json",
+            "assets": []
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "extractLicenses": true,
+              "inspect": false,
+              "fileReplacements": [
+                {
+                  "replace": "apps/shipper/src/environments/environment.ts",
+                  "with": "apps/shipper/src/environments/environment.prod.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "executor": "@nrwl/node:execute",
+          "options": {
+            "buildTarget": "shipper:build"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["apps/shipper/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/shipper"],
+          "options": {
+            "jestConfig": "apps/shipper/jest.config.js",
             "passWithNoTests": true
           }
         }

@@ -8,7 +8,7 @@ import shipperController from "../shipper/shipperController";
 class ChatController {
   private _TAG_LOG = "CHAT_CONTROLLER";
   private _TAG_LOG_FAIL = "CHAT_CONTROLLER_FAIL";
-  private _ROLE_SENDER = ["customer", "shipper"];
+  private _ROLE_SENDER = ["customer", "shipper", "system"];
 
   private _io: any = null;
 
@@ -61,7 +61,7 @@ class ChatController {
       }
 
       const _autoMessage = `${_shipper?.FullName} đang trên đường giao hàng cho quý khách. Xin vui lòng giữ điện thoại để được cập nhật tình hình đơn hàng nếu có thay đổi. Cảm ơn quý khách.`;
-      this.sendMessage(`${_room._id}`, "shipper", _autoMessage);
+      this.sendMessage(`${_room._id}`, "system", _autoMessage);
 
       shipperController.getSocket(shipperID)?.join(`${_room._id}`);
       customerController.getSocket(customerID)?.join(`${_room._id}`);
@@ -89,7 +89,7 @@ class ChatController {
 
   public async sendMessage(
     roomID: string,
-    sender: "customer" | "shipper",
+    sender: "customer" | "shipper" | "system",
     message: string
   ): Promise<boolean> {
     try {
@@ -107,7 +107,7 @@ class ChatController {
       const _newMessage = new ChatMessage({
         ChatRoom: Types.ObjectId(roomID),
         Content: message,
-        Sender: this._ROLE_SENDER.indexOf(sender),
+        Sender: sender === "customer" ? 0 : 1,
       });
       await _newMessage.save();
 
@@ -116,15 +116,13 @@ class ChatController {
       _room.TotalChat = _room.TotalChat + 1;
       _room.save();
 
-      const info = [_room.User, _room.Shipper];
-
       this.getSocket(roomID).emit(
         TAG_EVENT.RESPONSE_CHAT,
         normalizeResponse("New message", {
           roomID,
           message,
-          sender: info[this._ROLE_SENDER.indexOf(sender)],
-          receiver: info[1 - this._ROLE_SENDER.indexOf(sender)],
+          shipper: _room.Shipper,
+          customer: _room.User,
           roleSender: sender,
         })
       );
@@ -137,88 +135,7 @@ class ChatController {
       return false;
     }
   }
-
-  public async getListMessage(
-    roomID: string,
-    role: "customer" | "shipper",
-    limit: number
-  ): Promise<void> {
-    const _room = await ChatRoom.findOne({ _id: Types.ObjectId(roomID) })
-      .populate("Shipper", "Avatar FullName")
-      .populate("User", "Avatar FullName");
-
-    if (!_room) {
-      console.log(
-        `[${this._TAG_LOG_FAIL}]: Get list message fail, room does not exist.`
-      );
-      return;
-    }
-
-    const _listMessage = await ChatMessage.find({
-      ChatRoom: Types.ObjectId(roomID),
-    })
-      .sort([["CreatedAt", -1]])
-      .limit(limit);
-
-    const sender = _room[`${role === "customer" ? "User" : "Shipper"}`];
-    const receiver = _room[`${role === "customer" ? "Shipper" : "User"}`];
-
-    const listMessage: Array<{
-      message: string;
-      nameSender: string;
-      nameReceiver: string;
-      avatarReceiver: string;
-      time: Date;
-    }> = _listMessage.map((mess) => ({
-      message: mess.Content,
-      nameSender: sender.FullName,
-      nameReceiver: receiver.FullName,
-      avatarReceiver: receiver.Avatar,
-      time: mess.CreatedAt,
-    }));
-
-    if (role === "customer") {
-      customerController.getSocket(`${sender._id}`).emit(
-        TAG_EVENT.RESPONSE_GET_LIST_MESSAGE_CHAT,
-        normalizeResponse("Get list messgae chat", {
-          roomID,
-          listMessage,
-        })
-      );
-      return;
-    }
-
-    if (role === "shipper") {
-      shipperController.getSocket(`${sender._id}`).emit(
-        TAG_EVENT.RESPONSE_GET_LIST_MESSAGE_CHAT,
-        normalizeResponse("Get list messgae chat", {
-          listMessage,
-        })
-      );
-      return;
-    }
-  }
 }
 
 const chatController = new ChatController();
 export default chatController;
-
-// Model Room Chat
-// Description: Khi 2 người chat với nhau thì mình sẽ tiến hành tạo 1 phòng riêng, nếu chưa có thì tiến hành tạo phòng.
-//              Thường thì chúng ta sẽ tạo phòng sẵn mỗi khi khách hàng đặt món - Tạo phòng cho cả shipper và customer.
-//
-// |- id: ObjectID
-// |- totalChat: number
-// |- shipper: ObjectID
-// |- customer: ObjectID
-// |- lastMessage: ObjectID - trỏ tới tin nhắn cuối cùng.
-
-// Model Message
-// Description: Mô tả tin nhắn giữa 2 người.
-//
-// |- id: ObjectID
-// |- room: ObjectID - trỏ tới RoomChat
-// |- message: string
-// |- sender: ObjectID
-// |- reciever: ObjectID
-// |- timeCreate: Date

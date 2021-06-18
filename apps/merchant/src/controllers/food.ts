@@ -82,6 +82,44 @@ export async function createFood(req, res) {
   res.send(nomalizeResponse(saved.toObject({ virtuals: true })));
 }
 
+export async function updateFoodAvatar(req, res) {
+  const uploaded = req.file;
+  const filePath = path.join(process.cwd(), uploaded.path);
+  const FILE = {
+    name: uploaded.filename,
+    type: uploaded.mimetype,
+    path: filePath,
+  };
+  // upload len gg drive
+  try {
+    const img = await ggAPI.uploadFile(FILE);
+    // ggAPI.deleteFile(img.webContentLink);
+    const newImage = await Image.create({
+      Sender: {
+        Id: (req.user as any).id,
+        Role: 2,
+      },
+      Url: img.webContentLink,
+    });
+    const updated = await Food.findByIdAndUpdate(
+      req.params.id,
+      { Avatar: img.webContentLink as string },
+      {
+        new: true,
+      }
+    )
+      .select("-FoodCategory -Type")
+      .exec();
+    if (!updated) return res.send(nomalizeResponse(null, 4)); // khong tim thay mon an
+    delete updated._id;
+    res.send(nomalizeResponse(updated.toObject({ virtuals: true })));
+    // xoa file
+    fs.unlinkSync(filePath);
+  } catch (e) {
+    res.status(500).end();
+  } // server khong the upload
+}
+
 export async function getFoods(req, res) {
   const categories = (
     await Food.find({

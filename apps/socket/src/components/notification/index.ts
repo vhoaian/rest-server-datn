@@ -8,7 +8,7 @@ router.get("/", (req, res) => {
 
 router.post("/", (req, res) => {
   const { notificationID } = req.body;
-  notificationController.pushNotification(notificationID);
+  notificationController.pushNotificationByID(notificationID);
   res.send("Push noti success");
 });
 

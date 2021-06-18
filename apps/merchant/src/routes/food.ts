@@ -10,6 +10,7 @@ import {
   getFood,
   getFoods,
   updateFood,
+  updateFoodAvatar,
   updateItem,
   updateOption,
 } from "../controllers/food";
@@ -46,6 +47,18 @@ router.post(
   body("options").optional().isArray(),
   validateInput,
   createFood
+);
+
+router.put(
+  "/:id/avatar",
+  param("id").isMongoId(),
+  upload.single("image"),
+  (req, res, next) => {
+    if (!req.file) return res.send(nomalizeResponse(null, 1));
+    next();
+  },
+  validateInput,
+  updateFoodAvatar
 );
 
 router.put(

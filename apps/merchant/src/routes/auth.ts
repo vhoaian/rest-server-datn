@@ -1,6 +1,10 @@
 import express from "express";
 import { body } from "express-validator";
-import { requestOTPForLogin, verifyOTPForLogin } from "../controllers/auth";
+import {
+  loginByEmail,
+  requestOTPForLogin,
+  verifyOTPForLogin,
+} from "../controllers/auth";
 import { validateInput } from "../middlewares/services";
 const authRouter = express.Router();
 
@@ -10,6 +14,14 @@ authRouter.post(
   body("phone").isNumeric().isLength({ min: 10, max: 10 }),
   validateInput,
   requestOTPForLogin
+);
+
+authRouter.post(
+  "/email",
+  body("email").isEmail(),
+  body("password").isString(),
+  validateInput,
+  loginByEmail
 );
 
 // Nhập otp để xác nhận đăng nhập bằng sdt

@@ -1,1 +1,26 @@
-{"implicitDependencies":{"workspace.json":"*","package.json":{"dependencies":"*","devDependencies":"*"},"tsconfig.base.json":"*","tslint.json":"*",".eslintrc.json":"*","nx.json":"*"},"affected":{"defaultBase":"master"},"npmScope":"rest-servers","tasksRunnerOptions":{"default":{"runner":"@nrwl/workspace/tasks-runners/default","options":{"cacheableOperations":["build","lint","test","e2e"]}}},"projects":{"client":{"tags":[]},"admin":{"tags":[]},"socket":{"tags":[]},"merchant":{"tags":[]},"google-api":{"tags":[]}}}
+{
+  "implicitDependencies": {
+    "workspace.json": "*",
+    "package.json": { "dependencies": "*", "devDependencies": "*" },
+    "tsconfig.base.json": "*",
+    "tslint.json": "*",
+    ".eslintrc.json": "*",
+    "nx.json": "*"
+  },
+  "affected": { "defaultBase": "master" },
+  "npmScope": "rest-servers",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "@nrwl/workspace/tasks-runners/default",
+      "options": { "cacheableOperations": ["build", "lint", "test", "e2e"] }
+    }
+  },
+  "projects": {
+    "client": { "tags": [] },
+    "admin": { "tags": [] },
+    "socket": { "tags": [] },
+    "merchant": { "tags": [] },
+    "google-api": { "tags": [] },
+    "shipper": { "tags": [] }
+  }
+}
