@@ -13,6 +13,7 @@ import {
   updateRestaurantAddress,
   payReceipt,
   addPermissionForRestaurant,
+  reCallPermissionOfRestaurant,
 } from "../controllers/restaurant";
 
 restaurantRouter.get("/", getRestaurantInfo);
@@ -63,4 +64,5 @@ restaurantRouter.put(
   addPermissionForRestaurant
 );
 
+restaurantRouter.put("/recall", reCallPermissionOfRestaurant);
 export default restaurantRouter;

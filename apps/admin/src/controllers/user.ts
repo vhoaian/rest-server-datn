@@ -23,7 +23,7 @@ export async function getUserManagementInfo(req, res) {
     }
 
     let users: any = await User.find(option)
-      .select("Phone Email Point Status CreatedAt")
+      .select("Phone Email Point Status CreatedAt FullName")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
@@ -40,6 +40,7 @@ export async function getUserManagementInfo(req, res) {
         point: user.Point,
         status: user.Status,
         createdAt: user.CreatedAt,
+        fullname: user.FullName,
       };
     });
 

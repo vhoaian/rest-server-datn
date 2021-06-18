@@ -53,13 +53,17 @@ const getComplaintList = async (req, res) => {
     }).exec();
 
     let complaints: Array<any> = await Complaint.find({})
-      .select("Images Reason FullName PhoneNumber Status Email OrderID")
+      .select(
+        "Images Reason FullName PhoneNumber Status Email OrderID CreatedAt"
+      )
       .populate("OrderID")
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
 
-    complaints = complaints.sort();
+    complaints = complaints.sort((a, b) => {
+      return a.Status - b.Status;
+    });
     complaints = complaints.map((complaint: any) => {
       return {
         images: complaint.Images,
@@ -70,9 +74,13 @@ const getComplaintList = async (req, res) => {
         email: complaint.Email,
         _id: complaint._id,
         createdAt: complaint.CreatedAt,
-        payment: complaint.OrderID.Total,
+        payment:
+          complaint.OrderID.Total +
+          complaint.OrderID.Total +
+          (complaint.OrderID.SubTotal || 0),
       };
     });
+
     res.send(
       nomalizeResponse({ complaints, totalComplaints }, 0, {
         currentPage: page,

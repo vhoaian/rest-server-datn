@@ -10,7 +10,7 @@ export function validateInput(req, res, next) {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    //console.log("[ERROR] validate", errors.array());
+    console.log("[ERROR] validate", errors.array());
     return res.status(400).json(nomalizeResponse(null, 1));
   }
   next();

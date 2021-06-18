@@ -1,5 +1,5 @@
 import { nomalizeResponse } from "../utils/normalize";
-import { Receipt, Shipper } from "@vohoaian/datn-models";
+import { Order, Receipt, Shipper } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
 import mailController from "../mail/mailController";
@@ -19,7 +19,9 @@ export async function getShipperManagement(req, res) {
     const totalShipper = await Shipper.countDocuments(option).exec();
 
     let shippers: any = await Shipper.find(option)
-      .select("Phone Email Point Status CreatedAt")
+      .select(
+        "Phone Email Rating Status CreatedAt FullName Avatar History Gender Wallet"
+      )
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE)
       .exec();
@@ -29,25 +31,32 @@ export async function getShipperManagement(req, res) {
     });
     const receiptFee: any = await Promise.all(
       shippers.map((shipper: any) => {
-        return Receipt.find({
-          ["Payer.Id"]: shipper._id,
-          Role: 1,
+        return Receipt.findOne({
+          "Payer.Id": shipper._id,
+          "Payer.Role": 1,
         }).exec();
       })
     );
 
     shippers = shippers.map((user: any, i) => {
+      const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
+      const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
+      const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
       return {
         _id: user._id,
         phone: user.Phone,
         email: user.Email,
-        point: user.Point,
+        fullname: user.FullName,
+        gender: user.Gender,
+        wallet: user.Wallet,
+        avatar: user.Avatar,
+        history: user.History,
+        rating: user.Rating,
         status: user.Status,
-        createdAt: user.createdAt,
-        serviceCharge:
-          receiptFee[i].Status === Constants.PAID.UNRESOLVE
-            ? "Nợ phí"
-            : "Đã thanh toán",
+        createdAt: user.CreatedAt,
+        serviceCharge,
+        serviceFee,
+        receiptID,
       };
     });
 
@@ -88,7 +97,9 @@ export const createShipper = async (req, res): Promise<void> => {
       console.log(
         `[SHIPPER]: create new shipper fail, phone or email already exist. Phone & Email shipper: ${oldShipper.Phone} - ${oldShipper.Email}`
       );
-      res.send(nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR));
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CREATE_SHIPPER_ERROR)
+      );
     }
 
     const newShipper = new Shipper({ Phone, Email, Gender, FullName });
@@ -106,17 +117,16 @@ export const payReceipt = async (req, res) => {
   const { id } = req.body;
   try {
     const receipt = await ReceiptModel.findById(id);
-    if (!receipt) {
-      console.log(
-        `[SHIPPER]: paid receipt ${id} fail, receipt does not exist.`
-      );
-      return res.send(
-        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
-      );
-    }
+    if (!receipt)
+      throw new Error(`paid receipt ${id} fail, receipt does not exist`);
+
+    const shipper = await Shipper.findById(receipt.Payer.Id);
+    if (!shipper)
+      throw new Error(`paid receipt ${id} fail, shipper does not exist`);
 
     receipt.Status = Constants.PAID.RESOLVE;
-    await receipt.save();
+    shipper.Status = Constants.STATUS_ACCOUNT.UNLOCK;
+    await Promise.all([receipt.save(), shipper.save()]);
 
     console.log(`[SHIPPER]: paid receipt ${id} success.`);
     res.send(nomalizeResponse(null, 0));
@@ -159,5 +169,36 @@ export async function blockShipperById(req, res) {
   } catch (error) {
     console.log(`[ERROR]: block shipper: ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.BLOCK_USER_ERROR));
+  }
+}
+
+export async function updateBoomOrderByID(req, res) {
+  const { id } = req.params;
+  const { order } = req.data;
+
+  try {
+    //check of this order is delivered bys this shipper
+    if (order.Shipper && !order.Shipper.equals(id)) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
+      );
+    }
+    //updae status of Order
+    const updatedOrder = await Order.findByIdAndUpdate(
+      { _id: order._id },
+      { Status: Constants.ORDER_STATUS.BOOM }
+    ).exec();
+    if (!updatedOrder) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_ORDER)
+      );
+    }
+    const shipper = await Shipper.findById(id).exec();
+    shipper?.History.Skip += 1;
+    await shipper.save();
+    res.send(nomalizeResponse(null));
+  } catch (error) {
+    console.error(`[ERROR]: boom order shipper: ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_ORDER_ERROR));
   }
 }

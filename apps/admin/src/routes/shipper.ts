@@ -7,8 +7,9 @@ import {
   createShipper,
   payReceipt,
   blockShipperById,
+  updateBoomOrderByID,
 } from "../controllers/shipper";
-import { Shipper } from "@vohoaian/datn-models";
+import { Order, Shipper } from "@vohoaian/datn-models";
 
 shipperRouter.get(
   "/",
@@ -53,5 +54,24 @@ shipperRouter.put(
   body("reason").optional().isString(),
   validateInput,
   blockShipperById
+);
+
+shipperRouter.post(
+  "/:id/boom",
+  param("id").notEmpty().isMongoId(),
+
+  body("orderID")
+    .notEmpty()
+    .isMongoId()
+    .custom((value, { req }) => {
+      return Order.findById(value)
+        .exec()
+        .then((order) => {
+          if (!order) return Promise.reject("Không tìm thấy đơn hàng");
+          req.data = { order };
+        });
+    }),
+  validateInput,
+  updateBoomOrderByID
 );
 export default shipperRouter;

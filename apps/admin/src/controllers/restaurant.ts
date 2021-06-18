@@ -5,8 +5,10 @@ import fs from "fs";
 import moment from "moment";
 import path from "path";
 import { Constants } from "../environments/base";
+import generatePassword from "../utils/generatePassword";
 import geocoder from "../utils/geocoder";
 import { nomalizeResponse } from "../utils/normalize";
+import bcryptjs from "bcryptjs";
 
 export async function deleteRestaurant(req, res) {
   const { restaurant } = req.data;
@@ -21,7 +23,6 @@ export async function deleteRestaurant(req, res) {
         { "Roles.Restaurant": deletedRestaurant._id },
         { Status: Constants.STATUS.BLOCK }
       ).exec();
-      console.log(manager);
     }
 
     return res.send(nomalizeResponse(deletedRestaurant));
@@ -35,10 +36,21 @@ export async function getRestaurantInfo(req, res) {
   const { restaurant } = req.data;
   try {
     const cities = await City.find({}).exec();
-    const manager = await Manager.find({ "Roles.Restaurant": restaurant.id })
+    //generate new password
+    const newPassword = generatePassword(Constants.PASS_LENGTH);
+    const hashPass = bcryptjs.hashSync(newPassword, Constants.BCRYPT_SALT);
+
+    const manager = await Manager.findOneAndUpdate(
+      {
+        "Roles.Restaurant": restaurant.id,
+      },
+      { Password: hashPass },
+      { new: true }
+    )
       .select("FullName Email Phone")
       .exec();
-    res.send(nomalizeResponse({ cities, restaurant, manager: manager[0] }));
+
+    res.send(nomalizeResponse({ cities, restaurant, manager, newPassword }));
   } catch (error) {
     console.log(`[ERROR] delete res ${error.message}`);
     return res.send(nomalizeResponse(null, Constants.SERVER.FIND_RES_ERROR));
@@ -124,17 +136,22 @@ export const payReceipt = async (req, res) => {
   const { id } = req.body;
   try {
     const receipt = await ReceiptModel.findById(id);
-    if (!receipt) {
-      console.log(
-        `[RESTAURANT]: paid receipt ${id} fail, receipt does not exist.`
-      );
-      return res.send(
-        nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR)
-      );
-    }
+    if (!receipt)
+      throw new Error(`paid receipt ${id} fail, receipt does not exist`);
+
+    const restaurant = await Restaurant.findById(receipt.Payer.Id);
+    const manager = await Manager.findOne({ "Roles.Id": receipt.Payer.Id });
+
+    if (!restaurant)
+      throw new Error(`paid receipt ${id} fail, restaurant does not exist`);
+    if (!manager)
+      throw new Error(`paid receipt ${id} fail, manager does not exist`);
 
     receipt.Status = Constants.PAID.RESOLVE;
-    await receipt.save();
+    manager.Status = Constants.STATUS_ACCOUNT.UNLOCK;
+    restaurant.Status = Constants.RESTAURANT.OPEN_SERVICE;
+
+    await Promise.all([receipt.save(), manager.save(), restaurant.save()]);
 
     console.log(`[RESTAURANT]: paid receipt ${id} success.`);
     res.send(nomalizeResponse(null, 0));
@@ -153,6 +170,7 @@ export async function addPermissionForRestaurant(req, res) {
       { _id: restaurant.id },
       { IsPartner: true }
     ).exec();
+
     const manager = await Manager.findByIdAndUpdate(
       { _id: managerID },
       {
@@ -161,12 +179,40 @@ export async function addPermissionForRestaurant(req, res) {
         email: email,
       }
     );
+    if (!manager) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR)
+      );
+    }
 
     res.send(nomalizeResponse(null, 0));
   } catch (error) {
     console.log(`[ERROR] permision res ${error.message}`);
-    return res.send(
-      nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR)
-    );
+    res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR));
+  }
+}
+
+export async function reCallPermissionOfRestaurant(req, res) {
+  try {
+    const { restaurant } = req.data;
+    const updatedRes = await Restaurant.findByIdAndUpdate(
+      { _id: restaurant.id },
+      { IsPartner: false }
+    ).exec();
+    const manager = Manager.findOneAndUpdate(
+      { "Roles.Restaurant": restaurant.id },
+      { Phone: "" }
+    ).exec();
+    if (!manager) {
+      throw new Error("Can't find manager");
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.RECALL_PERMISION_ERROR)
+      );
+    }
+
+    res.send(nomalizeResponse(null, 0));
+  } catch (error) {
+    console.log(`[ERROR] permision res ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.RECALL_PERMISION_ERROR));
   }
 }

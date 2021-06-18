@@ -7,12 +7,11 @@ import { nomalizeResponse } from "../utils/normalize";
 
 export const getAllRequestWithdraw = async (req, res): Promise<void> => {
   try {
-    const { page } = req.query;
+    const { page, phone } = req.query;
     const option: any = { Status: { $lt: Constants.PAID.RESOLVE } };
-
     const totalComplaints = await Withdraw.countDocuments(option);
 
-    const withdraws: any = await Withdraw.find(option)
+    let withdraws: any = await Withdraw.find(option)
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE);
 
@@ -22,9 +21,17 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
         []
       )
     );
+    let listWithdraw = [];
+    if (phone !== "") {
+      listWithdraw = withdraws.filter((elm) =>
+        elm.User.Phone.startsWith(phone)
+      );
+    } else {
+      listWithdraw = withdraws;
+    }
 
     res.send(
-      nomalizeResponse({ listWithdraw: withdraws }, 0, {
+      nomalizeResponse({ listWithdraw }, 0, {
         currentPage: page,
         totalPage: Math.ceil(totalComplaints / Constants.PAGENATION.PER_PAGE),
         perPage: Constants.PAGENATION.PER_PAGE,
@@ -41,8 +48,8 @@ export const handleWithdraw = async (req, res): Promise<void> => {
   const withdraw = await Withdraw.findById(id);
 
   try {
-    if (!withdraw) throw new Error("Withdraw does not exist");
-    if (withdraw.Status === 1) throw new Error("Withdrawal processed");
+    if (!withdraw) throw new Error("Yêu cầu hoàn tiền không tồn tại");
+    if (withdraw.Status === 1) throw new Error("Đã hoàn tiền");
 
     const user =
       withdraw.User.Role === 1
@@ -50,10 +57,13 @@ export const handleWithdraw = async (req, res): Promise<void> => {
         : await Restaurant.findById(withdraw.User.Id);
 
     if (!user) throw new Error("User does not exist");
-    if (user.Wallet < withdraw.Amount) throw new Error("Unavailable balances");
+    if (user.Wallet < withdraw.Amount)
+      throw new Error(
+        `Tài khoản điện tử hiện tại:${user.Wallet} không đủ để rút`
+      );
 
     user.Wallet -= withdraw.Amount;
-    withdraw.Status = 1;
+    withdraw.Status = Constants.PAID.RESOLVE;
 
     await user.save();
     await withdraw.save();
@@ -79,23 +89,26 @@ export const handleWithdraw = async (req, res): Promise<void> => {
         Thumbnail: environment.THUMB_WITHDRAW,
       });
       await newNoti.save();
-      pushNotification(`${newNoti._id}`);
+      await pushNotification(`${newNoti._id}`);
     }
 
     console.log(`[WITHDRAW]: handle withdraw fail, ${e.message}.`);
-    res.send(nomalizeResponse(null, Constants.SERVER.HANDLE_WITHDRAW_ERROR));
+    res.send(
+      nomalizeResponse(e.message, Constants.SERVER.HANDLE_WITHDRAW_ERROR)
+    );
   }
 };
 
 export const cancelWithdraw = async (req, res): Promise<void> => {
   const { id } = req.body;
+
   try {
-    const withdraw = await Withdraw.findById(id);
+    const withdraw = await Withdraw.findById(id).exec();
 
     if (!withdraw) throw new Error("Withdraw does not exist");
     if (withdraw.Status === 1) throw new Error("Withdrawal processed");
 
-    withdraw.Status = -1;
+    withdraw.Status = Constants.PAID.CANCEL;
     await withdraw.save();
 
     if (withdraw) {
@@ -106,7 +119,8 @@ export const cancelWithdraw = async (req, res): Promise<void> => {
         Thumbnail: environment.THUMB_WITHDRAW,
       });
       await newNoti.save();
-      pushNotification(`${newNoti._id}`);
+
+      await pushNotification(`${newNoti._id}`);
     }
 
     console.log("[WITHDRAW]: Handle cancel withdraw success.");
@@ -124,8 +138,6 @@ export const cancelWithdraw = async (req, res): Promise<void> => {
  * @param withdraw
  */
 const mapInfoForWithdraw = async (withdraw): Promise<void> => {
-  console.log("mapInfoForWithdraw");
-
   try {
     switch (withdraw.User.Role) {
       case Constants.ROLE.SHIPPER: {

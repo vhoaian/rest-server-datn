@@ -7,7 +7,7 @@ export async function pushNotification(notificationID: string): Promise<void> {
       notificationID,
     };
 
-    axios.post(`${environment.URL_SOCKET_SERVER}/notification`, body, {
+    await axios.post(`${environment.URL_SOCKET_SERVER}/notification`, body, {
       headers: {
         "Content-Type": "application/json",
       },

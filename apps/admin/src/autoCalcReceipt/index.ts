@@ -1,31 +1,15 @@
 import {
   Manager,
+  Notification as NotificationModel,
   Order,
+  Receipt as ReceiptModel,
   Restaurant,
   Setting,
   Shipper,
 } from "@vohoaian/datn-models";
-import axios from "axios";
-import config, { Constants, environment } from "../environments/base";
-import {
-  Receipt as ReceiptModel,
-  Notification as NotificationModel,
-} from "@vohoaian/datn-models";
-import mongoose from "mongoose";
+import { Constants, environment } from "../environments/base";
 import mailController from "../mail/mailController";
 import { pushNotification } from "../notification";
-
-const ORDER_STATUS = {
-  WAITING_PAYMENT: 0,
-  WAITING: 1,
-  MERCHANT_CONFIRM: 2,
-  DURING_GET: 3,
-  DURING_SHIP: 4,
-  DELIVERED: 5,
-  CANCEL_BY_CUSTOMER: 6,
-  CANCEL_BY_MERCHANT: 7,
-  CANCEL_BY_SHIPPER: 8,
-};
 
 class AutoCalcReceipt {
   private _TIMER_CALC_RECEIPT: number = 0;
@@ -36,46 +20,51 @@ class AutoCalcReceipt {
   private _PERCENT_FEE_MERCHANT: number = 10; // unit %
   private _DAY_DELAY_PAY_RECEIPT: number = 14;
 
-  private _TAG_LOG_SUCCESS: string = "AUTO_CALC_RECEIPT";
-  private _TAG_LOG_FAILED: string = "AUTO_CALC_RECEIPT_FAILED";
-
   constructor() {}
 
+  private log(message: string): void {
+    console.log(`[AUTO_CALC_RECEIPT]: ${message}`);
+  }
+  private logFail(message: string): void {
+    console.log(`[AUTO_CALC_RECEIPT_FAIL]: ${message}`);
+  }
+
   private async fetchLatestSetting() {
-    const setting = (await Setting.find({}))[0];
+    const setting = await Setting.findOne({});
     this._PERCENT_FEE_MERCHANT = setting.PercentFeeMerchant;
     this._PERCENT_FEE_SHIPPER = setting.PercentFeeShipper;
     this._DAY_DELAY_PAY_RECEIPT = setting.MAX_DAY_DELAY_PAY_RECEIPT;
   }
 
   public runAutoCalcReceipt(): void {
-    console.log(`[${this._TAG_LOG_SUCCESS}]: autoCalcReceipt run`);
+    this.log("autoCalcReceipt run");
     this._TIMER_CALC_RECEIPT = new Date().getTime();
 
     setInterval(async () => {
       this._TIMER_CALC_RECEIPT += this._TIME_SKIP;
-      // Date test: "Mon May 31 2021 22:59:00 GMT+0700 (Indochina Time)"
-      if (!this.checkEndDayEndMonth(new Date(this._TIMER_CALC_RECEIPT))) return;
-      await this.fetchLatestSetting();
-      this.calcReceipt();
+      if (Helper.checkEndDayEndMonth(new Date(this._TIMER_CALC_RECEIPT))) {
+        await this.fetchLatestSetting();
+        this.calcReceipt();
+      }
     }, this._TIME_SKIP);
   }
 
   public runAutoLockLatePayReceipt(): void {
-    console.log(`[${this._TAG_LOG_SUCCESS}]: AutoLockLatePayReceipt run`);
+    this.log("autoLockLatePayReceipt run");
     this._TIMER_LOCK_ACC = new Date().getTime();
 
     setInterval(async () => {
       this._TIMER_LOCK_ACC += this._TIME_SKIP;
       // Date test: "Mon May 31 2021 22:59:00 GMT+0700 (Indochina Time)"
-      if (!this.checkEndDay(new Date(this._TIMER_LOCK_ACC).getHours())) return;
-
-      await this.fetchLatestSetting();
-      this.lockAccount();
+      if (Helper.checkEndDay(new Date(this._TIMER_LOCK_ACC).getHours())) {
+        await this.fetchLatestSetting();
+        this.lockAccount();
+      }
     }, this._TIME_SKIP);
   }
 
   private async lockAccount(): Promise<void> {
+    console.log("LOCK ACCOUNT");
     try {
       // Get all receipt not paid
       const _listReceiptNotPaid = await ReceiptModel.find({
@@ -88,66 +77,51 @@ class AutoCalcReceipt {
           (24 * 60 * 60 * 1000);
 
         if (dayLeft >= this._DAY_DELAY_PAY_RECEIPT) {
-          switch (receipt.Payer.Role) {
-            case Constants.ROLE.SHIPPER: {
-              const shipper = await Shipper.findOne({
-                _id: receipt.Payer.Id,
-                Status: 0,
-              });
-              if (!shipper) break;
+          const user: any =
+            receipt.Payer.Role === Constants.ROLE.SHIPPER
+              ? await Shipper.findOne({
+                  _id: receipt.Payer.Id,
+                  Status: Constants.STATUS_ACCOUNT.UNLOCK,
+                })
+              : await Manager.findOne({
+                  "Roles.Restaurant": receipt.Payer.Id,
+                  Status: Constants.STATUS_ACCOUNT.UNLOCK,
+                });
 
-              shipper.Status = Constants.STATUS_ACCOUNT.LOCK;
-              await shipper.save();
+          if (user) {
+            user.Status = Constants.STATUS_ACCOUNT.LOCK;
+            await user.save();
 
-              const email = shipper?.Email;
-              if (email) {
-                await mailController.sendMailLockAccount(
-                  shipper.FullName,
-                  email
-                );
-              }
-              break;
+            const email = user?.Email;
+            if (email) {
+              await mailController.sendMailLockAccount(user.FullName, email);
             }
 
-            case Constants.ROLE.RESTAURANT: {
-              const manager = await Manager.findOne({
-                "Roles.Restaurant": receipt.Payer.Id,
-                Status: 0,
-              });
-              if (!manager) break;
-
-              manager.Status = Constants.STATUS_ACCOUNT.LOCK;
-              await manager.save();
-
-              const email = manager.Email;
-              if (email) {
-                await mailController.sendMailLockAccount(
-                  manager.FullName,
-                  email
-                );
+            if (receipt.Payer.Role === Constants.ROLE.RESTAURANT) {
+              const restaurantID = user.Roles[0].Restaurant;
+              const restaurant = await Restaurant.findById(restaurantID);
+              if (restaurant) {
+                restaurant.Status = Constants.RESTAURANT.STOP_SERVICE;
+                restaurant.save();
               }
-              break;
             }
-
-            default:
-              break;
           }
         }
       }
     } catch (e) {
-      console.log(`[${this._TAG_LOG_FAILED}]: lock account fail, ${e.message}`);
+      this.logFail(`lock account fail, ${e.message}`);
     }
   }
 
   private calcReceipt(): void {
-    console.log(`[${this._TAG_LOG_SUCCESS}]: start run calc receipt`);
+    this.log("start run calc receipt");
 
     const currDate = new Date(this._TIMER_CALC_RECEIPT);
     const day = currDate.getDate();
     const month = currDate.getMonth() + 1;
     const year = currDate.getFullYear();
 
-    const { dateStart, dateEnd } = this.calcDateStartEnd(day, month, year);
+    const { dateStart, dateEnd } = Helper.calcDateStartEnd(day, month, year);
     this.calcReceiptShipper(dateStart, dateEnd);
     this.calcReceiptMerchant(dateStart, dateEnd);
   }
@@ -156,31 +130,19 @@ class AutoCalcReceipt {
     dateStart: Date,
     dateEnd: Date
   ): Promise<void> {
-    console.log(
-      `[${this._TAG_LOG_SUCCESS}]: start run calc receipt for shipper`
-    );
+    this.log("start run calc receipt for shipper");
     try {
       const _allShipper = await Shipper.find({});
 
-      const listPromise = _allShipper.reduce(
-        (_listPromise: any, _currShipper) => {
-          _listPromise.push(
-            this.calcFeeForShipper(_currShipper._id, dateStart, dateEnd)
-          );
-          return _listPromise;
-        },
-        []
-      );
+      const listPromise = _allShipper.reduce((_lsPrms: any, _s) => {
+        _lsPrms.push(this.calcFee(_s, dateStart, dateEnd, 1));
+        return _lsPrms;
+      }, []);
 
       await Promise.all(listPromise);
-      console.log(
-        `[${this._TAG_LOG_SUCCESS}]: calc receipt for shipper success`
-      );
+      this.log("calc receipt for shipper success");
     } catch (e) {
-      console.log(
-        `[${this._TAG_LOG_FAILED}]: calc receipt for shipper failed.`,
-        e.message
-      );
+      this.logFail(`calc receipt for shipper failed, ${e.message}`);
     }
   }
 
@@ -188,233 +150,153 @@ class AutoCalcReceipt {
     dateStart: Date,
     dateEnd: Date
   ): Promise<void> {
-    console.log(
-      `[${this._TAG_LOG_SUCCESS}]: start run calc receipt for Merchant`
-    );
+    this.log("start run calc receipt for Merchant");
     try {
       const _allMerchant = await Restaurant.find({ IsPartner: true });
 
-      const listPromise = _allMerchant.reduce(
-        (_listPromise: any, _currMerchant) => {
-          _listPromise.push(
-            this.calcFeeForMerchant(_currMerchant._id, dateStart, dateEnd)
-          );
-          return _listPromise;
-        },
-        []
-      );
+      const listPromise = _allMerchant.reduce((_lsPrms: any, _m) => {
+        _lsPrms.push(this.calcFee(_m, dateStart, dateEnd, 2));
+        return _lsPrms;
+      }, []);
 
       await Promise.all(listPromise);
-      console.log(
-        `[${this._TAG_LOG_SUCCESS}]: calc receipt for merchant success`
-      );
+      this.log("calc receipt for merchant success");
     } catch (e) {
-      console.log(
-        `[${this._TAG_LOG_FAILED}]: calc receipt for merchant failed.`,
-        e.message
-      );
+      this.logFail(`calc receipt for merchant failed, ${e.message}`);
     }
   }
 
-  private async calcFeeForShipper(
-    shipperID: string,
+  private async calcFee(
+    user: any,
     dateStart: Date,
-    dateEnd: Date
+    dateEnd: Date,
+    role: 1 | 2
   ): Promise<void> {
-    const shipper = await Shipper.findById(shipperID);
-    if (!shipper) return;
-
     // Get all Order in Month
     const _allOrder = await Order.find({
-      Shipper: mongoose.Types.ObjectId(shipperID),
+      Shipper: user._id,
       Status: {
         $nin: [
-          ORDER_STATUS.CANCEL_BY_CUSTOMER,
-          ORDER_STATUS.CANCEL_BY_MERCHANT,
-          ORDER_STATUS.CANCEL_BY_SHIPPER,
+          Constants.ORDER_STATUS.CANCEL_BY_CUSTOMER,
+          Constants.ORDER_STATUS.CANCEL_BY_MERCHANT,
+          Constants.ORDER_STATUS.CANCEL_BY_SHIPPER,
         ],
       },
       CreatedAt: { $gt: dateStart, $lt: dateEnd },
     });
 
-    // Calc fee
-    const _feeAppBefore: number = _allOrder.reduce((totalFee, currOrder) => {
-      totalFee += currOrder.ShippingFee * (this._PERCENT_FEE_SHIPPER / 100);
-      return totalFee;
-    }, 0);
-
-    let _feeAppAfter = shipper.Wallet - _feeAppBefore;
-
-    if (_feeAppAfter >= 0) {
-      shipper.Wallet -= _feeAppBefore;
-      _feeAppAfter = 0;
-    } else {
-      shipper.Wallet = 0;
-      _feeAppAfter *= -1;
-    }
+    const percentFee =
+      role === Constants.ROLE.SHIPPER
+        ? this._PERCENT_FEE_SHIPPER
+        : this._PERCENT_FEE_MERCHANT;
 
     // Create receipt and notification
     const dataReceipt = {
       Payer: {
-        Id: mongoose.Types.ObjectId(shipperID),
-        Role: Constants.ROLE.SHIPPER,
+        Id: user._id,
+        Role: role,
       },
-      FeeTotal: _feeAppAfter,
-      PercentFee: this._PERCENT_FEE_SHIPPER / 100,
-      Status:
-        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
+      FeeTotal: 0,
+      PercentFee: percentFee / 100,
+      Status: Constants.PAID.UNRESOLVE,
       DateStart: dateStart,
       DateEnd: dateEnd,
     };
 
-    const newReceipt = new ReceiptModel(dataReceipt);
-
-    const dataNoti = {
-      Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
-      Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
-      Receiver: {
-        Id: mongoose.Types.ObjectId(shipperID),
-        Role: Constants.ROLE.SHIPPER,
-      },
-      Thumbnail: environment.THUMB_NOTI_FEEAPP,
-    };
-
-    const notification = new NotificationModel(dataNoti);
-
-    const sub = `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}.`;
-    const contentMail = `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này. Hệ thống sẽ tự động khóa tài khoản của bạn sau ${this._DAY_DELAY_PAY_RECEIPT} ngày nếu như bạn chưa đóng phi.`;
-    const sendMail = mailController.sendMailOption(
-      shipper.FullName,
-      shipper.Email,
-      sub,
-      contentMail,
-      "vn"
-    );
-
-    await Promise.all([
-      newReceipt.save(),
-      notification.save(),
-      shipper.save(),
-      sendMail,
-    ]);
-
-    // const notification = { _id: "123" };
-
-    pushNotification(notification._id);
-    console.log("FEE APP FOR SHIPPER:", _feeAppAfter);
-  }
-
-  private async calcFeeForMerchant(
-    merchantID: string,
-    dateStart: Date,
-    dateEnd: Date
-  ): Promise<void> {
-    const merchant = await Restaurant.findById(merchantID);
-    if (!merchant) return;
-
-    const manager = await Manager.findOne({ "Roles.Restaurant": merchant._id });
-    if (!manager) return;
-
-    // Get all Order in Month
-    const _allOrder = await Order.find({
-      Restaurant: mongoose.Types.ObjectId(merchantID),
-      Tool: true,
-      Status: {
-        $nin: [
-          ORDER_STATUS.CANCEL_BY_CUSTOMER,
-          ORDER_STATUS.CANCEL_BY_MERCHANT,
-          ORDER_STATUS.CANCEL_BY_SHIPPER,
-        ],
-      },
-      CreatedAt: { $gt: dateStart, $lt: dateEnd },
+    const oldReceipt = await ReceiptModel.findOne({
+      "Payer.Id": user._id,
+      Status: Constants.PAID.UNRESOLVE,
     });
 
-    // Calc fee
-    const _feeAppBefore: number = _allOrder.reduce((totalFee, currOrder) => {
-      totalFee +=
-        (currOrder.Total - currOrder.ShippingFee) *
-        (this._PERCENT_FEE_MERCHANT / 100);
-      return totalFee;
-    }, 0);
+    const oldFee = oldReceipt?.FeeTotal || 0;
+    const receipt = oldReceipt ? oldReceipt : new ReceiptModel(dataReceipt);
 
-    let _feeAppAfter = merchant.Wallet - _feeAppBefore;
+    // Calc fee
+    const _feeAppBefore =
+      role === Constants.ROLE.SHIPPER
+        ? _allOrder.reduce((fee, order) => {
+            return fee + order.ShippingFee * (percentFee / 100);
+          }, 0)
+        : _allOrder.reduce((fee, order) => {
+            return fee + (order.Total - order.ShippingFee) * (percentFee / 100);
+          }, 0);
+
+    let _feeAppAfter = user.Wallet - _feeAppBefore - oldFee;
 
     if (_feeAppAfter >= 0) {
-      merchant.Wallet -= _feeAppBefore;
+      user.Wallet -= _feeAppBefore;
       _feeAppAfter = 0;
     } else {
-      merchant.Wallet = 0;
+      user.Wallet = 0;
       _feeAppAfter *= -1;
     }
 
-    // Create receipt and notification
-    const dataReceipt = {
-      Payer: {
-        Id: mongoose.Types.ObjectId(merchantID),
-        Role: Constants.ROLE.RESTAURANT,
-      },
-      FeeTotal: _feeAppAfter,
-      PercentFee: this._PERCENT_FEE_MERCHANT / 100,
-      Status:
-        _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE,
-      DateStart: dateStart,
-      DateEnd: dateEnd,
-    };
-    const newReceipt = new ReceiptModel(dataReceipt);
+    receipt.FeeTotal = _feeAppAfter;
+    receipt.Status =
+      _feeAppAfter > 0 ? Constants.PAID.UNRESOLVE : Constants.PAID.RESOLVE;
 
-    const dataNoti = {
+    const notification = new NotificationModel({
       Title: `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}`,
       Subtitle: `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này.`,
       Receiver: {
-        Id: mongoose.Types.ObjectId(merchantID),
-        Role: Constants.ROLE.RESTAURANT,
+        Id: user._id,
+        Role: role,
       },
       Thumbnail: environment.THUMB_NOTI_FEEAPP,
-    };
+    });
 
-    const notification = new NotificationModel(dataNoti);
-
-    const sub = `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}.`;
-    const contentMail = `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này. Hệ thống sẽ tự động khóa tài khoản của bạn sau ${this._DAY_DELAY_PAY_RECEIPT} ngày nếu như bạn chưa đóng phi.`;
     const sendMail = mailController.sendMailOption(
-      manager.FullName,
-      manager.Email,
-      sub,
-      contentMail,
+      user.FullName,
+      user.Email,
+      `Thông báo thanh toán tiền tháng ${dateEnd.getMonth() + 1}.`,
+      `Thanh toán hóa đơn phí thuê app, tổng phí của bạn là ${_feeAppBefore}, tổng số tiền bạn cần phải trả là ${_feeAppAfter}đ. Vui lòng đóng phí trong vòng ${this._DAY_DELAY_PAY_RECEIPT} ngày kể từ khi nhận thông báo này. Hệ thống sẽ tự động khóa tài khoản của bạn sau ${this._DAY_DELAY_PAY_RECEIPT} ngày nếu như bạn chưa đóng phi.`,
       "vn"
     );
+
     await Promise.all([
-      newReceipt.save(),
+      receipt.save(),
       notification.save(),
-      merchant.save(),
+      user.save(),
       sendMail,
     ]);
 
     pushNotification(notification._id);
-    console.log("FEE APP FOR MERCHANT:", _feeAppAfter);
   }
+}
 
-  private checkLeapYear(year: number): boolean {
+const autoCalcReceipt = new AutoCalcReceipt();
+export default autoCalcReceipt;
+
+/*
+  HELPER
+*/
+
+class Helper {
+  public static checkLeapYear(year: number): boolean {
     if (year % 4 === 0 && year % 100 !== 0) return true;
     if (year % 400 === 0) return true;
     return false;
   }
 
-  private calcLastDayOfMonth(month: number, year: number): number {
+  public static calcLastDayOfMonth(month: number, year: number): number {
     const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     daysInMonth[2] += this.checkLeapYear(year) ? 1 : 0;
     return daysInMonth[month];
   }
 
-  private checkLastDayOfMonth(day: number, month: number, year: number) {
+  public static checkLastDayOfMonth(
+    day: number,
+    month: number,
+    year: number
+  ): boolean {
     return day === this.calcLastDayOfMonth(month, year);
   }
 
-  private checkEndDay(hour: number): boolean {
+  public static checkEndDay(hour: number): boolean {
     return 23 <= hour;
   }
 
-  private checkEndDayEndMonth(date: Date): boolean {
+  public static checkEndDayEndMonth(date: Date): boolean {
     const day = date.getDate();
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
@@ -425,7 +307,7 @@ class AutoCalcReceipt {
     return true;
   }
 
-  private calcDateStartEnd(
+  public static calcDateStartEnd(
     day: number,
     month: number,
     year: number
@@ -446,6 +328,3 @@ class AutoCalcReceipt {
     return { dateStart, dateEnd };
   }
 }
-
-const autoCalcReceipt = new AutoCalcReceipt();
-export default autoCalcReceipt;
