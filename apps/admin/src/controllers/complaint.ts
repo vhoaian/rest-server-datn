@@ -1,4 +1,4 @@
-import { Complaint } from "@vohoaian/datn-models";
+import { Complaint, Restaurant, Shipper, User } from "@vohoaian/datn-models";
 import mongoose from "mongoose";
 import ggAPI from "@rest-servers/google-api";
 import { Constants } from "../environments/base";
@@ -60,8 +60,6 @@ const getComplaintList = async (req, res) => {
       .exec();
 
     complaints = complaints.sort();
-
-    console.log({ complaints });
     complaints = complaints.map((complaint: any) => {
       return {
         images: complaint.Images,
@@ -71,7 +69,7 @@ const getComplaintList = async (req, res) => {
         status: complaint.Status,
         email: complaint.Email,
         _id: complaint._id,
-        createdAt: complaint.OrderID.CreatedAt,
+        createdAt: complaint.CreatedAt,
         payment: complaint.OrderID.Total,
       };
     });
@@ -88,7 +86,64 @@ const getComplaintList = async (req, res) => {
   }
 };
 
+async function getDetailCompliant(req, res) {
+  const { id } = req.params;
+
+  try {
+    const complaint = await Complaint.findById({ _id: id })
+      .populate("OrderID", "ShippingFee Total SubTotal User Restaurant Shipper")
+      .exec();
+
+    if (complaint) {
+      const order = complaint.OrderID;
+
+      const restaurant = await Restaurant.findById(order.Restaurant)
+        .select("Name Phone")
+        .exec();
+      const shipper = await Shipper.findById(order.Shipper)
+        .select("FullName Phone")
+        .exec();
+      const data = {
+        total: order.ShippingFee + order.Total + (order.SubTotal || 0),
+        images: complaint.Images,
+        createAt: complaint.CreatedAt,
+        reason: complaint.Reason,
+        fullname: complaint.FullName,
+        phoneNumber: complaint.PhoneNumber,
+        status: complaint.Status,
+        email: complaint.Email,
+        _id: complaint._id,
+        restaurant,
+        shipper,
+      };
+      res.send(nomalizeResponse(data));
+    } else {
+      res.send(nomalizeResponse(null, Constants.SERVER.GET_COMP_ERROR));
+    }
+  } catch (error) {
+    console.log(`[ERROR]: get details complaint ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.GET_COMP_ERROR));
+  }
+}
+
+async function solveComplaint(req, res) {
+  const { id } = req.params;
+  try {
+    const result = await Complaint.findByIdAndUpdate(
+      id,
+      { Status: 1 },
+      { new: true }
+    ).exec();
+    res.send(nomalizeResponse(result));
+  } catch (error) {
+    console.log(`[ERROR]: edit complaint ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.SOLVE_COMP_ERROR));
+  }
+}
+
 export default {
   hookUpdateComplaint,
   getComplaintList,
+  getDetailCompliant,
+  solveComplaint,
 };

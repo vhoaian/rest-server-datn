@@ -108,17 +108,21 @@ class ShipperController {
   async addShipper(id, socketID, coor) {
     // auto reconnect
     const shipper: any = this.getShipper(id);
+    const _shipperOnDB = await Shipper.findById(id);
+    if (!_shipperOnDB) return;
+    const { Setting, History, Rating } = _shipperOnDB;
+
     if (shipper) {
       console.log("SHIPPER RECONNECT");
       shipper.socketID = socketID;
       shipper.coor = coor;
       clearTimeout(shipper.selfDestruct);
       shipper.selfDestruct = null;
+      shipper.maximumOrder = Setting.MaxOrder;
+      shipper.maximumDistance = Setting.MaxDistance;
+      shipper.maximumAmount = Setting.MaxAmount;
+      shipper.rating = Rating;
     } else {
-      const _shipperOnDB = await Shipper.findById(id);
-      if (!_shipperOnDB) return;
-
-      const { Setting, History, Rating } = _shipperOnDB;
       this._listShipperOnline.push(
         this.createShipper(
           id,
@@ -153,14 +157,7 @@ class ShipperController {
       );
     }
 
-    const listNotification = await NotificationModel.find({
-      Status: { $lt: 0 },
-      "Receiver.Id": Types.ObjectId(id),
-    }).select("Title Subtitle CreatedAt");
-
-    for (const noti of listNotification) {
-      await notificationController.pushNotification(noti._id);
-    }
+    notificationController.fetchAndPushNotification(id);
   }
 
   removeShipper(id) {
@@ -233,7 +230,7 @@ class ShipperController {
         .getSocket(orderID)
         .emit(
           TAG_EVENT.RESPONSE_SHIPPER_CHANGE_COOR,
-          normalizeResponse("Update Coor Shipper", coor)
+          normalizeResponse("Update Coor Shipper", { orderID, coor })
         );
     });
   }
@@ -249,7 +246,7 @@ class ShipperController {
     mapOptions(order);
     normalOrder(order);
 
-    const [latMer = 0, lngMer = 0] = order.Restaurant.Location.coordinates;
+    const [lngMer = 0, latMer = 0] = order.Restaurant.Location.coordinates;
     const coorMerchant = {
       lat: latMer,
       lng: lngMer,
@@ -459,7 +456,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Đơn hàng đã bị hủy. Chúng tôi rất tiếc vì điều này."
     );
 
@@ -476,6 +473,7 @@ class ShipperController {
     console.log("[ORDER]: shipper took food, during ship");
 
     const order = orderController.getOrderByID(orderID);
+    if (!order) console.log("[ORDER]: took food fail, order does not exist.");
 
     const customerID = order?.customerID || "";
     const _room = await ChatRoom.findOne({
@@ -486,7 +484,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Shipper đã lấy đơn hàng của bạn. Vui lòng giữ liên lạc để shipper có thể giao hàng."
     );
 
@@ -519,7 +517,7 @@ class ShipperController {
     chatController.sendMessage(
       // @ts-expect-error
       `${_room._id}`,
-      "shipper",
+      "system",
       "Yayy. Đơn hàng của bạn đã được giao thành công. Hẹn gặp bạn vào lần sau nhé. Chúc bạn ngon miệng!! ^^"
     );
 

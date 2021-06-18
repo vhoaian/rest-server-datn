@@ -100,11 +100,11 @@ class OrderController {
     return this._io.to(orderID);
   }
 
-  getOrderByID = (orderID): ORDER | null => {
+  getOrderByID(orderID): ORDER | null {
     return (
       this._listOrder.find((order) => order.orderID === `${orderID}`) || null
     );
-  };
+  }
 
   async addOrder(orderID): Promise<boolean> {
     try {
@@ -321,13 +321,16 @@ class OrderController {
           break;
 
         case this.ORDER_STATUS.MERCHANT_CONFIRM:
+          shipperController.sendOrderToShipper(orderOnList, 1);
+          break;
+        case this.ORDER_STATUS.DURING_GET:
           {
-            shipperController.sendOrderToShipper(orderOnList, 1);
             const newNotication = new NotificationModel({
               Title: `Đơn hàng ${orderID} đã được xác nhận.`,
               Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy giữ liên lạc để chúng tôi có thể giao hàng cho bạn một cách nhanh nhất!`,
               Receiver: {
-                Id: order?.User,
+                // @ts-expect-error
+                Id: order?.User._id,
                 Role: 0,
               },
               // @ts-expect-error
@@ -335,10 +338,8 @@ class OrderController {
             });
 
             await newNotication.save();
-            notificationController.pushNotification(`${newNotication._id}`);
+            notificationController.pushNotification(newNotication);
           }
-          break;
-        case this.ORDER_STATUS.DURING_GET:
           break;
         case this.ORDER_STATUS.DURING_SHIP:
           {
@@ -346,7 +347,8 @@ class OrderController {
               Title: `Đơn hàng ${orderID} đã được lấy thành công.`,
               Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy giữ liên lạc để chúng tôi có thể giao hàng cho bạn một cách nhanh nhất!`,
               Receiver: {
-                Id: order?.User,
+                // @ts-expect-error
+                Id: order?.User?._id,
                 Role: 0,
               },
               // @ts-expect-error
@@ -354,7 +356,7 @@ class OrderController {
             });
 
             await newNotication.save();
-            notificationController.pushNotification(`${newNotication._id}`);
+            notificationController.pushNotification(newNotication);
           }
           break;
 
@@ -366,7 +368,8 @@ class OrderController {
             Title: `Đơn hàng ${orderID} được giao thành công.`,
             Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash. Hãy chia sẻ cảm nhận của bạn về đơn hàng để giúp những Khách hàng khác có thể tham khảo nhé!`,
             Receiver: {
-              Id: order?.User,
+              // @ts-expect-error
+              Id: order?.User?._id,
               Role: 0,
             },
             // @ts-expect-error
@@ -377,7 +380,8 @@ class OrderController {
             Title: `Đơn hàng ${orderID} được giao thành công.`,
             Subtitle: `Cảm ơn bạn đã sử dụng dịch vụ của Flash.`,
             Receiver: {
-              Id: order?.Restaurant,
+              // @ts-expect-error
+              Id: order?.Restaurant._id,
               Role: 2,
             },
             // @ts-expect-error
@@ -388,12 +392,8 @@ class OrderController {
             newNoticationCustomer.save(),
             newNoticationMerchant.save(),
           ]);
-          notificationController.pushNotification(
-            `${newNoticationCustomer._id}`
-          );
-          notificationController.pushNotification(
-            `${newNoticationMerchant._id}`
-          );
+          notificationController.pushNotification(newNoticationCustomer);
+          notificationController.pushNotification(newNoticationMerchant);
 
           if (_orderInList?.paymentMethod === 1) {
             const _order = await Order.findById(orderID);
@@ -411,10 +411,8 @@ class OrderController {
             }
 
             await Promise.all([_shipper?.save(), _merchant?.save()]);
-
-            this.removeOrder(orderID);
           }
-
+          this.removeOrder(orderID);
           break;
         }
 

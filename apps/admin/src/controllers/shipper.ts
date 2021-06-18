@@ -2,6 +2,7 @@ import { nomalizeResponse } from "../utils/normalize";
 import { Receipt, Shipper } from "@vohoaian/datn-models";
 import { Constants } from "../environments/base";
 import ReceiptModel from "@vohoaian/datn-models/lib/models/Receipt";
+import mailController from "../mail/mailController";
 
 export async function getShipperManagement(req, res) {
   const { page, email, phone } = req.query;
@@ -124,3 +125,39 @@ export const payReceipt = async (req, res) => {
     res.send(nomalizeResponse(null, Constants.SERVER.PAY_RECEIPT_ERROR));
   }
 };
+
+export async function blockShipperById(req, res) {
+  const { id, reason } = req.body;
+  const { shipper } = req.data;
+  try {
+    const update = { Status: Constants.STATUS.NORMAL };
+
+    if (shipper.Status === Constants.STATUS.UNCHECK) {
+      return res.send(
+        nomalizeResponse(null, Constants.SERVER.CAN_NOT_FIND_USER)
+      );
+    }
+    shipper.Status === Constants.STATUS.NORMAL
+      ? (update.Status = Constants.STATUS.BLOCK)
+      : update.Status === Constants.STATUS.NORMAL;
+    if (
+      update.Status === Constants.STATUS.BLOCK &&
+      typeof shipper.Email !== "undefined"
+    ) {
+      await mailController.sendMailLockAccountWithMessage(
+        shipper.FullName,
+        shipper.Email,
+        `Tài khoản bạn tạm thời bị khóa với lý do: ${reason}`,
+        "vn"
+      );
+    }
+    const result = await Shipper.findByIdAndUpdate({ _id: id }, update, {
+      new: true,
+    }).exec();
+
+    res.send(nomalizeResponse(result, 0));
+  } catch (error) {
+    console.log(`[ERROR]: block shipper: ${error.message}`);
+    res.send(nomalizeResponse(null, Constants.SERVER.BLOCK_USER_ERROR));
+  }
+}
