@@ -60,11 +60,15 @@ export const requestOTPForRegistration = withId(
     if (!u) {
       response = { errorCode: 2, data: null }; // user khong ton tai
     } else {
-      if (u.Status == -1) {
-        await u.update({ Phone: phone }).exec();
+      if (u.Status != -2) {
+        if (u.Status == -1) {
+          await u.update({ Phone: phone }).exec();
+        }
+        await requestOTP(phone, true);
+        response = { errorCode: 0, data: null };
+      } else {
+        response = { errorCode: 6, data: null }; // user da bi khoa
       }
-      await requestOTP(phone, true);
-      response = { errorCode: 0, data: null };
     }
     res.send(nomalizeResponse(response.data, response.errorCode));
   })
@@ -92,6 +96,8 @@ export const verifyOTPForRegistration = withId(async function (req, res) {
       } else {
         response = { errorCode: 4, data: null }; // khong tim duoc so dien thoai
       }
+    } else if (user.Status == -2) {
+      response = { errorCode: 6, data: null }; // user da bi khoa
     } else {
       response = { errorCode: 5, data: null }; // user da kich hoat
     }
@@ -117,7 +123,7 @@ export async function loginWithGoogleAccount(req, res) {
         Status: -1, // chua xac nhan sdt tren he thong
       });
       response = {
-        errorCode: 8, // chua kich hoat
+        errorCode: 8, // cap user, user nay chua kich hoat
         data: {
           user: newUser.id,
         },
@@ -126,7 +132,7 @@ export async function loginWithGoogleAccount(req, res) {
       // Kiem tra kich hoat sdt
       if (user.Status == -1) {
         response = {
-          errorCode: 8, // chua kich hoat
+          errorCode: 8, // cap user, user nay chua kich hoat
           data: {
             user: user.id,
           },
@@ -156,15 +162,11 @@ export const requestOTPForLogin = withPhone(async function (req, res) {
       Phone: phone,
       Status: -1, // chua xac nhan sdt tren he thong
     });
+  } else if (u.Status == -2) {
+    return res.send(nomalizeResponse(null, 6)); // user da bi khoa
   }
-  // else {
-  // if (u.Status == -1) {
-  //   response = { errorCode: 6, data: { user: u.id } }; // user chua kich hoat
-  // } else {
   await requestOTP(phone, true);
   const response: OTPSentResponse = { errorCode: 0, data: null };
-  // }
-  // }
   res.send(nomalizeResponse(response.data, response.errorCode));
 });
 
@@ -176,8 +178,9 @@ export const verifyOTPForLogin = withPhone(async function (req, res) {
   const user = await User.findOne({ Phone: phone }).exec();
   if (!user) {
     response = { errorCode: 2, data: null }; // user khong ton tai
+  } else if (user.Status == -2) {
+    response = { errorCode: 6, data: null }; // user da bi khoa
   } else {
-    // if (user.Status != -1) {
     const isSuccess = await verifyOTP(user.Phone, otp);
     if (isSuccess) {
       response = { errorCode: 0, data: { token: getToken(user.id) } };
@@ -189,9 +192,6 @@ export const verifyOTPForLogin = withPhone(async function (req, res) {
     } else {
       response = { errorCode: 3, data: null }; // ma otp sai
     }
-    // } else {
-    //   response = { errorCode: 6, data: { user: user.id } }; // user chua kich hoat
-    // }
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
 });

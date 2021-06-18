@@ -22,3 +22,30 @@ export const mapOptions = (order: any) => {
     currentOption.Options = _options;
   });
 };
+
+export const normalOrder = (order: any) => {
+  const Foods = order.Foods;
+
+  Foods.forEach((food) => {
+    food.Name = food.Food.Name;
+    food.Avatar = food.Food.Avatar;
+    food.id = food.Food._id;
+
+    food.Options = food.Options.reduce(
+      (prev, curr) => {
+        prev.notes = `${prev.notes ? prev.notes + ". " : ""}${
+          curr.Name
+        }: ${curr.Items.map((item) => item.Name).join(", ")}`;
+
+        prev.totalPrice += curr.Items.reduce(
+          (total, item) => total + item.OriginalPrice,
+          0
+        );
+        return prev;
+      },
+      { notes: "", totalPrice: 0 }
+    );
+
+    delete food.Food;
+  });
+};

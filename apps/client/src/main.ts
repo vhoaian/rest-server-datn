@@ -7,6 +7,7 @@ import cityRouter from "./routes/city";
 import restaurantRouter from "./routes/restaurant";
 import userRouter from "./routes/user";
 import orderRouter from "./routes/order";
+import chatroomRouter from "./routes/chatroom";
 import { environment } from "./environments/environment";
 import { connect } from "@vohoaian/datn-models";
 
@@ -27,6 +28,7 @@ app.use("/cities", cityRouter);
 app.use("/restaurants", restaurantRouter);
 app.use("/users", userRouter);
 app.use("/orders", orderRouter);
+app.use("/chatrooms", chatroomRouter);
 
 app.use(function (req, res) {
   res.status(404).end();

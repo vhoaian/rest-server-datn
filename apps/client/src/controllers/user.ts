@@ -1,12 +1,14 @@
-import { User } from '@vohoaian/datn-models';
-import { nomalizeResponse } from '../utils/normalize';
-import { withFilter } from '../utils/objects';
+import { User, Image } from "@vohoaian/datn-models";
+import { nomalizeResponse } from "../utils/normalize";
+import { withFilter } from "../utils/objects";
+import ggAPI from "@rest-servers/google-api";
+import path from "path";
+import fs from "fs";
 
 const UFilter = withFilter(
-  'Phone Gender Status Point FullName Email Avatar id'
+  "Phone Gender Status Point FullName Email Avatar id"
 );
 
-// Lấy tt KH (err=2: không tồn tại)
 export async function getUser(req, res) {
   const id = req.params.uid;
   const user = await User.findById(id).exec();
@@ -26,17 +28,22 @@ export async function getUser(req, res) {
   res.send(nomalizeResponse(response.data, response.errorCode));
 }
 
-// Cập nhật thông tin (err=2: không tồn tại)
 export async function updateUser(req, res) {
   const id = req.params.uid;
-  let response;
-  const AllowedFieldFilter = withFilter('Gender FullName Email Avatar id');
-  const newInfo = AllowedFieldFilter(req.body);
-  const user = await User.findByIdAndUpdate(id, newInfo, { new: true }).exec();
-  if (!user) {
+  const { email, fullname, gender } = req.body;
+  const _user: any = {};
+  if (email?.length > 0) _user.Email = email;
+  if (fullname?.length > 0) _user.FullName = fullname;
+  if (gender >= 0) _user.Gender = gender;
+
+  let response: any;
+  const updated = await User.findByIdAndUpdate(id, _user, {
+    new: true,
+  }).exec();
+  if (!updated) {
     response = { errorCode: 2, data: null }; // user khong ton tai
   } else {
-    const info = user.toObject({ virtuals: true });
+    const info = updated.toObject({ virtuals: true });
     response = {
       errorCode: 0,
       data: {
@@ -45,4 +52,51 @@ export async function updateUser(req, res) {
     };
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
+}
+
+export async function updateUserAvatar(req, res) {
+  const id = req.params.uid;
+  const uploaded = req.file;
+  const filePath = path.join(process.cwd(), uploaded.path);
+  const FILE = {
+    name: uploaded.filename,
+    type: uploaded.mimetype,
+    path: filePath,
+  };
+  // upload len gg drive
+  try {
+    const img = await ggAPI.uploadFile(FILE);
+    const newImage = await Image.create({
+      Sender: {
+        Id: (req.user as any).id,
+        Role: 0,
+      },
+      Url: img.webContentLink,
+    });
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { Avatar: img.webContentLink as string },
+      {
+        new: true,
+      }
+    ).exec();
+
+    let response: any;
+    if (!updated) {
+      response = { errorCode: 2, data: null }; // user khong ton tai
+    } else {
+      const info = updated.toObject({ virtuals: true });
+      response = {
+        errorCode: 0,
+        data: {
+          user: UFilter(info),
+        },
+      };
+    }
+    res.send(nomalizeResponse(response.data, response.errorCode));
+    // xoa file
+    fs.unlinkSync(filePath);
+  } catch (e) {
+    res.status(500).end();
+  } // server khong the upload
 }

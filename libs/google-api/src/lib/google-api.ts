@@ -167,9 +167,9 @@ class GGAPI {
 
       // Key TEST
       const LIST_API_KEY = [
+        "AIzaSyBZqajeEV1bxzly92dXxkSy5vxf30ASsRk",
         "AIzaSyCgcFxR44eAe0y6tdjymkqRfgUtXN2ceSI",
         this.credentials.API_KEY,
-        "AIzaSyBZqajeEV1bxzly92dXxkSy5vxf30ASsRk",
         "AIzaSyBL5NFRIKsim5nZLWf34oVPVw-0Bl_qv-8",
       ];
       const API_KEY = LIST_API_KEY[0];
