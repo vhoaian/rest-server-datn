@@ -142,7 +142,7 @@ const mapInfoForWithdraw = async (withdraw): Promise<void> => {
     switch (withdraw.User.Role) {
       case Constants.ROLE.SHIPPER: {
         const shipper = await Shipper.findById(withdraw.User.Id).select(
-          "FullName Phone"
+          "FullName Phone Wallet"
         );
         if (!shipper) throw new Error("Shipper does not exist");
 
