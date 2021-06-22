@@ -295,6 +295,8 @@ class GGAPI {
 
     // const fileID = this.getFileIDFromURL(url);
     // this.generatePublicUrl(fileID).then((d) => console.log(d));
+
+    //this.getAccessToken();
   }
 }
 

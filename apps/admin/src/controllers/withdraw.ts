@@ -11,7 +11,7 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
     const option: any = { Status: { $lt: Constants.PAID.RESOLVE } };
     const totalComplaints = await Withdraw.countDocuments(option);
 
-    let withdraws: any = await Withdraw.find(option)
+    const withdraws = await Withdraw.find(option)
       .limit(Constants.PAGENATION.PER_PAGE)
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE);
 
@@ -21,7 +21,7 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
         []
       )
     );
-    let listWithdraw = [];
+    let listWithdraw: any = [];
     if (phone !== "") {
       listWithdraw = withdraws.filter((elm) =>
         elm.User.Phone.startsWith(phone)
@@ -142,7 +142,7 @@ const mapInfoForWithdraw = async (withdraw): Promise<void> => {
     switch (withdraw.User.Role) {
       case Constants.ROLE.SHIPPER: {
         const shipper = await Shipper.findById(withdraw.User.Id).select(
-          "FullName Phone"
+          "FullName Phone Wallet"
         );
         if (!shipper) throw new Error("Shipper does not exist");
 

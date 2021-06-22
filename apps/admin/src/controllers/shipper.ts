@@ -194,8 +194,11 @@ export async function updateBoomOrderByID(req, res) {
       );
     }
     const shipper = await Shipper.findById(id).exec();
-    shipper?.History.Skip += 1;
-    await shipper.save();
+    if (shipper) {
+      shipper.History.Cancel += 1;
+      await shipper.save();
+    }
+
     res.send(nomalizeResponse(null));
   } catch (error) {
     console.error(`[ERROR]: boom order shipper: ${error.message}`);
