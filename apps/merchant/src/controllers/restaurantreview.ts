@@ -12,6 +12,7 @@ export async function getRestaurantReviews(req, res) {
 
   const count = await RestaurantReview.countDocuments(query);
   const orders = await RestaurantReview.find(query)
+    .populate("User", "FullName Avatar")
     .skip((page - 1) * perpage)
     .limit(perpage)
     .sort({ CreatedAt: -1 })
