@@ -15,6 +15,7 @@ authRouter.post(
   validateInput,
   async function (req, res) {
     const { email, password } = req.body;
+    console.log({ email, password });
     try {
       const admin = await Admin.findOne({ Email: email }).exec();
       if (!admin) {
