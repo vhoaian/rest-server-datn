@@ -167,6 +167,8 @@ class GGAPI {
 
       // Key TEST
       const LIST_API_KEY = [
+        "AIzaSyDRreHGCI4VPljU7OTENZkUGW5-83quSqI",
+        "AIzaSyDfKWLY_urTP9S2ThbIqobe70IBZZ6MZXI",
         "AIzaSyBQHQKZDZ0bUAHlaqXBQ7WdL4dY0Rudq6w",
         "AIzaSyBL5NFRIKsim5nZLWf34oVPVw-0Bl_qv-8",
         "AIzaSyCgcFxR44eAe0y6tdjymkqRfgUtXN2ceSI",
@@ -190,9 +192,9 @@ class GGAPI {
         console.log(`${this._TAG_LOG_FAIL}: call google api failed.`);
         console.log(`${this._TAG_LOG_FAIL}: ${data.error_message}.`);
         return {
-          distance: 0,
+          distance: 2.5,
           distanceUnit: "m",
-          duration: 0,
+          duration: 840,
           durationUnit: "s",
           originAddress: "",
           destinationAddress: "",
@@ -288,7 +290,7 @@ class GGAPI {
     }
   }
 
-  public test() {
+  public async test() {
     console.log("GG_API_TEST_MODE");
 
     const url =
@@ -298,6 +300,13 @@ class GGAPI {
     // this.generatePublicUrl(fileID).then((d) => console.log(d));
 
     //this.getAccessToken();
+
+    const s = await this.calcDistance(
+      "312/20 Tôn Đản, Quận 4, TP.HCM",
+      "Khoa học tự nhiên thành phố hcm"
+    );
+
+    console.log(s);
   }
 }
 
