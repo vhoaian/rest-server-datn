@@ -1,13 +1,59 @@
 import {
   Image,
   Order,
+  Restaurant,
   RestaurantReview,
+  Shipper,
   ShipperReview,
 } from "@vohoaian/datn-models";
 import { nomalizeResponse } from "../utils/normalize";
 import path from "path";
 import fs from "fs";
 import ggAPI from "@rest-servers/google-api";
+
+async function getNewScore(restaurant) {
+  const newScore: number =
+    (
+      await RestaurantReview.aggregate([
+        { $match: { Restaurant: restaurant } },
+        { $group: { _id: null, average: { $avg: "$Point" } } },
+      ])
+    )[0]?.average ?? 0;
+  return Number(newScore.toFixed(1));
+}
+
+async function updateNewScore(restaurant, score) {
+  Restaurant.findByIdAndUpdate(
+    restaurant,
+    { Rating: score },
+    { new: true }
+  ).exec();
+}
+
+async function getNewScoreAndUpdate(restaurant) {
+  const newScore = await getNewScore(restaurant);
+  return await updateNewScore(restaurant, newScore);
+}
+
+async function getNewScoreShipper(shipper) {
+  const newScore: number =
+    (
+      await ShipperReview.aggregate([
+        { $match: { Shipper: shipper } },
+        { $group: { _id: null, average: { $avg: "$Point" } } },
+      ])
+    )[0]?.average ?? 0;
+  return Number(newScore.toFixed(1));
+}
+
+async function updateNewScoreShipper(shipper, score) {
+  Shipper.findByIdAndUpdate(shipper, { Rating: score }, { new: true }).exec();
+}
+
+async function getNewScoreAndUpdateShipper(shipper) {
+  const newScore = await getNewScoreShipper(shipper);
+  return await updateNewScoreShipper(shipper, newScore);
+}
 
 export async function getRestaurantReviews(req, res) {
   const { page, perpage, point, image } = req.query;
@@ -97,10 +143,10 @@ export async function addRestaurantReview(req, res) {
   newReview.Images = images.map((image) => image.Url);
 
   const response = (await newReview.save()).toObject();
-  // TODO; tinh diem
+  getNewScoreAndUpdate(order.Restaurant);
   response.id = response._id;
   delete response._id;
-  res.send(response);
+  res.send(nomalizeResponse(response));
 }
 
 export async function addRestaurantReviewNoImages(req, res) {
@@ -124,10 +170,10 @@ export async function addRestaurantReviewNoImages(req, res) {
   });
 
   const response = (await newReview.save()).toObject();
-  // TODO; tinh diem
+  getNewScoreAndUpdate(order.Restaurant);
   response.id = response._id;
   delete response._id;
-  res.send(response);
+  res.send(nomalizeResponse(response));
 }
 
 export async function addShipperReview(req, res) {
@@ -184,10 +230,10 @@ export async function addShipperReview(req, res) {
   newReview.Images = images.map((image) => image.Url);
 
   const response = (await newReview.save()).toObject();
-  // TODO; tinh diem
+  getNewScoreAndUpdateShipper(order.Shipper);
   response.id = response._id;
   delete response._id;
-  res.send(response);
+  res.send(nomalizeResponse(response));
 }
 
 export async function addShipperReviewNoImages(req, res) {
@@ -213,10 +259,10 @@ export async function addShipperReviewNoImages(req, res) {
   });
 
   const response = (await newReview.save()).toObject();
-  // TODO; tinh diem
+  getNewScoreAndUpdateShipper(order.Shipper);
   response.id = response._id;
   delete response._id;
-  res.send(response);
+  res.send(nomalizeResponse(response));
 }
 
 export async function getRestaurantReviewsv2(req, res) {

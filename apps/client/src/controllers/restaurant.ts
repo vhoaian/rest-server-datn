@@ -1,6 +1,7 @@
 import {
   FoodCategory,
   Restaurant,
+  RestaurantReview,
   SecondaryRestaurant,
 } from "@vohoaian/datn-models";
 import { nomalizeResponse } from "../utils/normalize";
@@ -161,9 +162,13 @@ export async function getRestaurants(req, res) {
     resolvedRestaurants.map(async (r, i) => {
       const o = r.toObject({ virtuals: true });
       o.IsOpening = await r.isOpening();
+      o.TotalReviews = await RestaurantReview.countDocuments({
+        Restaurant: o.id,
+      });
       return withFilter(
-        "Name FullAddress OpenHours id Avatar IsOpening Distance Categories"
+        "Name FullAddress OpenHours id Avatar IsOpening Distance Categories IsPartner Rating TotalReviews"
       )(o);
+      // Total reviews
     })
   );
 
@@ -193,8 +198,12 @@ export async function getRestaurants(req, res) {
   );
 }
 
-export function getRestaurantInfo(req, res) {
+export async function getRestaurantInfo(req, res) {
   const { restaurant } = req.data;
+  restaurant.TotalReviews = await RestaurantReview.countDocuments({
+    Restaurant: restaurant.id,
+  });
+
   res.send(nomalizeResponse(restaurant));
 }
 
