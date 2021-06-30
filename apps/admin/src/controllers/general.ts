@@ -220,9 +220,7 @@ export async function getGeneralStatistics(req, res) {
 
 export async function getSetting(req, res) {
   try {
-    const setting = await Setting.find({})
-      .select("PercentFeeShipper PercentFeeMerchant MAX_DAY_DELAY_PAY_RECEIPT")
-      .exec();
+    const setting = await Setting.find({}).exec();
     if (!setting) {
       return res.send(
         nomalizeResponse(null, Constants.SERVER.GET_SETTING_ERROR)
@@ -240,6 +238,7 @@ export async function updateSetting(req, res) {
     shipperPercent: PercentFeeShipper,
     merchantPercent: PercentFeeMerchant,
     delayDay: MAX_DAY_DELAY_PAY_RECEIPT,
+    shippingFee: ShippingFee,
     id,
   } = req.body;
   try {
@@ -247,6 +246,7 @@ export async function updateSetting(req, res) {
       MAX_DAY_DELAY_PAY_RECEIPT,
       PercentFeeMerchant,
       PercentFeeShipper,
+      ShippingFee,
     }).exec();
     if (!updatedSetting) {
       return res.send(

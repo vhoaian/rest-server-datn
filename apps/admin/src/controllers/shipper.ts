@@ -41,7 +41,7 @@ export async function getShipperManagement(req, res) {
     shippers = shippers.map((user: any, i) => {
       const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
       const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
-      const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
+      const serviceFee = receiptFee[i] ? (serviceCharge === Constants.PAID.RESOLVE? 0: receiptFee[i].FeeTotal) : 0;
       return {
         _id: user._id,
         phone: user.Phone,
