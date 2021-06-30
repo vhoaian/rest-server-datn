@@ -187,6 +187,10 @@ export async function getRestaurants(req, res) {
     }
     result = temp;
   }
+  // sort result
+  result = result
+    .sort((a: any, b: any) => b.IsPartner - a.IsPartner)
+    .sort((a: any, b: any) => b.IsOpening - a.IsOpening);
 
   res.send(
     nomalizeResponse(result.slice((page - 1) * perpage, page * perpage), 0, {
