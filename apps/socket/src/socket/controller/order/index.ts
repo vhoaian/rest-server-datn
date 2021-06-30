@@ -38,7 +38,7 @@ interface ORDER {
 class OrderController {
   public _io: any = null;
   private _listOrder: Array<ORDER> = [];
-  private _MAX_TIME_DELAY_PAID = 1000 * (60 * 15 + 30);
+  private _MAX_TIME_DELAY_PAID = 1000 * 60 * 3;
 
   public ORDER_STATUS: any = {
     WAITING_PAYMENT: ENUM.next().value,
