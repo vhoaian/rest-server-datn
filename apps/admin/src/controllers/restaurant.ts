@@ -171,23 +171,35 @@ export async function addPermissionForRestaurant(req, res) {
       { IsPartner: true }
     ).exec();
 
-    const manager = await Manager.findByIdAndUpdate(
-      { _id: managerID },
-      {
-        FullName: fullname,
-        Phone: phone,
-        email: email,
+    const isManager = await Manager.findOne({ Phone: phone }).exec();
+    if (isManager) {
+      if (isManager.Roles.length > 0) {
+        return res.send(
+          nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR)
+        );
       }
-    );
-    if (!manager) {
-      return res.send(
-        nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR)
+      isManager.Roles = [{ Restaurant: restaurant.id }];
+      await isManager.save();
+      const deletedManager = await Manager.findByIdAndDelete(managerID);
+    } else {
+      const manager = await Manager.findById(
+        { _id: managerID },
+        {
+          FullName: fullname,
+          Phone: phone,
+          email: email,
+        }
       );
+      if (!manager) {
+        return res.send(
+          nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR)
+        );
+      }
     }
 
     res.send(nomalizeResponse(null, 0));
   } catch (error) {
-    console.log(`[ERROR] permision res ${error.message}`);
+    console.log(`[ERROR] permission res ${error.message}`);
     res.send(nomalizeResponse(null, Constants.SERVER.UPDATE_PERMISION_ERROR));
   }
 }

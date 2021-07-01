@@ -4,7 +4,7 @@ const restaurantListRouter = express.Router();
 import { Restaurant } from "@vohoaian/datn-models";
 import {
   getRestaurantManagementInfo,
-  createNewRestanrant,
+  createNewRestaurant,
 } from "../controllers/restaurantList";
 import { validateInput } from "../middlewares/services";
 import moment from "moment";
@@ -40,9 +40,8 @@ restaurantListRouter.post(
   body("district").notEmpty().isString(),
   body("ward").notEmpty().isString(),
   body("address").notEmpty().isString(),
-  body("parkingFee").notEmpty().isInt().toInt(),
   validateInput,
-  createNewRestanrant
+  createNewRestaurant
 );
 
 restaurantListRouter.use(

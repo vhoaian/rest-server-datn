@@ -54,7 +54,11 @@ export async function getRestaurantManagementInfo(req, res) {
     restaurants = restaurants.map((restaurant: any, i) => {
       const address = `${restaurant.Address.Street} ${restaurant.Address.Ward} ${restaurant.Address.District}`;
       const serviceCharge = receiptFee[i] ? receiptFee[i].Status : 0;
-      const serviceFee = receiptFee[i] ? receiptFee[i].FeeTotal : 0;
+      const serviceFee = receiptFee[i]
+        ? serviceCharge === Constants.PAID.RESOLVE
+          ? 0
+          : receiptFee[i].FeeTotal
+        : 0;
       const receiptID = receiptFee[i] ? receiptFee[i]._id : "";
       return {
         _id: restaurant._id,
@@ -97,7 +101,7 @@ export async function getRestaurantManagementInfo(req, res) {
   }
 }
 
-export async function createNewRestanrant(req, res) {
+export async function createNewRestaurant(req, res) {
   const {
     name,
     contractID,
@@ -111,7 +115,6 @@ export async function createNewRestanrant(req, res) {
     district,
     ward,
     address,
-    pakingFee,
   } = req.body;
 
   const resAddress = {
@@ -125,8 +128,12 @@ export async function createNewRestanrant(req, res) {
     Address: resAddress,
   }).exec();
 
+  const isOldManager = await Manager.findOne({ Email: email }).exec();
+
   if (isExists) {
     return res.send(nomalizeResponse(null, Constants.SERVER.RES_EXISTS));
+  } else if (isOldManager) {
+    return res.send(nomalizeResponse(null, Constants.SERVER.EMAIL_INVAILD));
   }
   //get goecode
   let latitude, longitude;
@@ -156,7 +163,7 @@ export async function createNewRestanrant(req, res) {
       Phone: contractID,
       City: cityID,
       District: districtID,
-      PakingFee: pakingFee,
+      Avatar: Constants.RESTAURANT.AVATAR,
     });
     //create new fake manager
     const newRestaurant = await restaurant.save();

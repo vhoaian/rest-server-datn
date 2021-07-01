@@ -75,6 +75,8 @@ export const Constants = {
   RESTAURANT: {
     STOP_SERVICE: -1,
     OPEN_SERVICE: 1,
+    AVATAR:
+      "https://drive.google.com/uc?id=1j0mrKqcvWde5WDyKTb8GKwfZpUrn0nWp&export=download",
   },
   STATUS_ACCOUNT: {
     LOCK: -2,

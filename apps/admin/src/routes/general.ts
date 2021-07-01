@@ -22,7 +22,7 @@ generalRouter.put(
   body("shipperPercent").notEmpty().isInt().toInt(),
   body("merchantPercent").notEmpty().isInt().toInt(),
   body("delayDay").notEmpty().isInt().toInt(),
-
+  body("shippingFee").notEmpty().isArray(),
   validateInput,
   updateSetting
 );

@@ -48,7 +48,9 @@ const getComplaintList = async (req, res) => {
   const { page } = req.query;
   const option: any = {};
   try {
-    const totalComplaints = await Complaint.countDocuments({}).exec();
+    const totalComplaints = await Complaint.countDocuments({
+      Status: { $lt: 1 },
+    }).exec();
 
     let complaints: Array<any> = await Complaint.find({})
       .select(
