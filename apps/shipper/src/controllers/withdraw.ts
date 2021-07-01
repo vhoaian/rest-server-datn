@@ -43,11 +43,12 @@ export async function addWithdraw(req, res) {
       Role: 1,
     },
     Amount: amount,
+    Status: -1,
   });
 
   // cap nhat so du
-  (shipper as any).Wallet = (shipper?.Wallet as number) - amount;
-  shipper?.save();
+  // (shipper as any).Wallet = (shipper?.Wallet as number) - amount;
+  // shipper?.save();
 
   const response = newWithdraw.toObject();
   response.id = response._id;

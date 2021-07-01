@@ -12,7 +12,8 @@ export const environment = {
   JWT: {
     secretKey: "final-project",
   },
-  URL_SOCKET_SERVER: "http://localhost:8010",
+  // URL_SOCKET_SERVER: "http://localhost:8010",
+  URL_SOCKET_SERVER: "http://192.168.1.4:8010",
   THUMB_WITHDRAW: "",
   THUMB_NOTI_FEEAPP: "",
 };
