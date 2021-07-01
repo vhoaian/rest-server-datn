@@ -31,6 +31,8 @@ class AutoCalcReceipt {
 
   private async fetchLatestSetting() {
     const setting = await Setting.findOne({});
+    if (!setting) return;
+
     this._PERCENT_FEE_MERCHANT = setting.PercentFeeMerchant;
     this._PERCENT_FEE_SHIPPER = setting.PercentFeeShipper;
     this._DAY_DELAY_PAY_RECEIPT = setting.MAX_DAY_DELAY_PAY_RECEIPT;

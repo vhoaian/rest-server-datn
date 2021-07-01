@@ -105,13 +105,16 @@ async function getDetailCompliant(req, res) {
     if (complaint) {
       const order = complaint.OrderID;
 
+      // @ts-expect-error
       const restaurant = await Restaurant.findById(order.Restaurant)
         .select("Name Phone")
         .exec();
+      // @ts-expect-error
       const shipper = await Shipper.findById(order.Shipper)
         .select("FullName Phone")
         .exec();
       const data = {
+        // @ts-expect-error
         total: order.ShippingFee + order.Total + (order.SubTotal || 0),
         images: complaint.Images,
         createAt: complaint.CreatedAt,
