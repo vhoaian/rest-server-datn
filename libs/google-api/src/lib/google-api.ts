@@ -167,43 +167,36 @@ class GGAPI {
 
       // Key TEST
       const LIST_API_KEY = [
-        "AIzaSyDRreHGCI4VPljU7OTENZkUGW5-83quSqI",
         "AIzaSyDfKWLY_urTP9S2ThbIqobe70IBZZ6MZXI",
+        this.credentials.API_KEY,
         "AIzaSyBQHQKZDZ0bUAHlaqXBQ7WdL4dY0Rudq6w",
         "AIzaSyBL5NFRIKsim5nZLWf34oVPVw-0Bl_qv-8",
         "AIzaSyCgcFxR44eAe0y6tdjymkqRfgUtXN2ceSI",
-        this.credentials.API_KEY,
         "AIzaSyBZqajeEV1bxzly92dXxkSy5vxf30ASsRk",
+        "AIzaSyDRreHGCI4VPljU7OTENZkUGW5-83quSqI",
       ];
-      const API_KEY = LIST_API_KEY[0];
 
       const query = unescape(
         encodeURIComponent(
           this._TEMPLATE_GOOGLE_DIRECT
             .replace("__ORIGIN", _origin)
             .replace("__DESTINATION", _destination)
-            .replace("__KEY", API_KEY)
         )
       );
 
-      const { data } = await axios.get(`${query}`);
+      let legs: any = null;
 
-      if (data.status !== "OK") {
-        console.log(`${this._TAG_LOG_FAIL}: call google api failed.`);
-        console.log(`${this._TAG_LOG_FAIL}: ${data.error_message}.`);
-        return {
-          distance: 2.5,
-          distanceUnit: "m",
-          duration: 840,
-          durationUnit: "s",
-          originAddress: "",
-          destinationAddress: "",
-          originCoor: { lat: 0, lng: 0 },
-          destinationCoor: { lat: 0, lng: 0 },
-        };
+      for (const indexKey in LIST_API_KEY) {
+        const { data } = await axios.get(
+          `${query.replace("__KEY", LIST_API_KEY[indexKey])}`
+        );
+
+        if (data.status !== "OK" && Number(indexKey) === LIST_API_KEY.length)
+          throw new Error(data.error_message);
+
+        legs = data.routes[0].legs[0];
+        break;
       }
-
-      const legs = data.routes[0].legs[0];
 
       console.log(`${this._TAG_LOG}: calc distance success.`);
 
@@ -218,11 +211,13 @@ class GGAPI {
         destinationCoor: legs.end_location,
       };
     } catch (e) {
-      console.log(`${this._TAG_LOG_FAIL}: ${e.message}`);
+      console.log(
+        `${this._TAG_LOG_FAIL}: call google api failed, ${e.message}`
+      );
       return {
-        distance: 0,
+        distance: 2500,
         distanceUnit: "m",
-        duration: 0,
+        duration: 840,
         durationUnit: "s",
         originAddress: "",
         destinationAddress: "",
@@ -301,12 +296,12 @@ class GGAPI {
 
     //this.getAccessToken();
 
-    const s = await this.calcDistance(
-      "312/20 Tôn Đản, Quận 4, TP.HCM",
-      "Khoa học tự nhiên thành phố hcm"
-    );
+    // const s = await this.calcDistance(
+    //   "312/20 Tôn Đản, Quận 4, TP.HCM",
+    //   "Khoa học tự nhiên thành phố hcm"
+    // );
 
-    console.log(s);
+    // console.log(s);
   }
 }
 
