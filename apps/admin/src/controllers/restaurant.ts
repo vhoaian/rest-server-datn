@@ -178,6 +178,8 @@ export async function addPermissionForRestaurant(req, res) {
           nomalizeResponse(null, Constants.SERVER.UPDATE_RES_ERROR)
         );
       }
+
+      // @ts-expect-error
       isManager.Roles = [{ Restaurant: restaurant.id }];
       await isManager.save();
       const deletedManager = await Manager.findByIdAndDelete(managerID);

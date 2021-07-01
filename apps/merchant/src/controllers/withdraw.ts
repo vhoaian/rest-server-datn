@@ -46,6 +46,7 @@ export async function addWithdraw(req, res) {
       Role: 2,
     },
     Amount: amount,
+    Status: -1,
   });
 
   // cap nhat so du
