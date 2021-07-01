@@ -171,7 +171,7 @@ export async function createNewRestaurant(req, res) {
       Email: email,
       Password: bcryptjs.hashSync(password, Constants.BCRYPT_SALT),
       FullName: name,
-      Status: 1,
+      Status: Constants.STATUS_ACCOUNT.UNLOCK,
       Roles: [{ Restaurant: newRestaurant._id }],
     });
     await newManager.save();
