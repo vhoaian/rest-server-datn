@@ -12,6 +12,7 @@ export async function getShipperReviews(req, res) {
 
   const count = await ShipperReview.countDocuments(query);
   const orders = await ShipperReview.find(query)
+    .populate("User", "FullName Avatar")
     .skip((page - 1) * perpage)
     .limit(perpage)
     .sort({ CreatedAt: -1 })

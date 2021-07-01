@@ -98,16 +98,19 @@ export async function updateUserAvatar(req, res) {
 export async function updateUserSetting(req, res) {
   const id = req.params.uid;
   const { maxdistance, maxamount, minamount, maxorder } = req.body;
-  const shipper = await Shipper.findById(req.user.id);
-
-  if (shipper) {
-    if (maxdistance >= 0) shipper.Setting.MaxDistance = maxdistance;
-    if (maxorder >= 0) shipper.Setting.MaxOrder = maxorder;
-    if (maxamount >= 0) shipper.Setting.MaxAmount = maxamount;
-    if (minamount >= 0) shipper.Setting.MinAmount = minamount;
-  }
+  const updateInfo: any = {};
+  if (maxdistance >= 0) updateInfo["Setting.MaxDistance"] = maxdistance;
+  if (maxorder >= 0) updateInfo["Setting.MaxOrder"] = maxorder;
+  if (maxamount >= 0) updateInfo["Setting.MaxAmount"] = maxamount;
+  if (minamount >= 0) updateInfo["Setting.MinAmount"] = minamount;
+  const updated = await Shipper.findByIdAndUpdate(
+    id,
+    {
+      $set: updateInfo,
+    },
+    { new: true }
+  );
   let response: any;
-  const updated = await shipper?.save();
   if (!updated) {
     response = { errorCode: 2, data: null }; // user khong ton tai
   } else {

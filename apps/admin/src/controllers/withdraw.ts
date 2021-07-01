@@ -16,14 +16,15 @@ export const getAllRequestWithdraw = async (req, res): Promise<void> => {
       .skip((page - 1) * Constants.PAGENATION.PER_PAGE);
 
     await Promise.all(
-      withdraws.reduce(
-        (lsProms, curr) => lsProms.concat(mapInfoForWithdraw(curr)),
-        []
-      )
+      withdraws.reduce((lsProms: any, curr) => {
+        lsProms.push(mapInfoForWithdraw(curr));
+        return lsProms;
+      }, [])
     );
     let listWithdraw: any = [];
     if (phone !== "") {
       listWithdraw = withdraws.filter((elm) =>
+        //@ts-expect-error
         elm.User.Phone.startsWith(phone)
       );
     } else {
