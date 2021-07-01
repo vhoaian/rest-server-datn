@@ -75,16 +75,20 @@ export const verifyOTPForLogin = withPhone(async function (req, res) {
 
 export const loginByEmail = async function (req, res) {
   const { email, password } = req.body;
-  const hashed = bcryptJs.hashSync(password, ENV.environment.BCRYPT_SALT);
-  const u = await Manager.findOne({ Email: email, Password: hashed }).exec();
+
+  const u = await Manager.findOne({ Email: email }).exec();
+
   if (!u) {
-    return res.send(nomalizeResponse(null, 3)); // dang nhap khong thanh cong
+    return res.send(nomalizeResponse(null, 3)); // không tìm thấy email
   } else if (u.Status == -2) {
     return res.send(nomalizeResponse(null, 6)); // user da bi khoa
+  } else if (bcryptJs.compareSync(password, u.Password)) {
+    const response: OTPVerifiedResponse = {
+      errorCode: 0,
+      data: { token: getToken(u.id) },
+    };
+    res.send(nomalizeResponse(response.data, response.errorCode));
+  } else {
+    return res.send(nomalizeResponse(null, 5));
   }
-  const response: OTPVerifiedResponse = {
-    errorCode: 0,
-    data: { token: getToken(u.id) },
-  };
-  res.send(nomalizeResponse(response.data, response.errorCode));
 };
