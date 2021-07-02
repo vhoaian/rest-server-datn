@@ -184,7 +184,7 @@ export async function addPermissionForRestaurant(req, res) {
       await isManager.save();
       const deletedManager = await Manager.findByIdAndDelete(managerID);
     } else {
-      const manager = await Manager.findById(
+      const manager = await Manager.findByIdAndUpdate(
         { _id: managerID },
         {
           FullName: fullname,

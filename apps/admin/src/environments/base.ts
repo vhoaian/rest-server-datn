@@ -1,5 +1,13 @@
 import * as bcryptJs from "bcryptjs";
 
+const GG_API_LIST = [
+  "AIzaSyAqt8_rMqOUdY7TH-uDLD-dpbRTXyzV81c",
+  "AIzaSyCqS3ShhDrlYA_lU890nqHKRxnovg8y8JU",
+  "AIzaSyBJfY1DIgMkxCZqxMI-dEsH89fBBcghmf8",
+  "AIzaSyAFJZFUQOMyF3sKxY2Fs9_wouWC8AWLZYY",
+  "AIzaSyBfel2PZ2eQq5zuFGzL1Hmdx8zAJF15bwQ",
+];
+
 export const environment = {
   PORT: process.env.PORT || 8001,
   GOOGLE: {
@@ -7,7 +15,7 @@ export const environment = {
     gsecret: process.env.GOOGLE_SECRET,
     gCallBackURL: "/auth/google/redirect",
     defaultPass: "google",
-    GEOCODE_API: "AIzaSyAFJZFUQOMyF3sKxY2Fs9_wouWC8AWLZYY", //"AIzaSyBfel2PZ2eQq5zuFGzL1Hmdx8zAJF15bwQ",
+    GEOCODE_API: GG_API_LIST,
   },
   JWT: {
     secretKey: "final-project",
