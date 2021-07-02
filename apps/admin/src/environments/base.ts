@@ -15,7 +15,7 @@ export const environment = {
     gsecret: process.env.GOOGLE_SECRET,
     gCallBackURL: "/auth/google/redirect",
     defaultPass: "google",
-    GEOCODE_API: GG_API_LIST,
+    GEOCODE_API: GG_API_LIST[0],
   },
   JWT: {
     secretKey: "final-project",
