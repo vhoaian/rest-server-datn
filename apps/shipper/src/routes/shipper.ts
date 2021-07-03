@@ -1,6 +1,7 @@
 import express from "express";
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import {
+  getStatistics,
   getUser,
   updateUser,
   updateUserAvatar,
@@ -63,6 +64,22 @@ authRouter.put(
     next();
   },
   updateUserAvatar
+);
+
+authRouter.get(
+  "/:uid/statistics",
+  param("uid").notEmpty().isMongoId(),
+  query("status").optional().isInt().toArray(),
+  query("montha").optional().isInt({ min: 1, max: 12 }),
+  query("daya").optional().isInt({ min: 1, max: 31 }),
+  query("yeara").optional().isInt({ min: 2020 }),
+  query("monthb").optional().isInt({ min: 1, max: 12 }),
+  query("dayb").optional().isInt({ min: 1, max: 31 }),
+  query("yearb").optional().isInt({ min: 2020 }),
+  validateInput,
+  jwtAuthentication,
+  validatePrivateResource(),
+  getStatistics
 );
 
 export default authRouter;

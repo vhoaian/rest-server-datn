@@ -6,6 +6,7 @@ import {
   getFoodsOfRestaurant,
   getRestaurant,
   getRestaurants,
+  getStatistics,
 } from "../controllers/restaurant";
 import { jwtAuthentication, validateInput } from "../middlewares/services";
 import foodCategoryRouter from "./foodCategory";
@@ -40,12 +41,19 @@ router.get(
   getFoodsOfRestaurant
 );
 
-// router.get(
-//   "/:restaurant/statistics",
-//   param("restaurant").isMongoId(),
-//   validateInput,
-//   getFoodsOfRestaurant
-// );
+router.get(
+  "/:restaurant/statistics",
+  param("restaurant").isMongoId(),
+  query("status").optional().isInt().toArray(),
+  query("montha").optional().isInt({ min: 1, max: 12 }),
+  query("daya").optional().isInt({ min: 1, max: 31 }),
+  query("yeara").optional().isInt({ min: 2020 }),
+  query("monthb").optional().isInt({ min: 1, max: 12 }),
+  query("dayb").optional().isInt({ min: 1, max: 31 }),
+  query("yearb").optional().isInt({ min: 2020 }),
+  validateInput,
+  getStatistics
+);
 
 router.get("/:restaurant", getRestaurant);
 
