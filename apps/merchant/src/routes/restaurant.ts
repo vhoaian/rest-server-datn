@@ -7,12 +7,14 @@ import {
   getRestaurant,
   getRestaurants,
   getStatistics,
+  updateRestaurant,
 } from "../controllers/restaurant";
 import { jwtAuthentication, validateInput } from "../middlewares/services";
 import foodCategoryRouter from "./foodCategory";
 import orderRouter from "./order";
 import notificationRouter from "./notification";
 import withdrawRouter from "./withdraw";
+import { getDateFromTimeString } from "../utils/time";
 
 const router = express.Router();
 
@@ -53,6 +55,16 @@ router.get(
   query("yearb").optional().isInt({ min: 2020 }),
   validateInput,
   getStatistics
+);
+
+router.put(
+  "/:restaurant",
+  param("restaurant").isMongoId(),
+  body("status").optional().isInt({ min: -1 }).toInt(),
+  body("openingAt").optional().customSanitizer(getDateFromTimeString),
+  body("closingAt").optional().customSanitizer(getDateFromTimeString),
+  validateInput,
+  updateRestaurant
 );
 
 router.get("/:restaurant", getRestaurant);

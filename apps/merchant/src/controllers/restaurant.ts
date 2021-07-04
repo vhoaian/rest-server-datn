@@ -173,3 +173,30 @@ export async function getStatistics(req, res) {
   }
   res.send(nomalizeResponse(response.data, response.errorCode));
 }
+
+export async function updateRestaurant(req, res) {
+  const restaurant = req.params.restaurant;
+
+  const { openingAt, closingAt, status } = req.body;
+  const updateInfo: any = {};
+  if (openingAt) updateInfo.OpenAt = openingAt;
+  if (closingAt) updateInfo.CloseAt = closingAt;
+  if (typeof status == "number") updateInfo.Status = status;
+
+  let response: any;
+  const updated = await Restaurant.findByIdAndUpdate(restaurant, updateInfo, {
+    new: true,
+  }).exec();
+  if (!updated) {
+    response = { errorCode: 2, data: null }; // khong ton tai
+  } else {
+    const info = updated.toObject({ virtuals: true });
+    response = {
+      errorCode: 0,
+      data: withFilter(
+        "id Status IsPartner Categories Name ContractID Avatar Anouncement Phone OpenHours FullAddress Geolocation id Wallet"
+      )(info),
+    };
+  }
+  res.send(nomalizeResponse(response.data, response.errorCode));
+}

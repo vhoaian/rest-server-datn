@@ -158,7 +158,7 @@ export async function getRestaurants(req, res) {
     }
   }
 
-  let result = await Promise.all(
+  let result: any = await Promise.all(
     resolvedRestaurants.map(async (r, i) => {
       const o = r.toObject({ virtuals: true });
       o.IsOpening = await r.isOpening();
@@ -166,7 +166,7 @@ export async function getRestaurants(req, res) {
         Restaurant: o.id,
       });
       return withFilter(
-        "Name FullAddress OpenHours id Avatar IsOpening Distance Categories IsPartner Rating TotalReviews"
+        "Name FullAddress OpenHours id Avatar IsOpening Distance Categories IsPartner Rating TotalReviews Status"
       )(o);
       // Total reviews
     })
@@ -191,6 +191,8 @@ export async function getRestaurants(req, res) {
   result = result
     .sort((a: any, b: any) => b.IsPartner - a.IsPartner)
     .sort((a: any, b: any) => b.IsOpening - a.IsOpening);
+  // loc nha hang
+  result = result.filter((r: any) => r.Status >= 0);
 
   res.send(
     nomalizeResponse(result.slice((page - 1) * perpage, page * perpage), 0, {
